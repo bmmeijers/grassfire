@@ -434,6 +434,49 @@ class Mesh(object):
                 if incircle(p1, p2, p3, p4) > 0 or incircle(p3, p4, p1, p2) > 0:
                     self.flip22(he)
 
+    def flip22_event(self, he):
+        """Flips half edges inside quadrilateral
+        
+        E.g.:
+           o
+          /|\
+         / | \
+        o  |  o
+         \ | /
+          \|/
+           o
+        becomes:
+           o
+          / \
+         /   \
+        o-----o
+         \   /
+          \ /
+           o
+        """
+#        cdef HalfEdge he1, he2, he3, he4
+        # he is the diagonal that should be flipped
+        assert he.type != HE_BOUNDARY, "Boundary is not allowed to flip"
+        assert he.sibling.type != HE_BOUNDARY, "Boundary is not allowed to flip"
+        he1 = he.next
+        he2 = he1.next
+        he3 = he.sibling.next
+        he4 = he3.next
+        # flip origins
+        he.origin = he2.origin
+        he.sibling.origin = he4.origin
+        # update point->halfhe pointers
+        self.update_half_he(he3)
+        self.update_half_he(he1)
+        # link he's
+        he1.next = he
+        he.next = he4
+        he4.next = he1
+        he3.next = he.sibling
+        he.sibling.next = he2
+        he2.next = he3
+
+
     def flip22(self, he):
         """Flips hes inside quadrilateral
         

@@ -74,6 +74,9 @@ for i, vertex in enumerate(vertices[:-1]):
     print "-" * 70
     speed = directions[i]
     moving = MovingVertex(vertex.x, vertex.y, directions[i])
+    
+    if vertex.x == 4.5 and vertex.y == 5:
+        first_collapse = moving
     assert moving.he is None
     check = vertex.x + speed[0], vertex.y + speed[1]
     length = dist(vertex, check)
@@ -136,12 +139,15 @@ for i, vertex in enumerate(vertices[:-1]):
         cur = nxt
         nxt = cur.next.next.sibling
 
+print first_collapse, first_collapse.he, first_collapse.he.sibling
+tri.flip22_event(first_collapse.he.next.next.sibling.next) # diagonal
+print first_collapse, first_collapse.he, first_collapse.he.sibling
+tri.flip22_event(first_collapse.he.next.next.sibling.next)
 fh = open("/tmp/tris_after.wkt", "w")
 fh.write("#triangle\n")
 vis = MeshVisualizer(tri)
-vis.list_triangles_time(fh, time=0.4)
+vis.list_triangles_time(fh, time=0.48)
 fh.close()
-
 
 # add every vertex again to triangulation
 # which means, make a new vertex object
