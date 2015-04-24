@@ -3,6 +3,7 @@
 	<name>grassfire</name>
 	<comment></comment>
 	<projects>
+		<project>oseq</project>
 		<project>predicates</project>
 	</projects>
 	<buildSpec>
