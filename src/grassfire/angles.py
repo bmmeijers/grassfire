@@ -3,8 +3,6 @@
 # atan2(v2.y, v2.x) - atan2(v1.y, v1.x)
 # add 2pi until positive
 
-from ngon import ngon
-
 from itertools import imap
 from operator import add, sub, mul, truediv
 from math import pi, atan2, degrees, hypot, sin
@@ -69,7 +67,7 @@ def normalize(v):
     return tuple([i/lengthv for i in v])
 
 def negate(val):
-    return -1 * val
+    return -val
 
 def outward_unit_p1(p0, p1, p2):
     """Gets two normalized (i.e. unit) vectors pointing from
@@ -161,6 +159,7 @@ def bisector_vectors(linearring):
 def _test():
     #
     print bisector((2,7), (2,3), (0,3))
+    print bisector((0,3), (2,3), (2,7))
     print bisector((6,10), (5.5, 1), (5,10))
 
 if __name__ == "__main__":

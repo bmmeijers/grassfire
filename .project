@@ -5,6 +5,7 @@
 	<projects>
 		<project>oseq</project>
 		<project>predicates</project>
+		<project>tri</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
