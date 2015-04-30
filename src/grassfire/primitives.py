@@ -7,6 +7,9 @@ from tri.delaunay import StarEdgeIterator, cw, ccw
 from tri.delaunay import output_triangles, output_vertices
 
 from angles import bisector
+from angles import normalize, perp
+from operator import add, sub, mul, truediv
+from collections import deque
 
 class Skeleton(object):
     """Represents a Straight Skeleton
@@ -68,10 +71,13 @@ def init_skeleton(dt):
                 around = [e for e in it]
                 with open("/tmp/vertexit.wkt", "w") as fh:
                     output_triangles([e.triangle for e in around], fh)
-                starts = []
+
+                constraints = []
                 for i, e in enumerate(around):
                     if e.triangle.constrained[cw(e.side)]:
-                        starts.append(i)
+                        constraints.append(i)
+                print "# of constraints", len(constraints)
+
                 # FIXME:
                 # Check here how many constrained edges we have outgoing of
                 # this vertex.
@@ -82,42 +88,58 @@ def init_skeleton(dt):
                 # We do not handle this properly at this moment.
                 #
                 # In case 2 or more the following is fine.
-                assert len(starts) >= 2
-                starts.append(starts[0])
-                for lo, hi in zip(starts[:-1], starts[1:]):
-                    print lo, ":",hi
-                    begin, end = around[lo], around[hi]
-                    p0 = begin.triangle.vertices[ccw(begin.side)]
-                    p1 = v
-                    p2 = end.triangle.vertices[ccw(end.side)]
-                    p0, p1, p2
-                    vec = bisector((p0.x, p0.y), (p1.x, p1.y), (p2.x, p2.y))
-                    print >> bisector_fh, "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((p1.x, p1.y), (p1.x + vec[0], p1.y + vec[1])) 
-#                 print begin
-#                 print end
-#                
-#             if starts[0] == 0:
-#                 # easy
-#                 starts.append(len(around))
-#                 groups = []
-#                 for lo, hi in zip(starts[:-1], starts[1:]):
-#                     groups.append(around[lo:hi])
-#             else:
-#                 # hard, wrap around
-#                 starts = [0] + starts + [len(around)]
-#                 print "***"
-#                 groups = []
-#                 for lo, hi in zip(starts[:-1], starts[1:]):
-#                     groups.append(around[lo:hi])
-#                 groups[-1].extend(groups[0])
-#                 del groups[0]
-#             
-#             for group in groups:
-                
-            #break
+                if len(constraints) == 0:
+                    raise ValueError("Singular point found")
+                else:
+                    # rotate the list of around triangles, 
+                    # so that we start with a triangle that has a constraint
+                    # side
+                    if constraints[0] != 0:
+                        shift = -constraints[0] # how much to rotate
+                        d = deque(around)
+                        d.rotate(shift)
+                        around = list(d)
+                        # also update which are constraint 
+                        constraints = [idx + shift for idx in constraints]
+
+                    if len(constraints) == 1:
+                        edge = around[constraints[0]]
+                        start, end = v, edge.triangle.vertices[ccw(edge.side)]
+                        vec = normalize((end.x - start.x , end.y - start.y))
+                        # first bisector when going ccw at end
+                        p2 = tuple(map(add, start, perp(vec)))
+                        p1 = v
+                        p0 = tuple(map(add, start, perp(perp(vec))))
+                        bi = bisector(p0, p1, p2)
+                        print >> bisector_fh, "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((p1.x, p1.y), map(add, p1, bi)) 
+                        # second bisector when going ccw at end
+                        p2 = tuple(map(add, start, perp(perp(vec))))
+                        p1 = v
+                        p0 = tuple(map(add, start, perp(perp(perp(vec)))))
+                        bi = bisector(p0, p1, p2)
+                        print >> bisector_fh, "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((p1.x, p1.y), map(add, p1, bi)) 
+                        # FIXME insert additional triangle at this side
+
+                    else:
+                        assert len(constraints) >= 2
+                        # group the triangles around the vertex
+                        constraints.append(len(around))
+                        groups = []
+                        for lo, hi in zip(constraints[:-1], constraints[1:]):
+                            groups.append(around[lo:hi])
+    
+                        # per group make a bisector
+                        for group in groups:
+                            begin, end = group[0], group[-1]
+                            p2 = begin.triangle.vertices[ccw(begin.side)] # the cw vertex
+                            p1 = v
+                            p0 = end.triangle.vertices[cw(end.side)]      # the ccw vertex
+                            bi = bisector(p0, p1, p2)
+                            print >> bisector_fh, "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((p1.x, p1.y), map(add, p1, bi))
+
 
     # FIXME: for our small example this holds -> move to a unit test later
-    assert len(skel.sk_nodes) == 8
+    # assert len(skel.sk_nodes) == 8
 
     it = TriangleIterator(dt)
     new = []
@@ -155,13 +177,7 @@ def init_skeleton(dt):
 
     return skel
 
-def main():
-    v = Vector(5, 5)
-    print type(v)
-
-    t = KineticTriangle()
-    t.vertices = [KineticVertex(), KineticVertex(), KineticVertex()]
-
+def test_poly():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(0, 0), (10, 0), (11, 1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
     dt = triangulate(conv.points, None, conv.segments)
@@ -175,5 +191,99 @@ def main():
 
     init_skeleton(dt)
 
+
+def test_single_line():
+    conv = ToPointsAndSegments()
+    conv.add_point((0, 0))
+    conv.add_point((10, 0))
+    conv.add_segment((0, 0), (10,0))
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    with open("/tmp/vertices.wkt", "w") as fh:
+        output_vertices([v for v in dt.vertices], fh)
+
+    it = TriangleIterator(dt)
+    with open("/tmp/tris.wkt", "w") as fh:
+        output_triangles([t for t in it], fh)
+
+    init_skeleton(dt)
+
+def test_three_lines():
+    conv = ToPointsAndSegments()
+    conv.add_point((0, 0))
+    conv.add_point((10, 0))
+    conv.add_point((-2, 8))
+    conv.add_point((-2, -8))
+    conv.add_segment((0, 0), (10,0))
+    conv.add_segment((0, 0), (-2,8))
+    conv.add_segment((0, 0), (-2,-8))
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    with open("/tmp/vertices.wkt", "w") as fh:
+        output_vertices([v for v in dt.vertices], fh)
+
+    it = TriangleIterator(dt)
+    with open("/tmp/tris.wkt", "w") as fh:
+        output_triangles([t for t in it], fh)
+
+    init_skeleton(dt)
+
+
+def test_single_point():
+    conv = ToPointsAndSegments()
+    conv.add_point((0, 0))
+    dt = triangulate(conv.points, None, conv.segments)
+    # should raise
+    init_skeleton(dt)
+
+
+def test_triangle():
+    conv = ToPointsAndSegments()
+    conv.add_point((10,0))
+    conv.add_point((-2,8))
+    conv.add_point((-2,-8))
+    conv.add_segment((10,0), (-2,8))
+    conv.add_segment((-2,8), (-2,-8))
+    conv.add_segment((-2,-8), (10,0))
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    with open("/tmp/vertices.wkt", "w") as fh:
+        output_vertices([v for v in dt.vertices], fh)
+
+    it = TriangleIterator(dt)
+    with open("/tmp/tris.wkt", "w") as fh:
+        output_triangles([t for t in it], fh)
+
+    init_skeleton(dt)
+
+def test_quad():
+    conv = ToPointsAndSegments()
+    conv.add_point((8,4))
+    conv.add_point((-2,8))
+    conv.add_point((-2,-8))
+    conv.add_point((14,10))
+    conv.add_segment((8,4), (14,10))
+    conv.add_segment((14,10), (-2,8))
+    conv.add_segment((-2,8), (-2,-8))
+    conv.add_segment((-2,-8), (8,4))
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    with open("/tmp/vertices.wkt", "w") as fh:
+        output_vertices([v for v in dt.vertices], fh)
+
+    it = TriangleIterator(dt)
+    with open("/tmp/tris.wkt", "w") as fh:
+        output_triangles([t for t in it], fh)
+
+    init_skeleton(dt)
+
 if __name__ == "__main__":
-    main()
+#     test_poly()
+#     test_single_line()
+#     test_three_lines()
+    test_triangle()
+#     test_quad()

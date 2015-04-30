@@ -60,6 +60,8 @@ from pprint import pprint
 #
 #    # b = sweep_angle(i/100.0*pi, 0.25*pi, ccw = False)
 
+
+
 def normalize(v):
     """Normalizes the length of the vector with 2 elements
     """
@@ -68,6 +70,11 @@ def normalize(v):
 
 def negate(val):
     return -val
+
+def perp(v):
+    """rotate 2d vector 90 degrees counter clockwise
+    """
+    return (negate(v[1]), v[0])
 
 def outward_unit_p1(p0, p1, p2):
     """Gets two normalized (i.e. unit) vectors pointing from
@@ -103,6 +110,9 @@ def bisector(p0, p1, p2):
     """Calculates bisector vector that has correct
     length, so that edges are offset 1 unit, if points of bisectors
     are to be connected (playing 'connect-the-dot').
+    
+    The bisector that is generated lies on the left when you go from point
+    p0 to p1 to p2, while looking from above.
     """
     u, v = outward_unit_p1(p0, p1, p2)
 #    print u, v
@@ -122,16 +132,15 @@ def bisector(p0, p1, p2):
     # thus swap position to mirror it
     if alpha > pi:
         # negate the original vector so it is pointing in opposite
-        # direction
+        # direction, thus rotate 180 degrees
         # r = (-1*r[0], -1*r[1])
-        r = map(negate, r)
+        r = perp(perp(r))
     alpha *= 0.5
     # scaling for unit vector pointing in right direction
     # so that offset curve is 1 unit from original edge
-    
+
     # FIXME: when the sin = 0 this brings division by zero
     # this happens when p0, p1, p2 are collinear
-    
     scaling = 1. / sin(alpha)
     # print "scaling", scaling
     # print "r", r
