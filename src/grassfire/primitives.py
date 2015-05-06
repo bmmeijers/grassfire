@@ -52,7 +52,7 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 0.25
+        time = 0.8
         return "{0} {1}".format(self.origin[0] + time * self.velocity[0], 
                                 self.origin[1] + time * self.velocity[1])
 
@@ -372,10 +372,13 @@ def init_skeleton(dt):
                     # if first is True and second True
                     # make ktriangles triangle at first leg
                     # and assign old corner to kvB
+                    #
+                    # if both not ok, probably at convex hull overlapping with infinite triangle
+                    # only, so take guess and use the first leg
 
                     # if first is True and second False
                     # assign ktriangles triangle to kvA/kvB and the corner to kvB
-                    if first_ok:
+                    if first_ok or (not first_ok and not last_ok):
                         ktriangle = triangle2ktriangle[mid.triangle]
                         ktriangle.vertices[mid.side] = kvB
 
@@ -498,10 +501,6 @@ def init_skeleton(dt):
         side = ngb.neighbours.index(kt)
         kt.vertices[2] = ngb.vertices[ccw(side)]
         ktriangles.append(kt)
-
-
-    for t in ktriangles:
-        print t
 
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles(ktriangles, fh)
@@ -732,6 +731,26 @@ def test_45_deg_segments():
     output_dt(dt)
 
     init_skeleton(dt)
+
+def test_30_deg_segments():
+    # FIXME: this one goes wrong...
+
+    conv = ToPointsAndSegments()
+
+    conv.add_point((0,5))
+    conv.add_point((9,0.5))
+    conv.add_point((12,2))
+    conv.add_point((14,4))
+
+    conv.add_segment((0,5), (9,0.5))
+    conv.add_segment((12,2), (14,4))
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    output_dt(dt)
+
+    init_skeleton(dt)
+
 
 if __name__ == "__main__":
 #     test_poly()
