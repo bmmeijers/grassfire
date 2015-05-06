@@ -439,8 +439,6 @@ def init_skeleton(dt):
                         knew.neighbours[0] = kX
                         knew.neighbours[1] = kY
 
-
-
                 # make bisectors
                 else:
                     assert len(constraints) >= 2
@@ -697,6 +695,44 @@ def test_2_segments():
 
     init_skeleton(dt)
 
+
+def test_2_perp_segments():
+
+    conv = ToPointsAndSegments()
+
+    conv.add_point((0,0))
+    conv.add_point((10,0))
+    conv.add_point((12,2))
+    conv.add_point((12,10))
+
+    conv.add_segment((0,0), (10,0))
+    conv.add_segment((12,2), (12,10))
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    output_dt(dt)
+
+    init_skeleton(dt)
+
+def test_45_deg_segments():
+    # FIXME: this one goes wrong...
+
+    conv = ToPointsAndSegments()
+
+    conv.add_point((0,0))
+    conv.add_point((10,0))
+    conv.add_point((12,2))
+    conv.add_point((14,4))
+
+    conv.add_segment((0,0), (10,0))
+    conv.add_segment((12,2), (14,4))
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    output_dt(dt)
+
+    init_skeleton(dt)
+
 if __name__ == "__main__":
 #     test_poly()
 #     test_1_segment()
@@ -707,5 +743,7 @@ if __name__ == "__main__":
 #     test_triangle()
 #     test_quad()
 #     test_two_lines_par()
-    test_polyline()
+#     test_polyline()
 #     test_2_segments()
+#     test_2_perp_segments()
+    test_45_deg_segments()
