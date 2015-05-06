@@ -13,6 +13,7 @@ from angles import normalize, perp
 from operator import add, sub, mul, truediv
 from collections import deque
 
+from warnings import warn
 from math import atan2, pi
 
 class Skeleton(object):
@@ -52,7 +53,7 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 0.8
+        time = 0.2
         return "{0} {1}".format(self.origin[0] + time * self.velocity[0], 
                                 self.origin[1] + time * self.velocity[1])
 
@@ -497,10 +498,13 @@ def init_skeleton(dt):
 
 #     inf = next(infinites.iterkeys())
     for kt in ktri_no_apex:
-        ngb = kt.neighbours[0]
-        side = ngb.neighbours.index(kt)
-        kt.vertices[2] = ngb.vertices[ccw(side)]
-        ktriangles.append(kt)
+        try:
+            ngb = kt.neighbours[0]
+            side = ngb.neighbours.index(kt)
+            kt.vertices[2] = ngb.vertices[ccw(side)]
+            ktriangles.append(kt)
+        except ValueError:
+            warn("Problematic case found")
 
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles(ktriangles, fh)
@@ -714,7 +718,6 @@ def test_2_perp_segments():
     init_skeleton(dt)
 
 def test_45_deg_segments():
-    # FIXME: this one goes wrong...
 
     conv = ToPointsAndSegments()
 
@@ -733,7 +736,6 @@ def test_45_deg_segments():
     init_skeleton(dt)
 
 def test_30_deg_segments():
-    # FIXME: this one goes wrong...
 
     conv = ToPointsAndSegments()
 
@@ -744,6 +746,33 @@ def test_30_deg_segments():
 
     conv.add_segment((0,5), (9,0.5))
     conv.add_segment((12,2), (14,4))
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    output_dt(dt)
+
+    init_skeleton(dt)
+
+
+def test_4_segments():
+
+    conv = ToPointsAndSegments()
+
+    conv.add_point((0,0))
+    conv.add_point((10,0))
+    conv.add_point((22,0))
+    conv.add_point((30,0))
+    
+    conv.add_point((16,-3))
+    conv.add_point((16,-6))
+
+    conv.add_point((16,-2))
+    conv.add_point((16,6))
+
+    conv.add_segment((0,0), (10,0))
+    conv.add_segment((22,0), (30,0))
+    conv.add_segment((16,-3), (16,-6))
+    conv.add_segment((16,-2), (16,6))
 
     dt = triangulate(conv.points, None, conv.segments)
 
@@ -764,5 +793,6 @@ if __name__ == "__main__":
 #     test_two_lines_par()
 #     test_polyline()
 #     test_2_segments()
+    test_4_segments()
 #     test_2_perp_segments()
-    test_45_deg_segments()
+#     test_45_deg_segments()
