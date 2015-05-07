@@ -227,17 +227,17 @@ def init_skeleton(dt):
         print >> bisector_fh, "wkt"
         for v in dt.vertices:
             assert v.is_finite, "infinite vertex found"
-            print ""
+#             print ""
             it = StarEdgeIterator(v)
             around = [e for e in it]
-            with open("/tmp/vertexit.wkt", "w") as fh:
-                output_triangles([e.triangle for e in around], fh)
+#             with open("/tmp/vertexit.wkt", "w") as fh:
+#                 output_triangles([e.triangle for e in around], fh)
 
             constraints = []
             for i, e in enumerate(around):
                 if e.triangle.constrained[cw(e.side)]:
                     constraints.append(i)
-            print "# of constraints:", len(constraints)
+#             print "# of constraints:", len(constraints)
 
             # FIXME:
             # Check here how many constrained edges we have outgoing of
@@ -265,7 +265,7 @@ def init_skeleton(dt):
 
                 # make two bisectors at a terminal vertex
                 if len(constraints) == 1:
-                    print "central vertex", v
+#                     print "central vertex", v
 
                     assert constraints[0] == 0
                     edge = around[0]
@@ -280,7 +280,7 @@ def init_skeleton(dt):
                     p0 = tuple(map(add, start, perp(perp(vec))))
                     bi = bisector(p0, p1, p2)
                     print >> bisector_fh, "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(p1, map(add, p1, bi)) 
-                    print nodes[v]
+#                     print nodes[v]
 
                     kvA = KineticVertex()
                     kvA.origin = (p1.x, p1.y)
@@ -296,7 +296,7 @@ def init_skeleton(dt):
                     bi = bisector(p0, p1, p2)
                     print >> bisector_fh, "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(p1, map(add, p1, bi)) 
                     # FIXME insert additional triangle at this side
-                    print nodes[v]
+#                     print nodes[v]
 
                     kvB = KineticVertex()
                     kvB.origin = (p1.x, p1.y)
@@ -308,28 +308,28 @@ def init_skeleton(dt):
 
                     split_idx = find_overlapping_triangle(around)
 
-                    print split_idx
-                    print len(around)
+#                     print split_idx
+#                     print len(around)
                     # determine which triangles get an incidence with the
                     # first and which with the second kvertices vertex
 
                     # first go with kvA
                     # second go with kvB
                     first, second = around[:split_idx], around[split_idx+1:]
-                    print "first ", first
-                    print "second", second
+#                     print "first ", first
+#                     print "second", second
                     mid = around[split_idx]
-                    print "mid   ", mid
+#                     print "mid   ", mid
 
                     # go with kvA
                     for e in first:
                         ktriangle = triangle2ktriangle[e.triangle]
-                        print ktriangle
+#                         print ktriangle
                         ktriangle.vertices[e.side] = kvA
                     # go with kvB
                     for e in second:
                         ktriangle = triangle2ktriangle[e.triangle]
-                        print ktriangle
+#                         print ktriangle
                         ktriangle.vertices[e.side] = kvB
 
                     # for the mid triangle it depends where it should go
@@ -341,7 +341,7 @@ def init_skeleton(dt):
                     # to not get False negatives out of the is_quad 
                     # classification
                     triangle = mid.triangle
-                    print "PIVOT POINT INDEX", mid.side
+#                     print "PIVOT POINT INDEX", mid.side
                     first_leg = ccw(mid.side)
                     last_leg = cw(mid.side)
                     L = triangle.vertices[last_leg]
@@ -350,34 +350,18 @@ def init_skeleton(dt):
                     A = map(add, kvA.origin, kvA.velocity)
                     B = map(add, kvB.origin, kvB.velocity)
                     O = triangle.vertices[mid.side]
-                    print "first", first_leg,"|" , F, "(cw)", "last", last_leg, "|" ,L, "(ccw) around", O
+#                     print "first", first_leg,"|" , F, "(cw)", "last", last_leg, "|" ,L, "(ccw) around", O
 
                     first_quad = [O, A, F, B, O]
                     last_quad = [O, A, L, B, O]
                     first_ok = is_quad(first_quad)
                     last_ok = is_quad(last_quad)
-                    print "first ok", first_ok
-                    print "last ok", last_ok
-
-                    # FIXME: update the overlapping triangle and add
-                    # a ktriangles triangle at the right location
-                    # and update all neighbouring relationships of the
-                    # kvertices triangulation
-
-                    # FIXME: 
-                    # >>>> how to deal with the ktriangle its undetermined vertex <<<<
-
-                    # how to decide where to go:
-
-                    # if first is True and second True
-                    # make ktriangles triangle at first leg
-                    # and assign old corner to kvB
-                    #
-                    # if both not ok, probably at convex hull overlapping with infinite triangle
-                    # only, so take guess and use the first leg
 
                     # if first is True and second False
                     # assign ktriangles triangle to kvA/kvB and the corner to kvB
+
+                    # if both not ok, probably at convex hull overlapping with infinite triangle
+                    # only, so take guess and use the first leg
                     if first_ok or (not first_ok and not last_ok):
                         ktriangle = triangle2ktriangle[mid.triangle]
                         ktriangle.vertices[mid.side] = kvB
@@ -386,33 +370,15 @@ def init_skeleton(dt):
                         knew.vertices[0] = kvB
                         knew.vertices[1] = kvA
                         knew.vertices[2] = None
-#                         ktri_no_apex.append(knew)
 
                         X, Y = mid.triangle, mid.triangle.neighbours[ccw(first_leg)]
                         sideX = X.neighbours.index(Y)
                         sideY = Y.neighbours.index(X)
-                        print last_leg
-                        print "BETWEEN", id(X), sideX, id(Y), sideY
 
                         key = tuple(sorted([X, Y]))
                         if key not in one_ktri_between:
                             one_ktri_between[key] = [] 
                         one_ktri_between[key].append( (knew, triangle2ktriangle[Y], sideY, triangle2ktriangle[X], sideX) )
-
-#                         if second: 
-#                             # could check whether first triangle of second group
-#                             # corresponds with triangle found
-#                             print id(second[0].triangle)
-
-                        # FIXME: does this go correct with two adjacent inserted triangles???
-                        # update surrounding kinetic triangles
-#                         kX = triangle2ktriangle[X]
-#                         kX.neighbours[sideX] = knew
-#                         kY = triangle2ktriangle[Y]
-#                         kY.neighbours[sideY] = knew
-# 
-#                         knew.neighbours[0] = kY
-#                         knew.neighbours[1] = kX
 
                     # if first is false and second True
                     # assign ktriangles triangle to kvA/kvB and the corner to kvA
@@ -429,30 +395,11 @@ def init_skeleton(dt):
                         X, Y = mid.triangle, mid.triangle.neighbours[cw(last_leg)]
                         sideX = X.neighbours.index(Y)
                         sideY = Y.neighbours.index(X)
-                        print last_leg
-                        print "BETWEEN", id(X), sideX, id(Y), sideY
 
                         key = tuple(sorted([X, Y]))
                         if key not in one_ktri_between:
                             one_ktri_between[key] = [] 
                         one_ktri_between[key].append((knew, triangle2ktriangle[X], sideX, triangle2ktriangle[Y], sideY))
-
-                        if second: 
-                            # could check whether first triangle of second group
-                            # corresponds with triangle found
-                            print id(second[0].triangle)
-
-                        # FIXME: does this go correct with two adjacent inserted triangles???
-                        # update surrounding kinetic triangles
-#                         kX = triangle2ktriangle[X]
-#                         kX.neighbours[sideX] = knew
-#                         kY = triangle2ktriangle[Y]
-#                         kY.neighbours[sideY] = knew
-# 
-#                         knew.neighbours[0] = kX
-#                         knew.neighbours[1] = kY
-
-
 
                 # make bisectors
                 else:
@@ -471,34 +418,32 @@ def init_skeleton(dt):
                         p0 = end.triangle.vertices[cw(end.side)]      # the ccw vertex
                         bi = bisector(p0, p1, p2)
                         print >> bisector_fh, "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(p1, map(add, p1, bi))
-                        print nodes[v]
                         kv = KineticVertex()
                         kv.origin = (p1.x, p1.y)
                         kv.velocity = bi
                         kv.start_node = nodes[v]
                         for edge in group:
                             ktriangle = triangle2ktriangle[edge.triangle]
-                            print ktriangle
                             ktriangle.vertices[edge.side] = kv
 
-    print len(kvertices), "kvertices vertices"
-    for i, kv in enumerate(kvertices):
-        print "=" * 10
-        print "vertex", i
-        print "=" * 10
-        print kv.origin
-        print kv.velocity
-        print kv.start_node.pos
-        print kv.ccw_wavefront
-        print kv.cw_wavefront
-        print ""
-
-    print """
-
-KINETIC TRIs
-
-    """
-    pprint(one_ktri_between)
+#     print len(kvertices), "kvertices vertices"
+#     for i, kv in enumerate(kvertices):
+#         print "=" * 10
+#         print "vertex", i
+#         print "=" * 10
+#         print kv.origin
+#         print kv.velocity
+#         print kv.start_node.pos
+#         print kv.ccw_wavefront
+#         print kv.cw_wavefront
+#         print ""
+# 
+#     print """
+# 
+# KINETIC TRIs
+# 
+#     """
+#     pprint(one_ktri_between)
 
     # copy infinite vertices into the kinetic triangles
     # make dico of infinite vertices (lookup by coordinate value)
@@ -524,6 +469,7 @@ KINETIC TRIs
 #         except ValueError:
 #             warn("Problematic case found")
 
+    # deal with added kinetec triangles at terminal vertices 
     for val in one_ktri_between.itervalues():
         if len(val) == 1:
             knew, x, side_x, y, side_y, = val[0]
@@ -536,13 +482,11 @@ KINETIC TRIs
             ktriangles.append(knew)
         elif len(val) == 2:
             for i, v in enumerate(val):
+                # the first triangle in this group is the other triangle 
+                # between these 2 terminal vertices
                 kother = val[(i+1) % 2][0]
                 knew, x, side_x, y, side_y, = v
-#                 print "knew   ", id(knew)
-#                 print "kother ", id(kother)
-#                 print "x      ", id(x)
-#                 print "y      ", id(y)
-                # link to each other and to neighbour
+                # link to each other and to neighbour x
                 knew.neighbours[0] = x
                 knew.neighbours[1] = kother 
                 knew.neighbours[2] = None
@@ -551,14 +495,14 @@ KINETIC TRIs
                 # link to vertex
                 knew.vertices[2] = x.vertices[ccw(side_x)]
                 ktriangles.append(knew)
-#                 print ""
         else:
-            raise ValueError("unexpected amount of ktriangles at terminal vertex")
+            raise ValueError("Unexpected # kinetic triangles at terminal vertex")
 
     check_ktriangles(ktriangles)
 
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles(ktriangles, fh)
+
     # assert len(remove) == 3
     # FIXME: remove these 3 kvertices triangles, and link their two neighbours
     # that are not None for these triangles properly together!
@@ -885,13 +829,12 @@ def test_cocircular_segments():
 
 
 if __name__ == "__main__":
-    test_poly()
-    test_1_segment()
     try:
         test_single_point()
     except:
         pass
-
+    test_poly()
+    test_1_segment()
     test_single_line()
     test_three_lines()
     test_arrow_four_lines()
@@ -900,10 +843,8 @@ if __name__ == "__main__":
     test_two_lines_par()
     test_polyline()
     test_2_segments()
-    
     test_2_perp_segments()
     test_45_deg_segments()
     test_30_deg_segments()
-    
     test_4_segments()
     test_cocircular_segments()
