@@ -106,7 +106,7 @@ def angle(u, v):
         r += 2 * pi
     return r
 
-def bisector(p0, p1, p2, factor=0.2): #1.0):
+def bisector(p0, p1, p2, factor=1.0): #1.0):
     """Calculates bisector vector that has correct
     length, so that edges are offset 1 unit, if points of bisectors
     are to be connected (playing 'connect-the-dot').
