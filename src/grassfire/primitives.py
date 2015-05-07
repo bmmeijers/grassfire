@@ -54,7 +54,7 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 0.3 #4.281470022378475
+        time = 0.6 #4.281470022378475
         return "{0} {1}".format(self.origin[0] + time * self.velocity[0], 
                                 self.origin[1] + time * self.velocity[1])
 
@@ -1092,6 +1092,10 @@ def test4_3_3():
     tri.vertices = [a, b, c]
     # a -> b constrained
 
+    # FIXME: would this work with triangle at terminal vertex ?
+    # the problem could be that there is no support line for the 'constrained' 
+    # edge
+
     print tri
     Mv = tuple(map(sub, c.origin, a.origin))
     print Mv
@@ -1130,7 +1134,7 @@ if __name__ == "__main__":
 #     test_1_segment()
 #     test_single_line()
 #     test_three_lines()
-#     test_arrow_four_lines()
+    test_arrow_four_lines()
 #     test_triangle()
 #     test_parallel_movement()
 #     test_quad()
@@ -1143,4 +1147,4 @@ if __name__ == "__main__":
 #     test_4_segments()
 #     test_cocircular_segments()
 #     test_crash_vertex()
-    test4_3_3()
+#     test4_3_3()
