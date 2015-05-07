@@ -106,7 +106,7 @@ def angle(u, v):
         r += 2 * pi
     return r
 
-def bisector(p0, p1, p2):
+def bisector(p0, p1, p2, factor=0.2): #1.0):
     """Calculates bisector vector that has correct
     length, so that edges are offset 1 unit, if points of bisectors
     are to be connected (playing 'connect-the-dot').
@@ -144,7 +144,7 @@ def bisector(p0, p1, p2):
     scaling = 1. / sin(alpha)
     # print "scaling", scaling
     # print "r", r
-    return tuple([i * scaling for i in r])
+    return tuple([i * scaling * factor for i in r])
 
 def bisector_vectors(linearring):
     """Returns bisector unit vectors for given linearring

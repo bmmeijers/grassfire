@@ -53,7 +53,7 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 0.2
+        time = 0.5
         return "{0} {1}".format(self.origin[0] + time * self.velocity[0], 
                                 self.origin[1] + time * self.velocity[1])
 
@@ -134,7 +134,6 @@ def find_overlapping_triangle(E):
             idx = i
             break
     assert overlap is not None
-    print "overlap", overlap.triangle
     return idx
 
 def is_quad(L):
@@ -181,7 +180,6 @@ def init_skeleton(dt):
         if v.is_finite:
             nodes[v] = SkeletonNode(pos=(v.x, v.y), info=v.info)
 
-
     # make kinetic triangles, so that for every delaunay triangle we have
     # a kinetic counter part
 
@@ -223,7 +221,8 @@ def init_skeleton(dt):
     # and link them to the kinetic triangles
     # also make sure that every kinetic vertex is related to a skeleton node
     kvertices = []
-    ktri_no_apex = []
+#     ktri_no_apex = []
+    one_ktri_between = {}
     with open("/tmp/bisectors.wkt", "w") as bisector_fh:
         print >> bisector_fh, "wkt"
         for v in dt.vertices:
@@ -387,7 +386,7 @@ def init_skeleton(dt):
                         knew.vertices[0] = kvB
                         knew.vertices[1] = kvA
                         knew.vertices[2] = None
-                        ktri_no_apex.append(knew)
+#                         ktri_no_apex.append(knew)
 
                         X, Y = mid.triangle, mid.triangle.neighbours[ccw(first_leg)]
                         sideX = X.neighbours.index(Y)
@@ -395,20 +394,25 @@ def init_skeleton(dt):
                         print last_leg
                         print "BETWEEN", id(X), sideX, id(Y), sideY
 
-                        if second: 
-                            # could check whether first triangle of second group
-                            # corresponds with triangle found
-                            print id(second[0].triangle)
+                        key = tuple(sorted([X, Y]))
+                        if key not in one_ktri_between:
+                            one_ktri_between[key] = [] 
+                        one_ktri_between[key].append( (knew, triangle2ktriangle[Y], sideY, triangle2ktriangle[X], sideX) )
+
+#                         if second: 
+#                             # could check whether first triangle of second group
+#                             # corresponds with triangle found
+#                             print id(second[0].triangle)
 
                         # FIXME: does this go correct with two adjacent inserted triangles???
                         # update surrounding kinetic triangles
-                        kX = triangle2ktriangle[X]
-                        kX.neighbours[sideX] = knew
-                        kY = triangle2ktriangle[Y]
-                        kY.neighbours[sideY] = knew
-
-                        knew.neighbours[0] = kY
-                        knew.neighbours[1] = kX
+#                         kX = triangle2ktriangle[X]
+#                         kX.neighbours[sideX] = knew
+#                         kY = triangle2ktriangle[Y]
+#                         kY.neighbours[sideY] = knew
+# 
+#                         knew.neighbours[0] = kY
+#                         knew.neighbours[1] = kX
 
                     # if first is false and second True
                     # assign ktriangles triangle to kvA/kvB and the corner to kvA
@@ -420,13 +424,18 @@ def init_skeleton(dt):
                         knew.vertices[0] = kvB
                         knew.vertices[1] = kvA
                         knew.vertices[2] = None
-                        ktri_no_apex.append(knew)
+#                         ktri_no_apex.append(knew)
 
                         X, Y = mid.triangle, mid.triangle.neighbours[cw(last_leg)]
                         sideX = X.neighbours.index(Y)
                         sideY = Y.neighbours.index(X)
                         print last_leg
                         print "BETWEEN", id(X), sideX, id(Y), sideY
+
+                        key = tuple(sorted([X, Y]))
+                        if key not in one_ktri_between:
+                            one_ktri_between[key] = [] 
+                        one_ktri_between[key].append((knew, triangle2ktriangle[X], sideX, triangle2ktriangle[Y], sideY))
 
                         if second: 
                             # could check whether first triangle of second group
@@ -435,13 +444,15 @@ def init_skeleton(dt):
 
                         # FIXME: does this go correct with two adjacent inserted triangles???
                         # update surrounding kinetic triangles
-                        kX = triangle2ktriangle[X]
-                        kX.neighbours[sideX] = knew
-                        kY = triangle2ktriangle[Y]
-                        kY.neighbours[sideY] = knew
+#                         kX = triangle2ktriangle[X]
+#                         kX.neighbours[sideX] = knew
+#                         kY = triangle2ktriangle[Y]
+#                         kY.neighbours[sideY] = knew
+# 
+#                         knew.neighbours[0] = kX
+#                         knew.neighbours[1] = kY
 
-                        knew.neighbours[0] = kX
-                        knew.neighbours[1] = kY
+
 
                 # make bisectors
                 else:
@@ -482,6 +493,13 @@ def init_skeleton(dt):
         print kv.cw_wavefront
         print ""
 
+    print """
+
+KINETIC TRIs
+
+    """
+    pprint(one_ktri_between)
+
     # copy infinite vertices into the kinetic triangles
     # make dico of infinite vertices (lookup by coordinate value)
     infinites = {}
@@ -497,14 +515,47 @@ def init_skeleton(dt):
                 kt.vertices[i] = infinites[(v[0], v[1])]
 
 #     inf = next(infinites.iterkeys())
-    for kt in ktri_no_apex:
-        try:
-            ngb = kt.neighbours[0]
-            side = ngb.neighbours.index(kt)
-            kt.vertices[2] = ngb.vertices[ccw(side)]
-            ktriangles.append(kt)
-        except ValueError:
-            warn("Problematic case found")
+#     for kt in ktri_no_apex:
+#         try:
+#             ngb = kt.neighbours[0]
+#             side = ngb.neighbours.index(kt)
+#             kt.vertices[2] = ngb.vertices[ccw(side)]
+#             ktriangles.append(kt)
+#         except ValueError:
+#             warn("Problematic case found")
+
+    for val in one_ktri_between.itervalues():
+        if len(val) == 1:
+            knew, x, side_x, y, side_y, = val[0]
+            knew.neighbours[0] = x
+            knew.neighbours[1] = y
+            knew.neighbours[2] = None
+            x.neighbours[side_x] = knew
+            y.neighbours[side_y] = knew
+            knew.vertices[2] = x.vertices[ccw(side_x)]
+            ktriangles.append(knew)
+        elif len(val) == 2:
+            for i, v in enumerate(val):
+                kother = val[(i+1) % 2][0]
+                knew, x, side_x, y, side_y, = v
+#                 print "knew   ", id(knew)
+#                 print "kother ", id(kother)
+#                 print "x      ", id(x)
+#                 print "y      ", id(y)
+                # link to each other and to neighbour
+                knew.neighbours[0] = x
+                knew.neighbours[1] = kother 
+                knew.neighbours[2] = None
+                x.neighbours[side_x] = knew
+                y.neighbours[side_y] = kother
+                # link to vertex
+                knew.vertices[2] = x.vertices[ccw(side_x)]
+                ktriangles.append(knew)
+#                 print ""
+        else:
+            raise ValueError("unexpected amount of ktriangles at terminal vertex")
+
+    check_ktriangles(ktriangles)
 
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles(ktriangles, fh)
@@ -513,8 +564,25 @@ def init_skeleton(dt):
     # that are not None for these triangles properly together!
     #with open("/tmp/remove.wkt", "w") as fh:
 #        output_triangles(remove, fh)
-
     return skel
+
+def check_ktriangles(L):
+    # check if neighbours are properly linked
+    for ktri in L:
+        for i in range(3):
+            ngb = ktri.neighbours[i]
+            if ngb is not None:
+                assert ktri in ngb.neighbours
+
+    # check if the sides of a triangle share the correct vertex at begin / end
+    for ktri in L:
+        for i in range(3):
+            ngb = ktri.neighbours[i]
+            if ngb is not None:
+                j = ngb.neighbours.index(ktri)
+                assert ngb.vertices[cw(j)] is ktri.vertices[ccw(i)]
+                assert ngb.vertices[ccw(j)] is ktri.vertices[cw(i)]
+    return True
 
 def output_dt(dt):
     with open("/tmp/vertices.wkt", "w") as fh:
@@ -766,13 +834,48 @@ def test_4_segments():
     conv.add_point((16,-3))
     conv.add_point((16,-6))
 
-    conv.add_point((16,-2))
+    conv.add_point((16,2))
     conv.add_point((16,6))
 
     conv.add_segment((0,0), (10,0))
     conv.add_segment((22,0), (30,0))
     conv.add_segment((16,-3), (16,-6))
-    conv.add_segment((16,-2), (16,6))
+    conv.add_segment((16,2), (16,6))
+
+    conv.add_segment((0,0), (16,-6))
+    conv.add_segment((16,-6), (30,0))
+    conv.add_segment((30,0), (16,6))
+    conv.add_segment((16,6), (0,0))
+
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    output_dt(dt)
+
+    init_skeleton(dt)
+
+
+
+def test_cocircular_segments():
+
+    conv = ToPointsAndSegments()
+
+    conv.add_point((0,0))
+    conv.add_point((1,1))
+    
+    conv.add_point((3,0))
+    conv.add_point((2,1))
+
+    conv.add_point((0,3))
+    conv.add_point((1,2))
+
+    conv.add_point((3,3))
+    conv.add_point((2,2))
+
+    conv.add_segment((0,0), (1,1))
+    conv.add_segment((3,0), (2,1))
+    conv.add_segment((0,3), (1,2))
+    conv.add_segment((3,3), (2,2))
 
     dt = triangulate(conv.points, None, conv.segments)
 
@@ -782,17 +885,25 @@ def test_4_segments():
 
 
 if __name__ == "__main__":
-#     test_poly()
-#     test_1_segment()
+    test_poly()
+    test_1_segment()
+    try:
+        test_single_point()
+    except:
+        pass
 
-#     test_single_line()
-#     test_three_lines()
-#     test_arrow_four_lines()
-#     test_triangle()
-#     test_quad()
-#     test_two_lines_par()
-#     test_polyline()
-#     test_2_segments()
+    test_single_line()
+    test_three_lines()
+    test_arrow_four_lines()
+    test_triangle()
+    test_quad()
+    test_two_lines_par()
+    test_polyline()
+    test_2_segments()
+    
+    test_2_perp_segments()
+    test_45_deg_segments()
+    test_30_deg_segments()
+    
     test_4_segments()
-#     test_2_perp_segments()
-#     test_45_deg_segments()
+    test_cocircular_segments()
