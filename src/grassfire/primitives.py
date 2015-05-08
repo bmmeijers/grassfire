@@ -17,6 +17,9 @@ from warnings import warn
 from math import atan2, pi
 from math import sqrt, copysign
 
+# 
+import numpy
+
 class Skeleton(object):
     """Represents a Straight Skeleton 
     """
@@ -54,7 +57,8 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 0.6 #4.281470022378475
+        time = 0
+        # 4.281470022378475
         return "{0} {1}".format(self.origin[0] + time * self.velocity[0], 
                                 self.origin[1] + time * self.velocity[1])
 
@@ -107,7 +111,6 @@ def find_overlapping_triangle(E):
     mid = first.side
     begin = ccw(mid)
     P, Q = t.vertices[begin], t.vertices[mid]
-
     overlap = None
     idx = None
     for i, e in enumerate(E):
@@ -499,13 +502,23 @@ def init_skeleton(dt):
     # Update ccw / cw wavefront pointers of KineticVertex objects
 
     for tri in ktriangles:
-        try:
-            collapse_time_quadratic(tri)
-        except AttributeError:
-            pass
-    for tri in ktriangles:
-        print tri
-        collapse_time_dot(tri)
+        print """
+        
+        
+        """
+        print id(tri)
+        print "time"
+        res = compute_collapse_time(tri)
+        print "time >>>", res
+#         try:
+#             collapse_time_quadratic(tri)
+#             
+#         except AttributeError:
+#             pass
+#     for tri in ktriangles:
+#         print tri
+#         collapse_time_dot(tri)
+    skel.triangles = ktriangles
 
     return skel
 
@@ -536,6 +549,105 @@ def check_ktriangles(L):
 # ------------------------------------------------------------------------------
 # solve
 
+def compute_collapse_time(t):
+    # compute when this triangle collapses
+    collapses_at = None 
+    is_finite = all([isinstance(vertex, KineticVertex) for vertex in t.vertices])
+    if is_finite:
+        # finite triangles
+        tp = t.neighbours.count(None)
+        print "TYPE", tp
+        if tp == 0:
+            a, b, c = t.vertices
+            coeff = area_collapse_time_coeff(a, b, c)
+            times = list(solve_quadratic(coeff[0], coeff[1], coeff[2]))
+            times = filter(lambda x: x>0, times)
+            time_det = min(times)
+            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+            print "roots found by numpy", numpy.roots(coeff)
+            print times
+            times = []
+            for side in range(3):
+                i, j = cw(side), ccw(side)
+                v1, v2 = t.vertices[i], t.vertices[j]
+                times.append(collapse_time_edge(v1, v2))
+            times = filter(lambda x: x>0, times)
+            if times:
+                time_edge = min(times)
+                if time_det < time_edge:
+                    print "flip event of zero triangle"
+                    collapses_at = time_det
+                else:
+                    print "vertices crashing into each other, handle as edge event"
+                    collapses_at = time_edge
+        elif tp == 1:
+            side = t.neighbours.index(None)
+            orig, dest, apex = t.vertices[cw(side)], t.vertices[ccw(side)], t.vertices[side]
+            coeff = area_collapse_time_coeff(orig, dest, apex)
+            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+            Mv = tuple(map(sub, apex.origin, orig.origin))
+            m =  map(sub, orig.origin, dest.origin)
+            m = norm(m) # normalize m
+            n = perp(m) # take perpendicular vector            
+            distance_v_e = dot(Mv, n)
+            s = apex.velocity
+            crash_time = distance_v_e / (1 - dot(s, n))
+            print "tv [vertex crash time]:", crash_time 
+
+            edge_time = collapse_time_edge(orig, dest)
+            print "te [edge collapse time]", edge_time
+            # given that we ignore negative times!!!
+            if crash_time < edge_time: 
+                print "tv strictly earlier than te -> split or flip"
+                # compute side lengths of triangle at time tv
+                print "should compute side lengths"
+                # if longest edge is wavefronte edge -> split event
+                # otherwise -> flip event
+        elif tp == 2:
+            # compute with edge collapse time
+            # use earliest of the two edge collapse times
+            # ignore times in the past
+            a, b, c = t.vertices
+            coeff = area_collapse_time_coeff(a, b, c)
+            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+            sides = []
+            for i in range(3):
+                if t.neighbours[i] is None:
+                    sides.append(i)
+            assert len(sides) == 2
+            print sides
+            times = []
+            for side in sides:
+                i, j = cw(side), ccw(side)
+                v1, v2 = t.vertices[i], t.vertices[j]
+                times.append(collapse_time_edge(v1, v2))
+            # remove times in the past, same as None values
+            times = filter(lambda x: x>0, times)
+            if times:
+                time = min(times)
+                if time >= 0:
+                    collapses_at = time
+        elif tp == 3:
+            # compute with edge collapse time of all three edges
+            a, b, c = t.vertices
+            coeff = area_collapse_time_coeff(a, b, c)
+            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+            times = []
+            for i in range(3):
+                j = (i + 1) % 3
+                v1, v2 = t.vertices[i], t.vertices[j]
+                times.append(collapse_time_edge(v1, v2))
+            # remove times in the past, same as None values
+            times = filter(lambda x: x>0, times)
+            if times:
+                time = min(times)
+                if time >= 0:
+                    collapses_at = time
+    else:
+        # infinite triangles
+        print "infinite triangle found"
+    return collapses_at
+
 def quadratic(x, a, b, c):
     """Returns y = a * x^2 + b * x + c for given x and a, b, c
     """
@@ -552,26 +664,23 @@ def norm(v):
 def collapse_time_edge(v1, v2):
     """Given 2 kinetic vertices compute the time when they will collide
     """
-    try:
-        s1 = v1.velocity
-        s2 = v2.velocity
-        o2 = v2.origin
-        o1 = v1.origin
+    s1 = v1.velocity
+    s2 = v2.velocity
+    o2 = v2.origin
+    o1 = v1.origin
+    denominator = dot(map(sub, s1, s2), map(sub, s1, s2))
+    if denominator != 0.:
         nominator = dot(map(sub, s1, s2), map(sub, o2, o1))
-        denominator = dot(map(sub, s1, s2), map(sub, s1, s2))
-        if denominator != 0.:
-            collapse_time = nominator / denominator
-            print collapse_time
-            # when positive, this is a correct collapse time
-            # when negative, the vertices are now moving apart from each other
-            # when denominator is 0, they move in parallel
-        else:
-            print "denominator 0"
-            print "these two vertices move in parallel:",
-            print v1, "|", v2
-    except AttributeError:
-        # "infinite vertex" problem
-        pass
+        collapse_time = nominator / denominator
+        return collapse_time
+        # when positive, this is a correct collapse time
+        # when negative, the vertices are now moving apart from each other
+        # when denominator is 0, they move in parallel
+    else:
+        print "denominator 0"
+        print "these two vertices move in parallel:",
+        print v1, "|", v2
+        return None
 
 def collapse_time_dot(tri):
     """calculate whether an edge length becomes zero
@@ -606,7 +715,7 @@ def collapse_time_quadratic(ktri):
 
     # terms
     a = \
-        s1y*s2x + s1x*s2y + s1y*s3x - \
+       -s1y*s2x + s1x*s2y + s1y*s3x - \
         s2y*s3x - s1x*s3y + s2x*s3y
     b = \
         o2y*s1x - o3y*s1x - o2x*s1y + \
@@ -666,7 +775,7 @@ def solve_quadratic(a, b, c):
         # prevent division by zero if a == 0 or q == 0
         if a != 0: x1 = q / a
         if q != 0: x2 = c / q
-        return tuple(sorted((x1, x2)))
+        return list(sorted((x1, x2)))
 
 
 def area_collapse_time_coeff(kva, kvb, kvc):
@@ -739,7 +848,6 @@ def output_dt(dt):
 
 # ------------------------------------------------------------------------------
 # test cases
-
 def test_poly():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(0, 0), (10, 0), (11, 1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
@@ -820,7 +928,7 @@ def test_triangle():
 
     output_dt(dt)
 
-    init_skeleton(dt)
+    skel = init_skeleton(dt)
 
 def test_quad():
     conv = ToPointsAndSegments()
@@ -975,7 +1083,7 @@ def test_4_segments():
     conv.add_point((10,0))
     conv.add_point((22,0))
     conv.add_point((30,0))
-    
+
     conv.add_point((16,-3))
     conv.add_point((16,-6))
 
@@ -1007,7 +1115,7 @@ def test_cocircular_segments():
 
     conv.add_point((0,0))
     conv.add_point((1,1))
-    
+
     conv.add_point((3,0))
     conv.add_point((2,1))
 
@@ -1072,6 +1180,7 @@ def test_crash_vertex():
 
     init_skeleton(dt)
 
+
 def test4_3_3():
     # make this a function
     # crash_time(tri)
@@ -1108,20 +1217,88 @@ def test4_3_3():
     print n
     distance_v_e = dot(Mv, n)
     print "dist", distance_v_e
-    s = a.velocity
+    s = c.velocity
     # different from section 4.3.3: we need to negate n, so that we obtain s' 
-    neg_n = tuple([-i for i in n])
-    crash_time = distance_v_e / (1 - dot(s, neg_n))
+#     neg_n = tuple([-i for i in n])
+    crash_time = distance_v_e / (1 - dot(s, n))
     print "time vertex crashes on edge:", crash_time 
     coeff = area_collapse_time_coeff(a, b, c)
+    print solve_quadratic(coeff[0], coeff[1], coeff[2])
     import matplotlib.pyplot as plt
-    import numpy
     print "roots", numpy.roots(coeff)
     x = range(-40, 100)
     y = [quadratic(y, coeff[0], coeff[1], coeff[2]) for y in x]
     plt.plot(x,y)
     plt.show()
 
+    with open("/tmp/ktris.wkt", "w") as fh:
+        output_triangles([tri], fh)
+
+def test_compute_0():
+    tri = KineticTriangle()
+    a = KineticVertex()
+    a.origin = (0,0)
+    a.velocity = (sqrt(2),sqrt(2))
+    b = KineticVertex()
+    b.origin = (2,0)
+    b.velocity = (-sqrt(2),sqrt(2))
+    c = KineticVertex()
+    c.origin = (1, 3)
+    c.velocity = (0,-1)
+    tri.neighbours = [True, True, True] # make them not None for the test
+    tri.vertices = [a, b, c]
+    print compute_collapse_time(tri)
+    with open("/tmp/ktris.wkt", "w") as fh:
+        output_triangles([tri], fh)
+
+def test_compute_1():
+    tri = KineticTriangle()
+    a = KineticVertex()
+    a.origin = (0,0)
+    a.velocity = (sqrt(2),sqrt(2))
+    b = KineticVertex()
+    b.origin = (2,0)
+    b.velocity = (-sqrt(2),sqrt(2))
+    c = KineticVertex()
+    c.origin = (1, 3)
+    c.velocity = (0,-1)
+    tri.neighbours = [True, True, None] # make them not None for the test
+    tri.vertices = [a, b, c]
+    print compute_collapse_time(tri)
+    with open("/tmp/ktris.wkt", "w") as fh:
+        output_triangles([tri], fh)
+
+def test_compute_2():
+    tri = KineticTriangle()
+    a = KineticVertex()
+    a.origin = (0,0)
+    a.velocity = (sqrt(2),sqrt(2))
+    b = KineticVertex()
+    b.origin = (2,0)
+    b.velocity = (-sqrt(2),sqrt(2))
+    c = KineticVertex()
+    c.origin = (1, 3)
+    c.velocity = (0,-1)
+    tri.neighbours = [None, True, None] # make them None for the test
+    tri.vertices = [a, b, c]
+    print compute_collapse_time(tri)
+    with open("/tmp/ktris.wkt", "w") as fh:
+        output_triangles([tri], fh)
+
+def test_compute_3():
+    tri = KineticTriangle()
+    a = KineticVertex()
+    a.origin = (0,0)
+    a.velocity = (sqrt(2),sqrt(2))
+    b = KineticVertex()
+    b.origin = (1,0)
+    b.velocity = (-sqrt(2),sqrt(2))
+    c = KineticVertex()
+    c.origin = (0.5, 1)
+    c.velocity = (0,-1)
+    tri.neighbours = [None, None, None] # make them None for the test
+    tri.vertices = [a, b, c]
+    print compute_collapse_time(tri)
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles([tri], fh)
 
@@ -1134,8 +1311,8 @@ if __name__ == "__main__":
 #     test_1_segment()
 #     test_single_line()
 #     test_three_lines()
-    test_arrow_four_lines()
-#     test_triangle()
+#     test_arrow_four_lines()
+    test_triangle()
 #     test_parallel_movement()
 #     test_quad()
 #     test_two_lines_par()
@@ -1148,3 +1325,7 @@ if __name__ == "__main__":
 #     test_cocircular_segments()
 #     test_crash_vertex()
 #     test4_3_3()
+#     test_compute_0()
+#     test_compute_1()
+#     test_compute_2()
+#     test_compute_3()
