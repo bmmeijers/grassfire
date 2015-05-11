@@ -7,6 +7,7 @@ from tri.delaunay import StarEdgeIterator, cw, ccw
 from tri.delaunay import output_triangles, output_vertices, output_edges
 from tri.delaunay import FiniteEdgeIterator
 from tri.delaunay import orient2d
+from tri.delaunay import apex, orig, dest
 
 from angles import bisector
 from angles import normalize, perp
@@ -545,6 +546,63 @@ def check_ktriangles(L):
                     valid = False
     return valid
 
+# ------------------------------------------------------------------------------
+# event handling
+def flip(t0, side0, t1, side1):
+    """Performs a flip of triangle t0 and t1
+
+    If t0 and t1 are two triangles sharing a common edge AB,
+    the method replaces ABC and BAD triangles by DCA and DBC, respectively.
+    To be fast, this method supposed that input triangles share a common
+    edge and that this common edge is known.
+    """
+    apex0, orig0, dest0 = apex(side0), orig(side0), dest(side0)
+    apex1, orig1, dest1 = apex(side1), orig(side1), dest(side1)
+
+    # side0 and side1 should be same edge
+    assert t0.vertices[orig0] is t1.vertices[dest1]
+    assert t0.vertices[dest0] is t1.vertices[orig1]
+    # assert both triangles have this edge unconstrained
+    assert t0.neighbours[apex0] is not None
+    assert t1.neighbours[apex1] is not None
+
+    # -- vertices around quadrilateral in ccw order starting at apex of t0
+    A, B, C, D = t0.vertices[apex0], t0.vertices[orig0], t1.vertices[apex1], t0.vertices[dest0]
+    # -- triangles around quadrilateral in ccw order, starting at A
+    AB, BC, CD, DA = t0.neighbours[dest0], t1.neighbours[orig1], t1.neighbours[dest1], t0.neighbours[orig0]
+
+    # link neighbours around quadrilateral to triangles as after the flip
+    # -- the sides of the triangles around are stored in apex_around
+    apex_around = []
+    for neighbour, corner in zip([AB, BC, CD, DA],
+                                 [A, B, C, D]):
+        if neighbour is None:
+            apex_around.append(None)
+        else:
+            apex_around.append(ccw(neighbour.vertices.index(corner)))
+    # the triangles around we link to the correct triangle *after* the flip
+    for neighbour, side, t in zip([AB, BC, CD, DA], 
+                                  apex_around, 
+                                  [t0, t0, t1, t1]):
+        if neighbour is not None:
+            link_1dir(neighbour, side, t)
+
+    # -- set new vertices and neighbours
+    # for t0
+    t0.vertices = [A, B, C]
+    t0.neighbours = [BC, t1, AB]
+    # for t1
+    t1.vertices = [C, D, A]
+    t1.neighbours = [DA, t0, CD]
+    # -- update coordinate to triangle pointers
+#     for v in t0.vertices:
+#         v.triangle = t0
+#     for v in t1.vertices:
+#         v.triangle = t1
+
+def link_1dir(t0, side0, t1):
+    """Links triangle t0 to t1 for side0"""
+    t0.neighbours[side0] = t1
 
 # ------------------------------------------------------------------------------
 # solve
@@ -582,19 +640,19 @@ def compute_collapse_time(t):
                     collapses_at = time_edge
         elif tp == 1:
             side = t.neighbours.index(None)
-            orig, dest, apex = t.vertices[cw(side)], t.vertices[ccw(side)], t.vertices[side]
-            coeff = area_collapse_time_coeff(orig, dest, apex)
+            org, dst, apx = t.vertices[cw(side)], t.vertices[ccw(side)], t.vertices[side]
+            coeff = area_collapse_time_coeff(org, dst, apx)
             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-            Mv = tuple(map(sub, apex.origin, orig.origin))
-            m =  map(sub, orig.origin, dest.origin)
+            Mv = tuple(map(sub, apx.origin, org.origin))
+            m =  map(sub, org.origin, dst.origin)
             m = norm(m) # normalize m
             n = perp(m) # take perpendicular vector            
             distance_v_e = dot(Mv, n)
-            s = apex.velocity
+            s = apx.velocity
             crash_time = distance_v_e / (1 - dot(s, n))
             print "tv [vertex crash time]:", crash_time 
 
-            edge_time = collapse_time_edge(orig, dest)
+            edge_time = collapse_time_edge(org, dst)
             print "te [edge collapse time]", edge_time
             # given that we ignore negative times!!!
             if crash_time < edge_time: 
@@ -1302,7 +1360,59 @@ def test_compute_3():
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles([tri], fh)
 
+
+def test_flip():
+    """
+    """
+    # the 2 to be flipped
+    tri0 = KineticTriangle()
+    tri1 = KineticTriangle()
+
+    # surrounding neighbours
+    tri2 = KineticTriangle()
+    tri2.vertices = [None, "a", "c"]
+    tri3 = KineticTriangle()
+    tri3.vertices = [None, "b", "a"]
+    tri4 = KineticTriangle()
+    tri4.vertices = [None, "d", "b"]
+    tri5 = KineticTriangle()
+    tri5.vertices = [None, "c", "d"]
+
+    tri2.neighbours[0] = tri0
+    tri3.neighbours[0] = tri0
+    tri4.neighbours[0] = tri1
+    tri5.neighbours[0] = tri1
+
+    tri0.vertices = ["a","b","c"]
+    tri1.vertices = ["c","b","d"]
+
+    tri0.neighbours = [tri1, tri2, tri3]
+    tri1.neighbours = [tri4, tri5, tri0]
+
+    assert tri1 in tri0.neighbours
+    assert tri2 in tri0.neighbours
+    assert tri3 in tri0.neighbours
+
+    flip(tri0, 0, tri1, 2)
+
+    assert tri0 in tri1.neighbours
+    assert tri2 in tri1.neighbours
+    assert tri5 in tri1.neighbours
+
+    assert tri1 in tri0.neighbours
+    assert tri3 in tri0.neighbours
+    assert tri4 in tri0.neighbours
+
+    assert "a" in tri0.vertices
+    assert "b" in tri0.vertices
+    assert "d" in tri0.vertices
+
+    assert "a" in tri1.vertices
+    assert "c" in tri1.vertices
+    assert "d" in tri1.vertices
+
 if __name__ == "__main__":
+    test_flip()
 #     try:
 #         test_single_point()
 #     except:
@@ -1312,7 +1422,7 @@ if __name__ == "__main__":
 #     test_single_line()
 #     test_three_lines()
 #     test_arrow_four_lines()
-    test_triangle()
+#     test_triangle()
 #     test_parallel_movement()
 #     test_quad()
 #     test_two_lines_par()
