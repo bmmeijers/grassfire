@@ -21,6 +21,12 @@ from math import sqrt, copysign
 # 
 import numpy
 
+class Event(object):
+    def __init__(self, when, tri, side = None):
+        self.time = when
+        self.triangle = tri
+        self.side = side
+
 class Skeleton(object):
     """Represents a Straight Skeleton 
     """
@@ -58,10 +64,15 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 0
+        time = 1.5
         # 4.281470022378475
         return "{0} {1}".format(self.origin[0] + time * self.velocity[0], 
                                 self.origin[1] + time * self.velocity[1])
+
+    def distance2(self, other):
+        """Cartesian distance *squared* to other point """
+        # Used for distances in random triangle close to point
+        return pow(self.origin[0] -other.origin[0], 2) + pow(self.origin[1] - other.origin[1], 2)
 
 class InfiniteVertex(object): # Stationary Vertex
     def __init__(self, x, y):
@@ -97,6 +108,11 @@ class KineticTriangle(object):
         if vertices:
             vertices.append(vertices[0])
         return "POLYGON(({0}))".format(", ".join(vertices))
+
+    def type(self):
+        """Returns how many 'constrained' / PSLG edges this triangle has
+        """
+        return self.neighbours.count(None)
 
 def find_overlapping_triangle(E):
     """find overlapping triangle 180 degrees other way round
@@ -502,6 +518,7 @@ def init_skeleton(dt):
     # FIXME:
     # Update ccw / cw wavefront pointers of KineticVertex objects
 
+    will_collapse = []
     for tri in ktriangles:
         print """
         
@@ -511,6 +528,11 @@ def init_skeleton(dt):
         print "time"
         res = compute_collapse_time(tri)
         print "time >>>", res
+        if res is not None:
+            will_collapse.append(res)
+    print ">>> will collapse", will_collapse
+    for item in will_collapse:
+        print id(item.triangle)
 #         try:
 #             collapse_time_quadratic(tri)
 #             
@@ -547,14 +569,14 @@ def check_ktriangles(L):
     return valid
 
 # ------------------------------------------------------------------------------
-# event handling
+# Flip event handling
 def flip(t0, side0, t1, side1):
     """Performs a flip of triangle t0 and t1
 
     If t0 and t1 are two triangles sharing a common edge AB,
     the method replaces ABC and BAD triangles by DCA and DBC, respectively.
-    To be fast, this method supposed that input triangles share a common
-    edge and that this common edge is known.
+
+    Pre-condition: input triangles share a common edge and this edge is known.
     """
     apex0, orig0, dest0 = apex(side0), orig(side0), dest(side0)
     apex1, orig1, dest1 = apex(side1), orig(side1), dest(side1)
@@ -585,7 +607,7 @@ def flip(t0, side0, t1, side1):
                                   apex_around, 
                                   [t0, t0, t1, t1]):
         if neighbour is not None:
-            link_1dir(neighbour, side, t)
+            neighbour.neighbours[side] = t
 
     # -- set new vertices and neighbours
     # for t0
@@ -600,10 +622,6 @@ def flip(t0, side0, t1, side1):
 #     for v in t1.vertices:
 #         v.triangle = t1
 
-def link_1dir(t0, side0, t1):
-    """Links triangle t0 to t1 for side0"""
-    t0.neighbours[side0] = t1
-
 # ------------------------------------------------------------------------------
 # solve
 
@@ -613,7 +631,7 @@ def compute_collapse_time(t):
     is_finite = all([isinstance(vertex, KineticVertex) for vertex in t.vertices])
     if is_finite:
         # finite triangles
-        tp = t.neighbours.count(None)
+        tp = t.type()
         print "TYPE", tp
         if tp == 0:
             a, b, c = t.vertices
@@ -628,21 +646,30 @@ def compute_collapse_time(t):
             for side in range(3):
                 i, j = cw(side), ccw(side)
                 v1, v2 = t.vertices[i], t.vertices[j]
-                times.append(collapse_time_edge(v1, v2))
-            times = filter(lambda x: x>0, times)
+                times.append((collapse_time_edge(v1, v2), side))
+            times = filter(lambda x: x[0]>0, times)
+            times.sort(key=lambda x: x[0])
+            print "te [edge collapse time]", times
             if times:
-                time_edge = min(times)
+                time_edge = times[0][0]
                 if time_det < time_edge:
                     print "flip event of zero triangle"
                     collapses_at = time_det
+                    # -> side_at = longest of these edges should flip
+                    for side in range(3):
+                        i, j = cw(side), ccw(side)
+                        v1, v2 = t.vertices[i], t.vertices[j]
+                        print "dist", side, v1.distance2(v2)
                 else:
-                    print "vertices crashing into each other, handle as edge event"
                     collapses_at = time_edge
+                    side_at = times[0][1]
+                    print "vertices crashing into each other, handle as edge event @side", side_at
         elif tp == 1:
             side = t.neighbours.index(None)
-            org, dst, apx = t.vertices[cw(side)], t.vertices[ccw(side)], t.vertices[side]
+            org, dst, apx = t.vertices[orig(side)], t.vertices[dest(side)], t.vertices[apex(side)]
             coeff = area_collapse_time_coeff(org, dst, apx)
             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+            print "roots found by numpy", numpy.roots(coeff)
             Mv = tuple(map(sub, apx.origin, org.origin))
             m =  map(sub, org.origin, dst.origin)
             m = norm(m) # normalize m
@@ -659,6 +686,10 @@ def compute_collapse_time(t):
                 print "tv strictly earlier than te -> split or flip"
                 # compute side lengths of triangle at time tv
                 print "should compute side lengths"
+                for side in range(3):
+                    i, j = cw(side), ccw(side)
+                    v1, v2 = t.vertices[i], t.vertices[j]
+                    print "dist", side, v1.distance2(v2)
                 # if longest edge is wavefronte edge -> split event
                 # otherwise -> flip event
         elif tp == 2:
@@ -668,6 +699,7 @@ def compute_collapse_time(t):
             a, b, c = t.vertices
             coeff = area_collapse_time_coeff(a, b, c)
             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+            print "roots found by numpy", numpy.roots(coeff)
             sides = []
             for i in range(3):
                 if t.neighbours[i] is None:
@@ -681,6 +713,8 @@ def compute_collapse_time(t):
                 times.append(collapse_time_edge(v1, v2))
             # remove times in the past, same as None values
             times = filter(lambda x: x>0, times)
+            print times
+            print set(times)
             if times:
                 time = min(times)
                 if time >= 0:
@@ -704,7 +738,11 @@ def compute_collapse_time(t):
     else:
         # infinite triangles
         print "infinite triangle found"
-    return collapses_at
+
+    if collapses_at is not None:
+        return Event(when=collapses_at, tri=t, side=None)
+    else:
+        return None
 
 def quadratic(x, a, b, c):
     """Returns y = a * x^2 + b * x + c for given x and a, b, c
@@ -908,7 +946,7 @@ def output_dt(dt):
 # test cases
 def test_poly():
     conv = ToPointsAndSegments()
-    conv.add_polygon([[(0, 0), (10, 0), (11, 1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
+    conv.add_polygon([[(0, 0), (10, 0), (11, -1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
     dt = triangulate(conv.points, None, conv.segments)
 
     output_dt(dt)
@@ -1165,8 +1203,6 @@ def test_4_segments():
 
     init_skeleton(dt)
 
-
-
 def test_cocircular_segments():
 
     conv = ToPointsAndSegments()
@@ -1193,8 +1229,6 @@ def test_cocircular_segments():
     output_dt(dt)
 
     init_skeleton(dt)
-
-
 
 def test_parallel_movement():
 
@@ -1362,7 +1396,7 @@ def test_compute_3():
 
 
 def test_flip():
-    """
+    """Flip 2 triangles
     """
     # the 2 to be flipped
     tri0 = KineticTriangle()
@@ -1412,12 +1446,12 @@ def test_flip():
     assert "d" in tri1.vertices
 
 if __name__ == "__main__":
-    test_flip()
+#     test_flip()
 #     try:
 #         test_single_point()
 #     except:
 #         pass
-#     test_poly()
+    test_poly()
 #     test_1_segment()
 #     test_single_line()
 #     test_three_lines()
