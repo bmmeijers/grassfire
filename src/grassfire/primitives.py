@@ -21,6 +21,13 @@ from math import sqrt, copysign
 # 
 import numpy
 
+def output_kvertices(V, fh):
+    """Output list of vertices as WKT to text file (for QGIS)"""
+    fh.write("id;wkt;left cw;right ccw\n")
+    for v in V:
+        fh.write("{0};POINT({1});{2};{3}\n".format(id(v), v, id(v.left_cw), id(v.right_ccw)))
+
+
 class Event(object):
     def __init__(self, when, tri, side = None):
         self.time = when
@@ -46,13 +53,20 @@ class SkeletonNode(object):
 
 
 class KineticVertex(object):
+    __slots__ = ("origin", "velocity", 
+                 "left_cw", "right_ccw", 
+                 "starts_at", "stops_at",
+                 "start_node", "stop_node",
+                 )
     def __init__(self):
         self.origin = None 
         self.velocity = None
 
         # next / prev pos
-        self.ccw_wavefront = None
-        self.cw_wavefront = None
+        # while looking in direction of bisector, see which 
+        # kinetic vertex you see on the left_cw, and which on the right_ccw
+        self.left_cw = None
+        self.right_ccw = None
 
         # floats
         self.starts_at = None
@@ -64,7 +78,7 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 1.5
+        time = 1.8
         # 4.281470022378475
         return "{0} {1}".format(self.origin[0] + time * self.velocity[0], 
                                 self.origin[1] + time * self.velocity[1])
@@ -133,8 +147,8 @@ def find_overlapping_triangle(E):
     for i, e in enumerate(E):
         t = e.triangle
         R = t.vertices[cw(e.side)]
-        # if last leg of triangle makes left turn/straight, 
-        # instead of right turn previously
+        # if last leg of triangle makes left_cw turn/straight, 
+        # instead of right_ccw turn previously
         # we have found the overlapping triangle
         if orient2d(P, Q, R) >= 0: # and overlap is None:
             overlap = e
@@ -193,7 +207,7 @@ def init_skeleton(dt):
 
     ktriangles = []         # all kinetic triangles
     triangle2ktriangle = {} # mapping from delaunay triangle to kinetic triangle 
-
+#     vertex2kvertex = {}
     # for every delaunay triangle, make a kinetic triangle
     it = TriangleIterator(dt)
     next(it)# skip the external triangle (which is the first the iterator gives)
@@ -206,6 +220,7 @@ def init_skeleton(dt):
         triangle2ktriangle[t] = k
         ktriangles.append(k)
 
+    link_around = []
     # set up properly the neighbours of all kinetic triangles
     # blank out the neighbour, if a side is constrained
     #remove = []
@@ -281,7 +296,7 @@ def init_skeleton(dt):
                 vec = normalize((end.x - start.x , end.y - start.y))
 
                 # from segment over terminal vertex to this kinetic vertex, 
-                # turns right
+                # turns right_ccw
                 # (first bisector when going ccw at end)
                 p2 = tuple(map(add, start, perp(vec)))
                 p1 = v
@@ -296,7 +311,7 @@ def init_skeleton(dt):
                 kvA.start_node = nodes[v]
                 kvertices.append(kvA)
 
-                # from segment to this vertex, turns left
+                # from segment to this vertex, turns left_cw
                 # second bisector when going ccw at end
                 p2 = tuple(map(add, start, perp(perp(vec))))
                 p1 = v
@@ -409,6 +424,21 @@ def init_skeleton(dt):
                         one_ktri_between[key] = [] 
                     one_ktri_between[key].append((knew, triangle2ktriangle[X], sideX, triangle2ktriangle[Y], sideY))
 
+                # FIXME:
+                # Do we need to do something special with the added kinetic triangles
+                # in terms of linking them up in the circular linked list cw / ccw
+
+                # FIXME: 
+                # add 2 entries to link_around list
+                # one for kvA, which points to kvB on one side and on the other to start of constraint
+                # one for kvB, which points to kvA on other side and also to the start of constraint (opposite of edge)
+                # ---->>>>> could store None in this list for kvA / kvB and link kvA and kvB here directly.
+                # something like:
+                kvA.left_cw = kvB
+                link_around.append( (None, kvA, (first[0].triangle, ccw(first[0].side))))
+                kvB.right_ccw = kvA
+                link_around.append( ((second[-1].triangle, cw(second[-1].side)), kvB, None))
+
             # make bisectors
             else:
                 assert len(constraints) >= 2
@@ -420,6 +450,7 @@ def init_skeleton(dt):
 
                 # per group make a bisector and KineticVertex
                 for group in groups:
+                    print "GROUP", group
                     begin, end = group[0], group[-1]
                     p2 = begin.triangle.vertices[ccw(begin.side)] # the cw vertex
                     p1 = v
@@ -434,6 +465,12 @@ def init_skeleton(dt):
                         ktriangle = triangle2ktriangle[edge.triangle]
                         ktriangle.vertices[edge.side] = kv
                     kvertices.append(kv)
+                    link_around.append( (
+                                         (end.triangle, cw(end.side)),
+                                         kv,
+                                         (begin.triangle, ccw(begin.side)),
+                                         )
+                                       )
 
 #     print len(kvertices), "kvertices vertices"
 #     for i, kv in enumerate(kvertices):
@@ -453,6 +490,22 @@ def init_skeleton(dt):
 # 
 #     """
 #     pprint(one_ktri_between)
+
+    for left, curv, right in link_around: # left_cw is cw, right_ccw is ccw
+        if left is not None:
+            cwv = triangle2ktriangle[left[0]].vertices[left[1]]
+            curv.left_cw = cwv
+            print "setting cw", curv, "to", cwv
+
+        if right is not None:
+            ccwv = triangle2ktriangle[right[0]].vertices[right[1]]
+            curv.right_ccw = ccwv
+            print "setting ccw", curv, "to", ccwv
+
+    print ""
+    print "circular linked lists of vertices"
+    for kvertex in kvertices:
+        print kvertex, kvertex.left_cw, kvertex.right_ccw, id(kvertex), id(kvertex.left_cw), id(kvertex.right_ccw) 
 
     # copy infinite vertices into the kinetic triangles
     # make dico of infinite vertices (lookup by coordinate value)
@@ -501,6 +554,10 @@ def init_skeleton(dt):
 
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles(ktriangles, fh)
+
+
+    with open("/tmp/kvertices.wkt", "w") as fh:
+        output_kvertices(kvertices, fh)
 
     # write bisectors to file
     with open("/tmp/bisectors.wkt", "w") as bisector_fh:
@@ -1451,7 +1508,7 @@ if __name__ == "__main__":
 #         test_single_point()
 #     except:
 #         pass
-    test_poly()
+#     test_poly()
 #     test_1_segment()
 #     test_single_line()
 #     test_three_lines()
@@ -1460,7 +1517,7 @@ if __name__ == "__main__":
 #     test_parallel_movement()
 #     test_quad()
 #     test_two_lines_par()
-#     test_polyline()
+    test_polyline()
 #     test_2_segments()
 #     test_2_perp_segments()
 #     test_45_deg_segments()
