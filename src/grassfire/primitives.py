@@ -33,6 +33,13 @@ class Event(object):
         self.time = when
         self.triangle = tri
         self.side = side
+    
+    def __str__(self):
+        return """
+<<Event at {0}, 
+           {1}, 
+           {2}>>
+""".format(self.time, self.triangle, self.side)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 
@@ -64,7 +71,7 @@ class KineticVertex(object):
 
         # next / prev pos
         # while looking in direction of bisector, see which 
-        # kinetic vertex you see on the left_cw, and which on the right_ccw
+        # kinetic vertex you see on the left, and which on the right
         self.left_cw = None
         self.right_ccw = None
 
@@ -424,16 +431,9 @@ def init_skeleton(dt):
                         one_ktri_between[key] = [] 
                     one_ktri_between[key].append((knew, triangle2ktriangle[X], sideX, triangle2ktriangle[Y], sideY))
 
-                # FIXME:
-                # Do we need to do something special with the added kinetic triangles
-                # in terms of linking them up in the circular linked list cw / ccw
-
-                # FIXME: 
                 # add 2 entries to link_around list
-                # one for kvA, which points to kvB on one side and on the other to start of constraint
-                # one for kvB, which points to kvA on other side and also to the start of constraint (opposite of edge)
-                # ---->>>>> could store None in this list for kvA / kvB and link kvA and kvB here directly.
-                # something like:
+                # one for kvA and one for kvB
+                # link kvA and kvB to point to each other directly
                 kvA.left_cw = kvB
                 link_around.append( (None, kvA, (first[0].triangle, ccw(first[0].side))))
                 kvB.right_ccw = kvA
@@ -465,31 +465,8 @@ def init_skeleton(dt):
                         ktriangle = triangle2ktriangle[edge.triangle]
                         ktriangle.vertices[edge.side] = kv
                     kvertices.append(kv)
-                    link_around.append( (
-                                         (end.triangle, cw(end.side)),
-                                         kv,
-                                         (begin.triangle, ccw(begin.side)),
-                                         )
-                                       )
-
-#     print len(kvertices), "kvertices vertices"
-#     for i, kv in enumerate(kvertices):
-#         print "=" * 10
-#         print "vertex", i
-#         print "=" * 10
-#         print kv.origin
-#         print kv.velocity
-#         print kv.start_node.pos
-#         print kv.ccw_wavefront
-#         print kv.cw_wavefront
-#         print ""
-# 
-#     print """
-# 
-# KINETIC TRIs
-# 
-#     """
-#     pprint(one_ktri_between)
+                    # link vertices to each other in circular list
+                    link_around.append( ((end.triangle, cw(end.side)), kv, (begin.triangle, ccw(begin.side))))
 
     for left, curv, right in link_around: # left_cw is cw, right_ccw is ccw
         if left is not None:
@@ -1508,7 +1485,7 @@ if __name__ == "__main__":
 #         test_single_point()
 #     except:
 #         pass
-#     test_poly()
+    test_poly()
 #     test_1_segment()
 #     test_single_line()
 #     test_three_lines()
@@ -1517,7 +1494,7 @@ if __name__ == "__main__":
 #     test_parallel_movement()
 #     test_quad()
 #     test_two_lines_par()
-    test_polyline()
+#     test_polyline()
 #     test_2_segments()
 #     test_2_perp_segments()
 #     test_45_deg_segments()
