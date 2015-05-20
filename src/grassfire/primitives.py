@@ -56,6 +56,7 @@ class Skeleton(object):
 Vector = namedtuple("Vector", "x y")
 
 class SkeletonNode(object):
+    __slots__ = ("pos", "info",)
     def __init__(self, pos, info=None):
         self.pos = pos
         self.info = info # the info of the vertex in the triangulation
@@ -87,7 +88,7 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 4.5
+        time = 3
         # 4.281470022378475
         return "{0[0]} {0[1]}".format(self.position_at(time))
 
@@ -334,6 +335,7 @@ def init_skeleton(dt):
                 kvA.origin = (p1.x, p1.y)
                 kvA.velocity = bi
                 kvA.start_node = nodes[v]
+                kvA.starts_at = 0
                 kvertices.append(kvA)
 
                 # from segment to this vertex, turns left_ccw
@@ -350,6 +352,7 @@ def init_skeleton(dt):
                 kvB.origin = (p1.x, p1.y)
                 kvB.velocity = bi
                 kvB.start_node = nodes[v]
+                kvB.starts_at = 0
                 kvertices.append(kvB)
 
                 groups = [around]
@@ -478,6 +481,7 @@ def init_skeleton(dt):
                     kv.origin = (p1.x, p1.y)
                     kv.velocity = bi
                     kv.start_node = nodes[v]
+                    kv.starts_at = 0
                     for edge in group:
                         ktriangle = triangle2ktriangle[edge.triangle]
                         ktriangle.vertices[edge.side] = kv
@@ -549,13 +553,29 @@ def init_skeleton(dt):
             bi = kvertex.velocity
             bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(p1, map(add, p1, bi)))
 
+
+
+
+    with open("/tmp/ktris.wkt", "w") as fh:
+        output_triangles(ktriangles, fh)
+
+
+    with open("/tmp/kvertices.wkt", "w") as fh:
+        output_kvertices(kvertices, fh)
+
+    skel.sk_nodes = nodes.values()
+    skel.triangles = ktriangles
+    skel.vertices = kvertices
+
+    return skel
+
+def init_event_list(skel):
     # FIXME: SHOULD WE
     # remove the 3 kinetic/ infinite triangles, and link their two neighbours
     # that are not None for these triangles properly together!
     # ???????????????????????????????? 
-
     will_collapse = []
-    for tri in ktriangles:
+    for tri in skel.triangles:
         print """
         """
         print id(tri)
@@ -568,19 +588,24 @@ def init_skeleton(dt):
     for item in will_collapse:
         print id(item.triangle)
 
-    will_collapse.sort(key=lambda x: x.time)
+    will_collapse.sort(key=lambda x: -x.time)
     print will_collapse
     for evt in will_collapse:
         print evt.time, evt.side, evt.tp, evt.triangle.type
+    return will_collapse
 
-    evt = will_collapse[0]
-    # decide what to do based on event type
-    if evt.tp == "edge":
-        handle_edge_event(evt)
-    elif evt.tp == "flip":
-        pass
-    elif evt.tp == "split":
-        pass
+def event_loop(events, skel):
+#     evt = events[0]
+    while events:
+        evt = events.pop()
+        # decide what to do based on event type
+        if evt.tp == "edge":
+            handle_edge_event(evt, skel)
+        elif evt.tp == "flip":
+            print "SKIP FLIP"
+        elif evt.tp == "split":
+            print "SKIP SPLIT"
+
 #         try:
 #             collapse_time_quadratic(tri)
 #             
@@ -589,17 +614,6 @@ def init_skeleton(dt):
 #     for tri in ktriangles:
 #         print tri
 #         collapse_time_dot(tri)
-    skel.triangles = ktriangles
-
-
-    with open("/tmp/ktris.wkt", "w") as fh:
-        output_triangles(ktriangles, fh)
-
-
-    with open("/tmp/kvertices.wkt", "w") as fh:
-        output_kvertices(kvertices, fh)
-
-    return skel
 
 def check_ktriangles(L):
     """Check whether kinetic triangles are all linked up properly
@@ -630,10 +644,14 @@ def check_ktriangles(L):
 def stop_kvertices2(v1, v2, now):
     v1.stops_at = now
     v2.stops_at = now
+
     a = v1.position_at(now)
     b = v2.position_at(now)
     pos = tuple(map(lambda x: x*.5, map(add, a, b)))
     sk_node = SkeletonNode(pos)
+
+    v1.stop_node = sk_node
+    v2.stop_node = sk_node
     return sk_node
 
 def stop_kvertices3(v0, v1, v2, now):
@@ -649,6 +667,11 @@ def stop_kvertices3(v0, v1, v2, now):
     y = sum([a[1], b[1], c[1]]) / 3.
     pos = (x, y)
     sk_node = SkeletonNode(pos)
+
+    v0.stop_node = sk_node
+    v1.stop_node = sk_node
+    v2.stop_node = sk_node
+
     return sk_node
 
 def compute_new_kvertex(v1, v2, now, sk_node):
@@ -672,16 +695,16 @@ def compute_new_kvertex(v1, v2, now, sk_node):
     kv.velocity = velo
     return kv
 
-def replace_kvertex(t, v, newv, dir):
+def replace_kvertex(t, v, newv, direction):
     while t is not None:
         side = t.vertices.index(v)
         t.vertices[side] = newv
         print "updated", id(t), "at", side
         print "new kinetic vertex:", id(newv)
-        print "updated event", compute_collapse_time(t)
-        t = t.neighbours[dir(side)]
+#         print "updated event", compute_collapse_time(t)
+        t = t.neighbours[direction(side)]
 
-def handle_edge_event(evt):
+def handle_edge_event(evt, skel):
     print "=" * 20
     print "Processing edge event"
     print "=" * 20
@@ -696,9 +719,23 @@ def handle_edge_event(evt):
 #     print v0.position_at(now)
 #     print v1.position_at(now)
 #     print v2.position_at(now)
-    #sk_node = stop_kvertices3(v0, v1, v2, now)
-    sk_node = stop_kvertices2(v1, v2, now)
-    kv = compute_new_kvertex(v1.left_ccw, v2.right_cw, now, sk_node)
+    if t.type == 3:
+        sk_node = stop_kvertices3(v0, v1, v2, now)
+        #
+        kv = KineticVertex()
+        kv.starts_at = now
+        kv.start_node = sk_node
+        # always stationary from begin
+        kv.origin = sk_node.pos
+        kv.velocity = (0,0)
+
+    else:
+        sk_node = stop_kvertices2(v1, v2, now)
+        kv = compute_new_kvertex(v1.left_ccw, v2.right_cw, now, sk_node)
+    # add to skeleton structure
+    skel.sk_nodes.append(sk_node)
+    skel.vertices.append(kv)
+
     print kv.origin
     print kv.velocity
 #     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.origin, kv.position_at(now))
@@ -726,7 +763,7 @@ def handle_edge_event(evt):
     if n is not None:
         print "changing neighbour n"
         n.neighbours[n.neighbours.index(t)] = None
-        # schedule_immediately(n)
+        # schedule_immediately(n) --> find triangle in the event queue!
         pass
 
 # ------------------------------------------------------------------------------
@@ -1182,7 +1219,9 @@ def test_simple_poly():
     conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
     dt = triangulate(conv.points, None, conv.segments)
     output_dt(dt)
-    init_skeleton(dt)
+    skel = init_skeleton(dt)
+    el = init_event_list(skel)
+    event_loop(el, skel)
 
 def test_single_line():
     conv = ToPointsAndSegments()
@@ -1250,7 +1289,27 @@ def test_triangle():
     conv.add_segment((-2,-8), (10,0))
     dt = triangulate(conv.points, None, conv.segments)
     output_dt(dt)
-    init_skeleton(dt)
+    skel = init_skeleton(dt)
+    el = init_event_list(skel)
+    event_loop(el, skel)
+
+    print skel.sk_nodes
+    for node in skel.sk_nodes:
+        print "POINT({0[0]} {0[1]})".format(node.pos)
+    print skel.vertices
+    for v in skel.vertices:
+        print v.starts_at, v.stops_at
+
+    with open("/tmp/offsets.wkt", "w") as fh:
+        fh.write("wkt\n")
+        for t in range(0, 20):
+            t *= .2
+            for v in skel.vertices:
+                if v.starts_at <= t and v.stops_at > t: # finite ranges only (not None is filtered out)
+                    s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(t), 
+                                                                          v.left_ccw.position_at(t))
+                    fh.write(s)
+                    fh.write("\n")
 
 def test_quad():
     conv = ToPointsAndSegments()
@@ -1266,8 +1325,27 @@ def test_quad():
     dt = triangulate(conv.points, None, conv.segments)
 
     output_dt(dt)
+    skel = init_skeleton(dt)
+    el = init_event_list(skel)
+    event_loop(el, skel)
 
-    init_skeleton(dt)
+    print skel.sk_nodes
+    for node in skel.sk_nodes:
+        print "POINT({0[0]} {0[1]})".format(node.pos)
+    print skel.vertices
+    for v in skel.vertices:
+        print v.starts_at, v.stops_at
+
+    with open("/tmp/offsets.wkt", "w") as fh:
+        fh.write("wkt\n")
+        for t in range(0, 100):
+            t *= .2
+            for v in skel.vertices:
+                if v.starts_at <= t and v.stops_at > t: # finite ranges only (not None is filtered out)
+                    s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(t), 
+                                                                          v.left_ccw.position_at(t))
+                    fh.write(s)
+                    fh.write("\n")
 
 def test_two_lines_par():
     conv = ToPointsAndSegments()
@@ -1683,9 +1761,9 @@ if __name__ == "__main__":
 #     test_single_line()
 #     test_three_lines()
 #     test_arrow_four_lines()
-    test_triangle()
+#     test_triangle()
 #     test_parallel_movement()
-#     test_quad()
+    test_quad()
 #     test_two_lines_par()
 #     test_polyline()
 #     test_2_segments()
