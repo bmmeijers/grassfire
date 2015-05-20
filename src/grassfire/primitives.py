@@ -29,17 +29,19 @@ def output_kvertices(V, fh):
 
 
 class Event(object):
-    def __init__(self, when, tri, side = None):
+    def __init__(self, when, tri, side = None, tp = None):
         self.time = when
         self.triangle = tri
         self.side = side
-    
+        self.tp = tp
+
     def __str__(self):
         return """
 <<Event at {0}, 
            {1}, 
-           {2}>>
-""".format(self.time, self.triangle, self.side)
+           {2},
+           {3}>>
+""".format(self.time, self.triangle, self.side, self.tp)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 
@@ -130,10 +132,15 @@ class KineticTriangle(object):
             vertices.append(vertices[0])
         return "POLYGON(({0}))".format(", ".join(vertices))
 
+    @property
     def type(self):
         """Returns how many 'constrained' / PSLG edges this triangle has
         """
         return self.neighbours.count(None)
+
+    @property
+    def finite(self):
+        return all([isinstance(vertex, KineticVertex) for vertex in self.vertices])
 
 def find_overlapping_triangle(E):
     """find overlapping triangle 180 degrees other way round
@@ -450,7 +457,6 @@ def init_skeleton(dt):
 
                 # per group make a bisector and KineticVertex
                 for group in groups:
-                    print "GROUP", group
                     begin, end = group[0], group[-1]
                     p2 = begin.triangle.vertices[ccw(begin.side)] # the cw vertex
                     p1 = v
@@ -472,17 +478,10 @@ def init_skeleton(dt):
         if left is not None:
             cwv = triangle2ktriangle[left[0]].vertices[left[1]]
             curv.left_cw = cwv
-            print "setting cw", curv, "to", cwv
 
         if right is not None:
             ccwv = triangle2ktriangle[right[0]].vertices[right[1]]
             curv.right_ccw = ccwv
-            print "setting ccw", curv, "to", ccwv
-
-    print ""
-    print "circular linked lists of vertices"
-    for kvertex in kvertices:
-        print kvertex, kvertex.left_cw, kvertex.right_ccw, id(kvertex), id(kvertex.left_cw), id(kvertex.right_ccw) 
 
     # copy infinite vertices into the kinetic triangles
     # make dico of infinite vertices (lookup by coordinate value)
@@ -528,6 +527,7 @@ def init_skeleton(dt):
             raise ValueError("Unexpected # kinetic triangles at terminal vertex")
 
     assert check_ktriangles(ktriangles)
+    # INITIALIZATION FINISHES HERE
 
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles(ktriangles, fh)
@@ -549,14 +549,9 @@ def init_skeleton(dt):
     # that are not None for these triangles properly together!
     # ???????????????????????????????? 
 
-    # FIXME:
-    # Update ccw / cw wavefront pointers of KineticVertex objects
-
     will_collapse = []
     for tri in ktriangles:
         print """
-        
-        
         """
         print id(tri)
         print "time"
@@ -567,6 +562,11 @@ def init_skeleton(dt):
     print ">>> will collapse", will_collapse
     for item in will_collapse:
         print id(item.triangle)
+    
+    will_collapse.sort(key=lambda x: x.time)
+    print will_collapse
+    for evt in will_collapse:
+        print evt.time, evt.side, evt.tp
 #         try:
 #             collapse_time_quadratic(tri)
 #             
@@ -659,13 +659,22 @@ def flip(t0, side0, t1, side1):
 # ------------------------------------------------------------------------------
 # solve
 
+def ignore_and_sort_collapse_times(L):
+    """
+    L = list of (time, side index) tuples
+    """
+    L = filter(lambda x: x[0]>0, L)
+    L.sort(key=lambda x: x[0])
+    return L
+
 def compute_collapse_time(t):
     # compute when this triangle collapses
     collapses_at = None 
-    is_finite = all([isinstance(vertex, KineticVertex) for vertex in t.vertices])
-    if is_finite:
+    collapses_side = None
+    collapses_type = None
+    if t.finite:
         # finite triangles
-        tp = t.type()
+        tp = t.type
         print "TYPE", tp
         if tp == 0:
             a, b, c = t.vertices
@@ -674,7 +683,7 @@ def compute_collapse_time(t):
             times = filter(lambda x: x>0, times)
             time_det = min(times)
             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-            print "roots found by numpy", numpy.roots(coeff)
+            print "   roots found by numpy", numpy.roots(coeff)
             print times
             times = []
             for side in range(3):
@@ -699,18 +708,38 @@ def compute_collapse_time(t):
                     side_at = times[0][1]
                     print "vertices crashing into each other, handle as edge event @side", side_at
         elif tp == 1:
+            # 2 cases can happen:
+            # a. the wavefront edge can collapse -> edge event
+            # b. the vertex v opposite this edge can crash into
+            #    this edge, or sweep over its supporting line -> split or flip event 
+
             side = t.neighbours.index(None)
             org, dst, apx = t.vertices[orig(side)], t.vertices[dest(side)], t.vertices[apex(side)]
+
+            # 
             coeff = area_collapse_time_coeff(org, dst, apx)
             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-            print "roots found by numpy", numpy.roots(coeff)
+            print "   roots found by numpy", numpy.roots(coeff)
+
+            # 
+            #print id(org), id(dst), id(apx)
             Mv = tuple(map(sub, apx.origin, org.origin))
-            m =  map(sub, org.origin, dst.origin)
+            #print Mv
+            #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + Mv[0], org.origin[1] + Mv[1])
+            m =  map(sub, dst.origin, org.origin)
+            #print m
             m = norm(m) # normalize m
-            n = perp(m) # take perpendicular vector            
+            #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + m[0], org.origin[1] + m[1])
+            #print m
+            n = perp(m) # take perpendicular vector
+            #print n
+            #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + n[0], org.origin[1] + n[1])
             distance_v_e = dot(Mv, n)
+            #print "dist", distance_v_e
             s = apx.velocity
+            #print dot(s, n)
             crash_time = distance_v_e / (1 - dot(s, n))
+            #print crash_time
             print "tv [vertex crash time]:", crash_time 
 
             edge_time = collapse_time_edge(org, dst)
@@ -733,7 +762,7 @@ def compute_collapse_time(t):
             a, b, c = t.vertices
             coeff = area_collapse_time_coeff(a, b, c)
             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-            print "roots found by numpy", numpy.roots(coeff)
+            print "   roots found by numpy", numpy.roots(coeff)
             sides = []
             for i in range(3):
                 if t.neighbours[i] is None:
@@ -744,15 +773,22 @@ def compute_collapse_time(t):
             for side in sides:
                 i, j = cw(side), ccw(side)
                 v1, v2 = t.vertices[i], t.vertices[j]
-                times.append(collapse_time_edge(v1, v2))
+                times.append((collapse_time_edge(v1, v2), side))
             # remove times in the past, same as None values
-            times = filter(lambda x: x>0, times)
-            print times
-            print set(times)
+            times = ignore_and_sort_collapse_times(times)
             if times:
-                time = min(times)
-                if time >= 0:
-                    collapses_at = time
+                time, side = times[0]
+                collapses_at = time
+                collapses_side = side
+                collapses_type = "edge"
+                print "SIDE", side
+#             times = filter(lambda x: x>0, times)
+#             print times
+#             print set(times)
+#             if times:
+#                 time = min(times)
+#                 if time >= 0:
+#                     collapses_at = time
         elif tp == 3:
             # compute with edge collapse time of all three edges
             a, b, c = t.vertices
@@ -774,7 +810,10 @@ def compute_collapse_time(t):
         print "infinite triangle found"
 
     if collapses_at is not None:
-        return Event(when=collapses_at, tri=t, side=None)
+        return Event(when=collapses_at, 
+                     tri=t, 
+                     side=collapses_side, 
+                     tp=collapses_type)
     else:
         return None
 
@@ -982,11 +1021,15 @@ def test_poly():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(0, 0), (10, 0), (11, -1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
     dt = triangulate(conv.points, None, conv.segments)
-
     output_dt(dt)
-
     init_skeleton(dt)
 
+def test_simple_poly():
+    conv = ToPointsAndSegments()
+    conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
+    dt = triangulate(conv.points, None, conv.segments)
+    output_dt(dt)
+    init_skeleton(dt)
 
 def test_single_line():
     conv = ToPointsAndSegments()
@@ -1485,7 +1528,8 @@ if __name__ == "__main__":
 #         test_single_point()
 #     except:
 #         pass
-    test_poly()
+#     test_poly()
+    test_simple_poly()
 #     test_1_segment()
 #     test_single_line()
 #     test_three_lines()
