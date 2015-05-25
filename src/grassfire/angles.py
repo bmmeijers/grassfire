@@ -114,6 +114,10 @@ def bisector(p0, p1, p2, factor=1.0): #1.0):
     The bisector that is generated lies on the left when you go from point
     p0 to p1 to p2, while looking from above.
     """
+    
+    print "bisector for"
+    for p in p0, p1, p2:
+        print "POINT({0[0]} {0[1]})".format(p)
     u, v = outward_unit_p1(p0, p1, p2)
 #    print u, v
     r = map(add, u, v)

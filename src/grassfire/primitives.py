@@ -25,7 +25,7 @@ def output_kvertices(V, fh):
     """Output list of vertices as WKT to text file (for QGIS)"""
     fh.write("id;wkt;left cw;right ccw\n")
     for v in V:
-        fh.write("{0};POINT({1});{2};{3}\n".format(id(v), v, id(v.left_ccw), id(v.right_cw)))
+        fh.write("{0};POINT({1});{2};{3}\n".format(id(v), v, id(v.left), id(v.right)))
 
 
 class Event(object):
@@ -41,7 +41,7 @@ class Event(object):
            {1}, 
            {2},
            {3}>>
-""".format(self.time, self.triangle, self.side, self.tp)
+""".format(self.time, id(self.triangle), self.side, self.tp)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 
@@ -64,9 +64,9 @@ class SkeletonNode(object):
 
 class KineticVertex(object):
     __slots__ = ("origin", "velocity", 
-                 "left_ccw", "right_cw", 
                  "starts_at", "stops_at",
                  "start_node", "stop_node",
+                 "_left", "_right"
                  )
     def __init__(self):
         self.origin = None 
@@ -75,8 +75,11 @@ class KineticVertex(object):
         # next / prev pos
         # while looking in direction of bisector, see which 
         # kinetic vertex you see on the left, and which on the right
-        self.left_ccw = None
-        self.right_cw = None
+        #self.left = None
+        #self.right = None
+
+        self._left = [] # (start, stop, vertex)
+        self._right = []
 
         # floats
         self.starts_at = None
@@ -88,7 +91,7 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 3
+        time = 0.918
         # 4.281470022378475
         return "{0[0]} {0[1]}".format(self.position_at(time))
 
@@ -108,6 +111,46 @@ class KineticVertex(object):
         return (self.origin[0] + time * self.velocity[0], 
                 self.origin[1] + time * self.velocity[1])
 
+    @property
+    def left(self):
+        return self._left[-1][2]
+
+    @property
+    def right(self):
+        return self._right[-1][2]
+
+    @left.setter
+    def left(self, v):
+        """ 
+        v is tuple of (reference, time)
+
+        This new reference will super seed old neighbour at this time
+        """
+        ref, time, = v
+        if len(self._left) > 0:
+            self._left[-1] = self._left[-1][0], time, self._left[-1][2]
+        self._left.append((time, None, ref))
+
+    @right.setter
+    def right(self, v):
+        ref, time, = v
+        if len(self._right) > 0:
+            self._right[-1] = self._right[-1][0], time, self._right[-1][2]
+        self._right.append((time, None, ref))
+
+    def left_at(self, time):
+        for item in self._left:
+            if (item[0] <= time and item[1] > time) or \
+                (item[0] <= time and item[1] is None):
+                return item[2]
+        return None
+
+    def right_at(self, time):
+        for item in self._right:
+            if (item[0] <= time and item[1] > time) or \
+                (item[0] <= time and item[1] is None):
+                return item[2]
+        return None
 
 class InfiniteVertex(object): # Stationary Vertex
     def __init__(self, x, y):
@@ -173,8 +216,8 @@ def find_overlapping_triangle(E):
     for i, e in enumerate(E):
         t = e.triangle
         R = t.vertices[cw(e.side)]
-        # if last leg of triangle makes left_ccw turn/straight, 
-        # instead of right_cw turn previously
+        # if last leg of triangle makes left turn/straight, 
+        # instead of right turn previously
         # we have found the overlapping triangle
         if orient2d(P, Q, R) >= 0: # and overlap is None:
             overlap = e
@@ -322,7 +365,7 @@ def init_skeleton(dt):
                 vec = normalize((end.x - start.x , end.y - start.y))
 
                 # from segment over terminal vertex to this kinetic vertex, 
-                # turns right_cw
+                # turns right
                 # (first bisector when going ccw at end)
                 p2 = tuple(map(add, start, perp(vec)))
                 p1 = v
@@ -338,7 +381,7 @@ def init_skeleton(dt):
                 kvA.starts_at = 0
                 kvertices.append(kvA)
 
-                # from segment to this vertex, turns left_ccw
+                # from segment to this vertex, turns left
                 # second bisector when going ccw at end
                 p2 = tuple(map(add, start, perp(perp(vec))))
                 p1 = v
@@ -455,9 +498,9 @@ def init_skeleton(dt):
                 # add 2 entries to link_around list
                 # one for kvA and one for kvB
                 # link kvA and kvB to point to each other directly
-                kvA.left_ccw = kvB
+                kvA.left = kvB
                 link_around.append( (None, kvA, (first[0].triangle, ccw(first[0].side))))
-                kvB.right_cw = kvA
+                kvB.right = kvA
                 link_around.append( ((second[-1].triangle, cw(second[-1].side)), kvB, None))
 
             # make bisectors
@@ -489,14 +532,14 @@ def init_skeleton(dt):
                     # link vertices to each other in circular list
                     link_around.append( ((end.triangle, cw(end.side)), kv, (begin.triangle, ccw(begin.side))))
 
-    for left, curv, right in link_around: # left_ccw is cw, right_cw is ccw
+    for left, curv, right in link_around: # left is cw, right is ccw
         if left is not None:
             cwv = triangle2ktriangle[left[0]].vertices[left[1]]
-            curv.left_ccw = cwv
+            curv.left = cwv, 0
 
         if right is not None:
             ccwv = triangle2ktriangle[right[0]].vertices[right[1]]
-            curv.right_cw = ccwv
+            curv.right = ccwv, 0
 
     # copy infinite vertices into the kinetic triangles
     # make dico of infinite vertices (lookup by coordinate value)
@@ -553,12 +596,8 @@ def init_skeleton(dt):
             bi = kvertex.velocity
             bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(p1, map(add, p1, bi)))
 
-
-
-
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles(ktriangles, fh)
-
 
     with open("/tmp/kvertices.wkt", "w") as fh:
         output_kvertices(kvertices, fh)
@@ -605,7 +644,7 @@ def event_loop(events, skel):
             print "SKIP FLIP"
         elif evt.tp == "split":
             print "SKIP SPLIT"
-
+            handle_split_event(evt, skel)
 #         try:
 #             collapse_time_quadratic(tri)
 #             
@@ -641,23 +680,36 @@ def check_ktriangles(L):
 # ------------------------------------------------------------------------------
 # Event handling
 
+def stop_kvertex(v, now):
+    v.stops_at = now
+    pos = v.position_at(now)
+    sk_node = SkeletonNode(pos)
+    v.stop_node = sk_node
+    return sk_node
+
 def stop_kvertices2(v1, v2, now):
     v1.stops_at = now
     v2.stops_at = now
 
     a = v1.position_at(now)
     b = v2.position_at(now)
+
     pos = tuple(map(lambda x: x*.5, map(add, a, b)))
     sk_node = SkeletonNode(pos)
 
     v1.stop_node = sk_node
     v2.stop_node = sk_node
+
     return sk_node
 
 def stop_kvertices3(v0, v1, v2, now):
     a = v0.position_at(now)
     b = v1.position_at(now)
     c = v2.position_at(now)
+
+    print "a", a
+    print "b", b
+    print "c", c
 
     v0.stops_at = now
     v1.stops_at = now
@@ -680,28 +732,56 @@ def compute_new_kvertex(v1, v2, now, sk_node):
     kv.starts_at = now
     kv.start_node = sk_node
 
-    print sk_node.pos
+    print "Node POSITION", sk_node.pos
 
-    kv.left_ccw = v1 # did not check whether correct
-    kv.right_cw = v2 # did not check whether correct
+    #
+    # FIXME:
+    # this makes it difficult to work with the skeleton vertices
+    # once the skeleton is constructed completely
+    #
+    # FIX: we could replace the two kinetic vertices on the left and right
+    # and not make a skeleton node --> just two vertices, but this would mean
+    # having to update more triangles :(
+    # as well and set the old two vertices their start / stop range here
 
-    #velo = #map(lambda x: x*.5, ...) 
-    velo = tuple(map(add, v1.velocity, v2.velocity)) # multiply with 0.5???
+
+    print "FIXME: UPDATE CIRCULAR LIST OF VERTICES"
+    print "THIS IS DIFFERENT FOR SPLIT / EDGE EVENT !!!"
+#     kv.left = v1 # did not check whether correct 
+#     kv.right = v2 # did not check whether correct
+#     v1.right = kv # <<<< PROBLEM for later using the vertex
+#     v2.left = kv # <<<< 
+
+    p1 = v1.position_at(now)
+    p2 = v2.position_at(now)
+    velo = bisector(p1, sk_node.pos, p2)
+    print "new bisector:"
+    print " LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(sk_node.pos, 
+                                                            map(add, velo, sk_node.pos))
     # compute position at t=0
-    negvelo = map(lambda x: -x, velo)
+    # rotate bisector 180 degrees
+    negvelo = perp(perp(velo))
     pos_at_t0 = (sk_node.pos[0] + negvelo[0] * now,
                  sk_node.pos[1] + negvelo[1] * now)
+    print "AT ZERO:", pos_at_t0
     kv.origin = pos_at_t0
     kv.velocity = velo
     return kv
 
-def replace_kvertex(t, v, newv, direction):
+def replace_kvertex(t, v, newv, now, direction):
     while t is not None:
         side = t.vertices.index(v)
         t.vertices[side] = newv
         print "updated", id(t), "at", side
         print "new kinetic vertex:", id(newv)
-#         print "updated event", compute_collapse_time(t)
+        # FIXME: 
+        # Needed: 
+        # access to event list, to find the events for this triangles
+        # and replace them
+        print ""
+        print "TODO UPDATE THE EVENT"
+        print id(t), compute_collapse_time(t, now)
+        print "END TODO"
         t = t.neighbours[direction(side)]
 
 def handle_edge_event(evt, skel):
@@ -731,7 +811,13 @@ def handle_edge_event(evt, skel):
 
     else:
         sk_node = stop_kvertices2(v1, v2, now)
-        kv = compute_new_kvertex(v1.left_ccw, v2.right_cw, now, sk_node)
+        kv = compute_new_kvertex(v1.left, v2.right, now, sk_node)
+        
+        kv.left = v2, now # did not check whether correct 
+        kv.right = v1, now # did not check whether correct
+        v1.left = kv, now # <<<< PROBLEM for later using the vertex
+        v2.right = kv, now # <<<< 
+    
     # add to skeleton structure
     skel.sk_nodes.append(sk_node)
     skel.vertices.append(kv)
@@ -745,26 +831,65 @@ def handle_edge_event(evt, skel):
     print "-" * 20
     a = t.neighbours[(e+1) % 3]
     b = t.neighbours[(e+2) % 3]
+
     n = t.neighbours[e]
-    print "a.", a
-    print "b.", b
-    print "n.", n
+    print "a.", id(a)
+    print "b.", id(b)
+    print "n.", id(n)
     print "-" * 20
     if a is not None:
+        a_idx = a.neighbours.index(t)
         print "changing neighbour a"
-        a.neighbours[a.neighbours.index(t)] = b
-        replace_kvertex(a, v2, kv, ccw)
-
+        a.neighbours[a_idx] = b
+        replace_kvertex(a, v2, kv, now, ccw)
     if b is not None:
         print "changing neighbour b"
-        b.neighbours[b.neighbours.index(t)] = a
-        replace_kvertex(b, v1, kv, cw)
-
+        b_idx = b.neighbours.index(t)
+        b.neighbours[b_idx] = a
+        replace_kvertex(b, v1, kv, now, cw)
     if n is not None:
         print "changing neighbour n"
-        n.neighbours[n.neighbours.index(t)] = None
+        n_idx = n.neighbours.index(t)
+        n.neighbours[n_idx] = None
         # schedule_immediately(n) --> find triangle in the event queue!
-        pass
+    print "updated neighbours"
+    if a is not None:
+        print "a.", a.neighbours[a_idx]
+    if b is not None:
+        print "b.", b.neighbours[b_idx]
+    if n is not None:
+        print "n.", n.neighbours[n_idx]
+
+def handle_split_event(evt, skel):
+    print "=" * 20
+    print "Processing split event"
+    print "=" * 20
+    print evt
+    t = evt.triangle
+    print "TYPE", t.type
+    e = evt.side
+    now = evt.time
+    v = t.vertices[(e) % 3]
+    v1 = t.vertices[(e+1) % 3]
+    v2 = t.vertices[(e+2) % 3]
+    sk_node = stop_kvertex(v, now)
+    r = v.right
+    l = v.left
+    vb = compute_new_kvertex(l, v1.right, now, sk_node)
+    va = compute_new_kvertex(v2.left, r,  now, sk_node)
+
+    skel.sk_nodes.append(sk_node)
+    skel.vertices.append(va)
+    skel.vertices.append(vb)
+
+    a = t.neighbours[(e+1)%3]
+    a.neighbours[a.neighbours.index(t)] = None
+    replace_kvertex(a, v, va, now, ccw)
+
+    b = t.neighbours[(e+2)%3]
+    b.neighbours[b.neighbours.index(t)] = None
+    replace_kvertex(b, v, vb, now, ccw)
+
 
 # ------------------------------------------------------------------------------
 # Flip
@@ -823,7 +948,7 @@ def flip(t0, side0, t1, side1):
 # ------------------------------------------------------------------------------
 # solve
 
-def ignore_and_sort(L):
+def ignore_lte_and_sort(L, val=0):
     """
     L = list of 2-tuples, e.g (time, side) or (length, side)
     
@@ -836,11 +961,15 @@ def ignore_and_sort(L):
     # FIXME: not sure if filtering 0 values always out is what we want
     # e.g. while doing length comparision, we probably want to keep a length
     # of 0????
-    L = filter(lambda x: x[0]>0, L)
+    L = filter(lambda x: x[0]>val, L)
     L.sort(key=lambda x: x[0])
     return L
 
-def compute_collapse_time(t):
+def compute_collapse_time(t, now=0):
+    #
+    # FIXME:
+    # FILTER TIMES IN THE PAST depends on the current time of NOW
+    #
     # compute when this triangle collapses
     collapses_at = None 
     collapses_side = None
@@ -931,10 +1060,10 @@ def compute_collapse_time(t):
                     i, j = cw(side), ccw(side)
                     v1, v2 = t.vertices[i], t.vertices[j]
                     dist = v1.distance2_at(v2, t_v)
-                    print "dist", side, dist
+                    print " dist", side, dist
                     lengths.append((dist, side))
-                lengths = ignore_and_sort(lengths)
-                dist, side = lengths[0]
+                lengths = ignore_lte_and_sort(lengths)
+                dist, side = lengths[-1] # take longest is last
                 print dist, side
                 # if longest edge at time t_v is wavefronte edge -> split event
                 if side == t.neighbours.index(None):
@@ -964,7 +1093,7 @@ def compute_collapse_time(t):
                 v1, v2 = t.vertices[i], t.vertices[j]
                 times.append((collapse_time_edge(v1, v2), side))
             # remove times in the past, same as None values
-            times = ignore_and_sort(times)
+            times = ignore_lte_and_sort(times, now)
             if times:
                 time, side = times[0]
                 collapses_at = time
@@ -989,8 +1118,7 @@ def compute_collapse_time(t):
                 v1, v2 = t.vertices[i], t.vertices[j]
                 times.append((collapse_time_edge(v1, v2), side))
             # remove times in the past, same as None values
-            times = ignore_and_sort(times)
-            times = filter(lambda x: x>0, times)
+            times = ignore_lte_and_sort(times, now)
             if times:
                 collapses_at = times[0][0]
                 collapses_side = times[0][1]
@@ -1307,20 +1435,23 @@ def test_triangle():
             for v in skel.vertices:
                 if v.starts_at <= t and v.stops_at > t: # finite ranges only (not None is filtered out)
                     s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(t), 
-                                                                          v.left_ccw.position_at(t))
+                                                                          v.left.position_at(t))
                     fh.write(s)
                     fh.write("\n")
 
 def test_quad():
     conv = ToPointsAndSegments()
-    conv.add_point((8,2))
+    #conv.add_point((8,2))
+    conv.add_point((4,5))
     conv.add_point((-2,8))
     conv.add_point((-2,-8))
     conv.add_point((14,10))
-    conv.add_segment((8,2), (14,10))
+    #conv.add_segment((8,2), (14,10))
     conv.add_segment((14,10), (-2,8))
     conv.add_segment((-2,8), (-2,-8))
-    conv.add_segment((-2,-8), (8,2))
+    #conv.add_segment((-2,-8), (8,2))
+    conv.add_segment((4,5), (14,10))
+    conv.add_segment((-2,-8), (4,5))
 
     dt = triangulate(conv.points, None, conv.segments)
 
@@ -1336,6 +1467,10 @@ def test_quad():
     for v in skel.vertices:
         print v.starts_at, v.stops_at
 
+    # FIXME: offsetting does not work like this for now ->
+    # kinetic vertices get new neighbours, making the left / right
+    # references in the circulair list invalid, i.e. they are time dependent
+    # but no historical records are kept!
     with open("/tmp/offsets.wkt", "w") as fh:
         fh.write("wkt\n")
         for t in range(0, 100):
@@ -1343,9 +1478,19 @@ def test_quad():
             for v in skel.vertices:
                 if v.starts_at <= t and v.stops_at > t: # finite ranges only (not None is filtered out)
                     s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(t), 
-                                                                          v.left_ccw.position_at(t))
+                                                                          v.left.position_at(t))
                     fh.write(s)
                     fh.write("\n")
+
+    # Output the skeleton edges
+    with open("/tmp/skel.wkt", "w") as fh:
+        fh.write("wkt\n")
+        for v in skel.vertices:
+            if v.stops_at is not None:
+                s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(v.starts_at), 
+                                                                      v.position_at(v.stops_at))
+                fh.write(s)
+                fh.write("\n")
 
 def test_two_lines_par():
     conv = ToPointsAndSegments()
@@ -1749,7 +1894,88 @@ def test_flip():
     assert "c" in tri1.vertices
     assert "d" in tri1.vertices
 
+
+
+def test_split():
+    conv = ToPointsAndSegments()
+    #conv.add_point((8,2))
+    conv.add_point((0, 0))
+    conv.add_point((10, 0))
+    conv.add_point((10, 20))
+    close = (5,4)
+    conv.add_point(close)
+    conv.add_point((0, 20))
+    #conv.add_segment((8,2), (14,10))
+    conv.add_segment((0,0), (10,0))
+    conv.add_segment((10,0), (10,20))
+    conv.add_segment((10,20), close)
+    conv.add_segment(close, (0,20))
+    #conv.add_segment((-2,-8), (8,2))
+    conv.add_segment((0,20), (0,0))
+
+    dt = triangulate(conv.points, None, conv.segments)
+
+    output_dt(dt)
+    skel = init_skeleton(dt)
+    el = init_event_list(skel)
+    event_loop(el, skel)
+
+    print skel.sk_nodes
+    for node in skel.sk_nodes:
+        print "POINT({0[0]} {0[1]})".format(node.pos)
+    print skel.vertices
+    for v in skel.vertices:
+        print v.starts_at, v.stops_at
+
+    # FIXME: offsetting does not work like this for now ->
+    # kinetic vertices get new neighbours, making the left / right
+    # references in the circulair list invalid, i.e. they are time dependent
+    # but no historical records are kept!
+    with open("/tmp/offsets.wkt", "w") as fh:
+        fh.write("wkt\n")
+        for t in range(0, 100):
+            t *= .2
+            for v in skel.vertices:
+                if v.starts_at <= t and v.stops_at > t: # finite ranges only (not None is filtered out)
+                    s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(t), 
+                                                                          v.left_at(t).position_at(t))
+                    fh.write(s)
+                    fh.write("\n")
+
+    # Output the skeleton edges
+    with open("/tmp/skel.wkt", "w") as fh:
+        fh.write("wkt\n")
+        for v in skel.vertices:
+            if v.stops_at is not None:
+                s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(v.starts_at), 
+                                                                      v.position_at(v.stops_at))
+                fh.write(s)
+                fh.write("\n")
+
+def test_left_right_for_vertex():
+    kva = KineticVertex()
+    kvb = KineticVertex()
+    kvc = KineticVertex()
+    kvb_ = KineticVertex()
+    kvc_ = KineticVertex()
+
+    kva.left = kvb, 0
+    kva.right = kvc, 0
+    print kva._left
+    print kva._right
+
+    kva.left = kvb_, 10
+    kva.right = kvc_, 10
+    print kva._left
+    print kva._right
+    
+    assert kva.left_at(5) is kvb
+    assert kva.left_at(15) is kvb_
+    
+    kva.left_at(-1)
+
 if __name__ == "__main__":
+#     test_left_right_for_vertex()
 #     test_flip()
 #     try:
 #         test_single_point()
@@ -1764,6 +1990,7 @@ if __name__ == "__main__":
 #     test_triangle()
 #     test_parallel_movement()
     test_quad()
+#     test_split()
 #     test_two_lines_par()
 #     test_polyline()
 #     test_2_segments()
