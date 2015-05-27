@@ -901,22 +901,11 @@ def handle_split_event(evt, skel):
     update_circ(vb, v.left, v2, now)
     update_circ(va, v1, v.right, now)
 
-#     vb.left = v.left, now
-#     vb.right = v1.right, now
-#  
-#     v.left.right = vb, now
-#     v1.right.left = vb, now
-#  
-#     va.left = v2.left, now
-#     va.right = v.right, now
-#  
-#     v2.left.right = va, now
-#     v.right.left = va, now
-
     skel.sk_nodes.append(sk_node)
     skel.vertices.append(va)
     skel.vertices.append(vb)
 
+    # update neighbours
     a = t.neighbours[(e+1)%3]
     a.neighbours[a.neighbours.index(t)] = None
     replace_kvertex(a, v, va, now, ccw)
@@ -1414,7 +1403,9 @@ def test_poly():
     conv.add_polygon([[(0, 0), (10, 0), (11, -1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
     dt = triangulate(conv.points, None, conv.segments)
     output_dt(dt)
-    init_skeleton(dt)
+    skel = init_skeleton(dt)
+    el = init_event_list(skel)
+    event_loop(el, skel)
 
 def test_simple_poly():
     conv = ToPointsAndSegments()
@@ -1501,8 +1492,9 @@ def test_triangle():
     print skel.vertices
     for v in skel.vertices:
         print v.starts_at, v.stops_at
-    
+
     output_offsets(skel)
+    output_skel(skel)
 
 
 def test_quad():
@@ -1540,7 +1532,7 @@ def test_quad():
     output_offsets(skel)
 
     # Output the skeleton edges
-    
+    output_skel(skel)
     for v in skel.vertices:
         print "", id(v)
         for start, stop, kv in v._left:
@@ -2027,8 +2019,8 @@ if __name__ == "__main__":
 #     test_arrow_four_lines()
 #     test_triangle()
 #     test_parallel_movement()
-#     test_quad()
-    test_split()
+    test_quad()
+#     test_split()
 #     test_two_lines_par()
 #     test_polyline()
 #     test_2_segments()
