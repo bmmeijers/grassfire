@@ -1,8 +1,5 @@
 from collections import namedtuple
 
-from tri.delaunay import cw, ccw
-from tri.delaunay import orient2d
-
 class Event(object):
     def __init__(self, when, tri, side = None, tp = None):
         self.time = when
@@ -20,12 +17,7 @@ class Event(object):
 #         return self.time > other.time
 
     def __str__(self):
-        return """
-<<Event at {0}, 
-           {1}, 
-           {2},
-           {3}>>
-""".format(self.time, id(self.triangle), self.side, self.tp)
+        return """<Event at {0:.5f}, {1}, {2}, {3}>""".format(self.time, id(self.triangle), self.side, self.tp)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 
@@ -184,43 +176,6 @@ class KineticTriangle(object):
     def finite(self):
         return all([isinstance(vertex, KineticVertex) for vertex in self.vertices])
 
-def find_overlapping_triangle(E):
-    """find overlapping triangle 180 degrees other way round
-    of triangle edge of the first triangle
-
-    it assumes that the edges are around a central vertex
-    and that the first triangle has a constrained and other edges do not.
-
-    returns index in the list of the triangle that overlaps  
-    """
-    first = E[0]
-    t = first.triangle 
-    mid = first.side
-    begin = ccw(mid)
-    P, Q = t.vertices[begin], t.vertices[mid]
-    overlap = None
-    idx = None
-    for i, e in enumerate(E):
-        t = e.triangle
-        R = t.vertices[cw(e.side)]
-        # if last leg of triangle makes left turn/straight, 
-        # instead of right turn previously
-        # we have found the overlapping triangle
-        if orient2d(P, Q, R) >= 0: # and overlap is None:
-            overlap = e
-            idx = i
-            break
-    assert overlap is not None
-    return idx
-
-def is_quad(L):
-    assert len(L) == 5
-    # check 3 orientations
-    s = [orient2d(a, b, c) for a,b,c in zip(L[:-2], L[1:-1], L[2:])]
-    # check whether they are all the same
-    items = map(lambda x: x>=0, s)
-    result = all(items[0] == item for item in items)
-    return result
 
 #     vec = tuple(map(sub, t.vertices[e], t.vertices[s]))
 #     vec = perp(perp(vec))

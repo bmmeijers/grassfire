@@ -192,10 +192,12 @@ def compute_collapse_time(t, now=0):
         print "infinite triangle found"
 
     if collapses_at is not None:
-        return Event(when=collapses_at, 
+        e = Event(when=collapses_at, 
                      tri=t, 
                      side=collapses_side, 
                      tp=collapses_type)
+        t.event = e
+        return e
     else:
         return None
 

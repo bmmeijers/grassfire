@@ -142,7 +142,7 @@ def compute_new_kvertex(v1, v2, now, sk_node):
     kv.velocity = velo
     return kv
 
-def replace_kvertex(t, v, newv, now, direction):
+def replace_kvertex(t, v, newv, now, direction, queue):
     while t is not None:
         side = t.vertices.index(v)
         t.vertices[side] = newv
@@ -152,9 +152,15 @@ def replace_kvertex(t, v, newv, now, direction):
         # Needed: 
         # access to event list, to find the events for this triangles
         # and replace them
-        print ""
-        print "TODO UPDATE THE EVENT"
-        print id(t), compute_collapse_time(t, now)
+        print "removing", t.event
+        queue.remove(t.event)
+        print id(t)
+        e = compute_collapse_time(t, now)
+        if e is not None:
+            print "added", e
+            queue.add(e)
+        else:
+            raise NotImplementedError("not handled")
         print "END TODO"
         t = t.neighbours[direction(side)]
 
@@ -166,7 +172,7 @@ def update_circ(kv, v1, v2, now):
     v1.right = kv, now
     v2.left = kv, now
 
-def handle_edge_event(evt, skel):
+def handle_edge_event(evt, skel, queue):
     print "=" * 20
     print "Processing edge event"
     print "=" * 20
@@ -220,12 +226,12 @@ def handle_edge_event(evt, skel):
         a_idx = a.neighbours.index(t)
         print "changing neighbour a"
         a.neighbours[a_idx] = b
-        replace_kvertex(a, v2, kv, now, ccw)
+        replace_kvertex(a, v2, kv, now, ccw, queue)
     if b is not None:
         print "changing neighbour b"
         b_idx = b.neighbours.index(t)
         b.neighbours[b_idx] = a
-        replace_kvertex(b, v1, kv, now, cw)
+        replace_kvertex(b, v1, kv, now, cw, queue)
     if n is not None:
         print "changing neighbour n"
         n_idx = n.neighbours.index(t)
@@ -239,7 +245,7 @@ def handle_edge_event(evt, skel):
     if n is not None:
         print "n.", n.neighbours[n_idx]
 
-def handle_split_event(evt, skel):
+def handle_split_event(evt, skel, queue):
     print "=" * 20
     print "Processing split event"
     print "=" * 20
@@ -331,17 +337,19 @@ def flip(t0, side0, t1, side1):
 #     for v in t1.vertices:
 #         v.triangle = t1
 
-def event_loop(events, skel):
+def event_loop(queue, skel):
+    for i, e in enumerate(queue):
+        print i, e
 #     evt = events[0]
-    while events:
-        evt = events.popleft()
+    while queue:
+        evt = queue.popleft()
         # decide what to do based on event type
         if evt.tp == "edge":
-            handle_edge_event(evt, skel)
+            handle_edge_event(evt, skel, queue)
         elif evt.tp == "flip":
             print "SKIP FLIP"
         elif evt.tp == "split":
             print "SKIP SPLIT"
-            handle_split_event(evt, skel)
+            handle_split_event(evt, skel, queue)
 
-        raw_input("handled  event " + str(evt))
+#         raw_input("handled  event " + str(evt))

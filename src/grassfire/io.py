@@ -25,7 +25,7 @@ def output_dt(dt):
 def output_offsets(skel):
     with open("/tmp/offsetsl.wkt", "w") as fh:
         fh.write("wkt\n")
-        for t in range(0, 20):
+        for t in range(0, 100):
             t *= .2
             for v in skel.vertices:
                 if v.starts_at <= t and v.stops_at > t: # finite ranges only (not None is filtered out)

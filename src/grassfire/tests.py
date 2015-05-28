@@ -1,6 +1,6 @@
 from tri import ToPointsAndSegments, triangulate
 
-from io import output_dt
+from io import output_dt, output_offsets, output_skel
 from initialize import init_skeleton
 from events import init_event_list, event_loop
 
@@ -14,6 +14,8 @@ def test_poly():
     skel = init_skeleton(dt)
     el = init_event_list(skel)
     event_loop(el, skel)
+    output_offsets(skel)
+    output_skel(skel)
 
 def test_simple_poly():
     conv = ToPointsAndSegments()
@@ -23,6 +25,8 @@ def test_simple_poly():
     skel = init_skeleton(dt)
     el = init_event_list(skel)
     event_loop(el, skel)
+    output_offsets(skel)
+    output_skel(skel)
 
 def test_single_line():
     conv = ToPointsAndSegments()
@@ -31,9 +35,7 @@ def test_single_line():
     conv.add_segment((0, 0), (10,0))
 
     dt = triangulate(conv.points, None, conv.segments)
-
     output_dt(dt)
-
     init_skeleton(dt)
 
 def test_three_lines():
@@ -651,23 +653,33 @@ def test_ordering():
     assert len(queue) == 0
 
 if __name__ == "__main__":
-#     test_ordering()
-#     test_collinear_bisectors()
-#     test_left_right_for_vertex()
-#     test_flip()
+
+# working tests
+# -------------
+    test_simple_poly()
+#     test_quad()
+#     test_triangle()
 #     try:
 #         test_single_point()
 #     except:
 #         pass
+
+# remainder
+# -------------
+
+#     test_ordering()
+#     test_collinear_bisectors()
+#     test_left_right_for_vertex()
+#     test_flip()
+
 #     test_poly()
-    test_simple_poly()
 #     test_1_segment()
 #     test_single_line()
 #     test_three_lines()
 #     test_arrow_four_lines()
 #     test_triangle()
 #     test_parallel_movement()
-#     test_quad()
+
 #     test_split()
 #     test_two_lines_par()
 #     test_polyline()
