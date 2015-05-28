@@ -66,6 +66,7 @@ def normalize(v):
     """Normalizes the length of the vector with 2 elements
     """
     lengthv = hypot(v[0], v[1])
+    assert lengthv != 0, "Vector without length cannot be normalized: {0}".format(v)
     return tuple([i/lengthv for i in v])
 
 def negate(val):
@@ -113,11 +114,15 @@ def bisector(p0, p1, p2, factor=1.0): #1.0):
     
     The bisector that is generated lies on the left when you go from point
     p0 to p1 to p2, while looking from above.
-    """
     
-    print "bisector for"
-    for p in p0, p1, p2:
-        print "POINT({0[0]} {0[1]})".format(p)
+    Pre-condition:
+    
+    p0, p1, p2 are *not* (near) collinear (i.e. all on a straight line), as
+    direction can not be determined reliably then
+    """
+    # print "bisector for"
+#     for p in p0, p1, p2:
+#         print "POINT({0[0]} {0[1]})".format(p)
     u, v = outward_unit_p1(p0, p1, p2)
 #    print u, v
     r = map(add, u, v)
@@ -176,6 +181,7 @@ def _test():
     print bisector((6,10), (5.5, 1), (5,10))
 
 if __name__ == "__main__":
+#     _test()
     _test()
 #
 #u, v = (-1, 1), (-1, -1)
