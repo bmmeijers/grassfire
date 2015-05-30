@@ -1,5 +1,6 @@
 from math import copysign, sqrt
 import numpy
+import weakref
 
 from operator import sub
 from tri.delaunay import cw, ccw
@@ -14,13 +15,12 @@ from grassfire.calc import perp
 def ignore_lte_and_sort(L, val=0):
     """
     L = list of 2-tuples, e.g (time, side) or (length, side)
-    
+
     first filters L where the first element should be positive value
     (note: this also filters None values)
 
     then sorts L based on first element of tuple
     """
-    
     # FIXME: not sure if filtering 0 values always out is what we want
     # e.g. while doing length comparision, we probably want to keep a length
     # of 0????
@@ -158,19 +158,20 @@ def compute_collapse_time(t, now=0):
                 times.append((collapse_time_edge(v1, v2), side))
             # remove times in the past, same as None values
             times = ignore_lte_and_sort(times, now)
+            print len(times), "->", len(set([xx for xx, _ in times])), "NUMBER OF TIMES"
             if times:
                 time, side = times[0]
                 collapses_at = time
                 collapses_side = side
                 collapses_type = "edge"
                 print "SIDE", side
-#             times = filter(lambda x: x>0, times)
-#             print times
-#             print set(times)
-#             if times:
-#                 time = min(times)
-#                 if time >= 0:
-#                     collapses_at = time
+
+            if len(times) == 2 and len(set([xx for xx, _ in times])) == 1:
+                for i, _ in enumerate(t.neighbours):
+                    if _ is not None:
+                        collapses_side = i
+                        print "MODIFY SIDE TO", collapses_side
+                        break
         elif tp == 3:
             # compute with edge collapse time of all three edges
             a, b, c = t.vertices
@@ -196,7 +197,7 @@ def compute_collapse_time(t, now=0):
                      tri=t, 
                      side=collapses_side, 
                      tp=collapses_type)
-        t.event = e
+        t.event = e # weakref.ref(e)
         return e
     else:
         return None

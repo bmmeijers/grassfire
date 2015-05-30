@@ -120,6 +120,25 @@ def bisector(p0, p1, p2, factor=1.0): #1.0):
     p0, p1, p2 are *not* (near) collinear (i.e. all on a straight line), as
     direction can not be determined reliably then
     """
+
+# if u/|u|+v/|v| !=0
+# 
+# first calculate the unit vector of u and v
+# 
+# then use the parallelogram rule to get the bisection (just add them)
+# 
+# since they both have unit of 1, their sum is the bisector vector 
+# 
+# then calculate the unit vector of the calculated vector.
+# 
+# else (if u/|u|+v/|v| ==0):
+#  (if you use the method above, it's like a indintermination: 0*infinity=?)
+# 
+#  if you want the bisector of (u0v) if u/|u| = (cos(t),sin(t)) 
+#  take b=(cost(t+Pi/2),sin(t+Pi/2)) = (-sin(t),cos(t) )as the bisector
+#  therefore if u/|u|=(a1,a2) chose b=(-a2,a1)
+
+    
     # print "bisector for"
 #     for p in p0, p1, p2:
 #         print "POINT({0[0]} {0[1]})".format(p)
@@ -135,11 +154,14 @@ def bisector(p0, p1, p2, factor=1.0): #1.0):
         return (u[1], negate(u[0]))
     r = normalize(r)
     alpha = angle(u, v)
+    print alpha
+    print alpha - pi
 #    print alpha, r, degrees(alpha)
     # if alpha is making a sweep larger than 180 degrees,
     # our vector will be on the wrong side of the line, 
     # thus swap position to mirror it
-    if alpha > pi:
+    if alpha >= pi:
+        print "rotating 180 deg"
         # negate the original vector so it is pointing in opposite
         # direction, thus rotate 180 degrees
         # r = (-1*r[0], -1*r[1])

@@ -7,6 +7,7 @@ from oseq import OrderedSequence
 from primitives import SkeletonNode, KineticVertex
 from calc import perp, bisector
 from collapse import compute_collapse_time
+from io import output_kdt
 
 def compare_event_by_time(one, other):
     # compare by time
@@ -17,45 +18,29 @@ def compare_event_by_time(one, other):
     # in case times are equal, compare by id of triangle
     # to be able to find the correct triangle back
     else: # eq
-        if id(one.triangle) < id(other.triangle):
+        if -one.triangle.type < -other.triangle.type:
             return -1
-        if id(one.triangle) > id(other.triangle):
+        elif -one.triangle.type > -other.triangle.type:
             return 1
         else:
-            return 0
-
-
+            if id(one.triangle) < id(other.triangle):
+                return -1
+            elif id(one.triangle) > id(other.triangle):
+                return 1
+            else:
+                return 0
 
 def init_event_list(skel):
-    # FIXME: SHOULD WE
-    # remove the 3 kinetic/ infinite triangles, and link their two neighbours
-    # that are not None for these triangles properly together!
-    # ???????????????????????????????? 
-#     will_collapse = []
+    """Compute for all kinetic triangles when they will collapse and 
+    put them in an OrderedSequence, so that events are ordered properly
+    for further processing
+    """
     q = OrderedSequence(cmp=compare_event_by_time)
     for tri in skel.triangles:
-        print """
-        """
-        print id(tri)
-        print "time"
         res = compute_collapse_time(tri)
-        print "time >>>", res
         if res is not None:
             q.add(res)
-#             will_collapse.append(res)
-#     print ">>> will collapse", will_collapse
-#     for item in will_collapse:
-#         print id(item.triangle)
-
-    print "all events::"
-    for evt in q:
-        print evt
     return q
-#     will_collapse.sort(key=lambda x: -x.time)
-#     print will_collapse
-#     for evt in will_collapse:
-#         print evt.time, evt.side, evt.tp, evt.triangle.type
-#     return will_collapse
 
 
 # ------------------------------------------------------------------------------
@@ -128,6 +113,7 @@ def compute_new_kvertex(v1, v2, now, sk_node):
 
     p1 = v1.position_at(now)
     p2 = v2.position_at(now)
+    print p1, sk_node.pos, p2
     velo = bisector(p1, sk_node.pos, p2)
     print "new bisector:"
     print " LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(sk_node.pos, 
@@ -144,6 +130,7 @@ def compute_new_kvertex(v1, v2, now, sk_node):
 
 def replace_kvertex(t, v, newv, now, direction, queue):
     while t is not None:
+        print t, v
         side = t.vertices.index(v)
         t.vertices[side] = newv
         print "updated", id(t), "at", side
@@ -161,7 +148,6 @@ def replace_kvertex(t, v, newv, now, direction, queue):
             queue.add(e)
         else:
             raise NotImplementedError("not handled")
-        print "END TODO"
         t = t.neighbours[direction(side)]
 
 def update_circ(kv, v1, v2, now):
@@ -197,53 +183,162 @@ def handle_edge_event(evt, skel, queue):
         kv.origin = sk_node.pos
         kv.velocity = (0,0)
 
+        # add to skeleton structure
+        skel.sk_nodes.append(sk_node)
+        skel.vertices.append(kv)
+
+    elif t.type == 2 and t.neighbours[e] is not None:
+        # all 3 sides collapse at the same time
+#         raise NotImplementedError("problem")
+        sk_node = stop_kvertices3(v0, v1, v2, now)
+        kv = compute_new_kvertex(v2.left, v1.right, now, sk_node)
+        update_circ(kv, v1.right, v2.left, now)
+
+        # add to skeleton structure
+        skel.sk_nodes.append(sk_node)
+        skel.vertices.append(kv)
+
+        print kv.origin
+        print kv.velocity
+    #     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.origin, kv.position_at(now))
+    #     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.position_at(now),
+    #                                                             map(add, kv.position_at(now), kv.velocity))
+        print "neighbours"
+        print "-" * 20
+        a = t.neighbours[(e+1) % 3]
+        b = t.neighbours[(e+2) % 3]
+        n = t.neighbours[e]
+        print "a.", id(a)
+        print "b.", id(b)
+        print "n.", id(n)
+        print "-" * 20
+        if a is not None:
+            a_idx = a.neighbours.index(t)
+            print "changing neighbour a"
+            a.neighbours[a_idx] = b
+            replace_kvertex(a, v2, kv, now, ccw, queue)
+        if b is not None:
+            print "changing neighbour b"
+            b_idx = b.neighbours.index(t)
+            b.neighbours[b_idx] = a
+            replace_kvertex(b, v1, kv, now, cw, queue)
+        if n is not None:
+            print "changing neighbour n"
+            n_idx = n.neighbours.index(t)
+            print "ALSO DEAL WITH ", id(n)
+            side = n.event.side
+            assert side == n_idx
+    #         tp = n.event.tp
+            # FIXME: schedule immediately
+            # means that we have to remove the triangle from the queue
+            # and for the two other neighbours exchange their two other sides
+            # similar to a/b neighbours above here...
+    #         from primitives import Event
+    #         new = Event(now, n, side, tp)
+            handle_immediately(n, n_idx, queue)
+    #         n.event = new
+    #         queue.add(new)
+    #         n.neighbours[n_idx] = None
+            # schedule_immediately(n) --> find triangle in the event queue!
+        print "updated neighbours"
+        if a is not None:
+            print "a.", a.neighbours[a_idx]
+        if b is not None:
+            print "b.", b.neighbours[b_idx]
+        if n is not None:
+            print "n.", n.neighbours[n_idx]
+        #
+#         kv = KineticVertex()
+#         kv.starts_at = now
+#         kv.start_node = sk_node
+#         # always stationary from begin
+#         kv.origin = sk_node.pos
+#         kv.velocity = (0,0)
+    
     else:
         sk_node = stop_kvertices2(v1, v2, now)
+        print "v1      ", id(v1)
+        print "v2      ", id(v2)
+        print "v1.left ", id(v1.left)
+        print "v2.right", id(v2.right)
         kv = compute_new_kvertex(v1.left, v2.right, now, sk_node)
         # update circular list
         update_circ(kv, v1.left, v2.right, now)
 
-    # add to skeleton structure
-    skel.sk_nodes.append(sk_node)
-    skel.vertices.append(kv)
+        # add to skeleton structure
+        skel.sk_nodes.append(sk_node)
+        skel.vertices.append(kv)
+    
+        print kv.origin
+        print kv.velocity
+    #     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.origin, kv.position_at(now))
+    #     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.position_at(now),
+    #                                                             map(add, kv.position_at(now), kv.velocity))
+        print "neighbours"
+        print "-" * 20
+        a = t.neighbours[(e+1) % 3]
+        b = t.neighbours[(e+2) % 3]
+    
+        n = t.neighbours[e]
+        print "a.", id(a)
+        print "b.", id(b)
+        print "n.", id(n)
+        print "-" * 20
+        if a is not None:
+            a_idx = a.neighbours.index(t)
+            print "changing neighbour a"
+            a.neighbours[a_idx] = b
+            replace_kvertex(a, v2, kv, now, ccw, queue)
+        if b is not None:
+            print "changing neighbour b"
+            b_idx = b.neighbours.index(t)
+            b.neighbours[b_idx] = a
+            replace_kvertex(b, v1, kv, now, cw, queue)
+        if n is not None:
+            print "changing neighbour n"
+            n_idx = n.neighbours.index(t)
+            print "ALSO DEAL WITH ", id(n)
+            side = n.event.side
+            assert side == n_idx
+    #         tp = n.event.tp
+            # FIXME: schedule immediately
+            # means that we have to remove the triangle from the queue
+            # and for the two other neighbours exchange their two other sides
+            # similar to a/b neighbours above here...
+    #         from primitives import Event
+    #         new = Event(now, n, side, tp)
+            handle_immediately(n, n_idx, queue)
+    #         n.event = new
+    #         queue.add(new)
+    #         n.neighbours[n_idx] = None
+            # schedule_immediately(n) --> find triangle in the event queue!
+        print "updated neighbours"
+        if a is not None:
+            print "a.", a.neighbours[a_idx]
+        if b is not None:
+            print "b.", b.neighbours[b_idx]
+        if n is not None:
+            print "n.", n.neighbours[n_idx]
 
-    print kv.origin
-    print kv.velocity
-#     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.origin, kv.position_at(now))
-#     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.position_at(now),
-#                                                             map(add, kv.position_at(now), kv.velocity))
-    print "neighbours"
-    print "-" * 20
+def handle_immediately(triangle, side, queue):
+    """Handle immediately the removal of this triangle as it collapses
+
+    Link the two neighbours to each other
+    """
+    queue.remove(triangle.event)
+    e = side
+    t = triangle
     a = t.neighbours[(e+1) % 3]
     b = t.neighbours[(e+2) % 3]
-
-    n = t.neighbours[e]
-    print "a.", id(a)
-    print "b.", id(b)
-    print "n.", id(n)
-    print "-" * 20
     if a is not None:
         a_idx = a.neighbours.index(t)
-        print "changing neighbour a"
         a.neighbours[a_idx] = b
-        replace_kvertex(a, v2, kv, now, ccw, queue)
     if b is not None:
-        print "changing neighbour b"
         b_idx = b.neighbours.index(t)
         b.neighbours[b_idx] = a
-        replace_kvertex(b, v1, kv, now, cw, queue)
-    if n is not None:
-        print "changing neighbour n"
-        n_idx = n.neighbours.index(t)
-        n.neighbours[n_idx] = None
-        # schedule_immediately(n) --> find triangle in the event queue!
-    print "updated neighbours"
-    if a is not None:
-        print "a.", a.neighbours[a_idx]
-    if b is not None:
-        print "b.", b.neighbours[b_idx]
-    if n is not None:
-        print "n.", n.neighbours[n_idx]
+
+    triangle.neighbours = [None, None, None]
+    triangle.vertices = [None, None, None]
 
 def handle_split_event(evt, skel, queue):
     print "=" * 20
@@ -276,11 +371,11 @@ def handle_split_event(evt, skel, queue):
     # update neighbours
     a = t.neighbours[(e+1)%3]
     a.neighbours[a.neighbours.index(t)] = None
-    replace_kvertex(a, v, va, now, ccw)
+    replace_kvertex(a, v, va, now, ccw, queue)
 
     b = t.neighbours[(e+2)%3]
     b.neighbours[b.neighbours.index(t)] = None
-    replace_kvertex(b, v, vb, now, ccw)
+    replace_kvertex(b, v, vb, now, ccw, queue)
 
 
 # ------------------------------------------------------------------------------
@@ -338,11 +433,16 @@ def flip(t0, side0, t1, side1):
 #         v.triangle = t1
 
 def event_loop(queue, skel):
+    print "=" * 80
+    print "Event queue"
+    print "=" * 80
     for i, e in enumerate(queue):
         print i, e
+    print "=" * 80
 #     evt = events[0]
     while queue:
         evt = queue.popleft()
+        output_kdt(skel, evt.time-0.1)
         # decide what to do based on event type
         if evt.tp == "edge":
             handle_edge_event(evt, skel, queue)
@@ -352,4 +452,5 @@ def event_loop(queue, skel):
             print "SKIP SPLIT"
             handle_split_event(evt, skel, queue)
 
-#         raw_input("handled  event " + str(evt))
+        
+        raw_input("handled  event ")

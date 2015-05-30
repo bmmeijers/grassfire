@@ -67,7 +67,7 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 0.918
+        time = 2.3
         # 4.281470022378475
         return "{0[0]} {0[1]}".format(self.position_at(time))
 
@@ -143,7 +143,7 @@ class KineticTriangle(object):
     def __init__(self):
         self.vertices = [None, None, None]
         self.neighbours = [None, None, None]
-        self.event = None
+        self.event = None # point back to event, note this might prevent garbage collection (strong cycle)
 
     def __str__(self):
         vertices = []

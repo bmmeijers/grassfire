@@ -6,9 +6,11 @@ from events import init_event_list, event_loop
 
 # ------------------------------------------------------------------------------
 # test cases
-def test_poly():
-    conv = ToPointsAndSegments()
-    conv.add_polygon([[(0, 0), (10, 0), (11, -1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
+
+def calc_skel(conv):
+    """Perform the calulation of the skeleton, given 
+    points, info and segments
+    """
     dt = triangulate(conv.points, None, conv.segments)
     output_dt(dt)
     skel = init_skeleton(dt)
@@ -17,26 +19,41 @@ def test_poly():
     output_offsets(skel)
     output_skel(skel)
 
+def test_poly():
+    conv = ToPointsAndSegments()
+    conv.add_polygon([[(0, 0), (10, 0), (11, -1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
+    # FIXME: works but wrong:
+    # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
+    calc_skel(conv)
+
+def test_diamant():
+    conv = ToPointsAndSegments()
+    conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
+    # FIXME: works but wrong:
+    # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
+    calc_skel(conv)
+
+def test_diamantlike():
+    conv = ToPointsAndSegments()
+    conv.add_polygon([[(-15,0), (-1,0), (0,-1), (1,0), (15,0), (0,15), (-15,0)]])
+    calc_skel(conv)
+
+def test_intermediate_vertex():
+    conv = ToPointsAndSegments()
+    conv.add_polygon([[(-15,0), (0,0), (15,0), (0, 15), (-15,0)]])
+    calc_skel(conv)
+
 def test_simple_poly():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
-    dt = triangulate(conv.points, None, conv.segments)
-    output_dt(dt)
-    skel = init_skeleton(dt)
-    el = init_event_list(skel)
-    event_loop(el, skel)
-    output_offsets(skel)
-    output_skel(skel)
+    calc_skel(conv)
 
 def test_single_line():
     conv = ToPointsAndSegments()
     conv.add_point((0, 0))
     conv.add_point((10, 0))
     conv.add_segment((0, 0), (10,0))
-
-    dt = triangulate(conv.points, None, conv.segments)
-    output_dt(dt)
-    init_skeleton(dt)
+    calc_skel(conv)
 
 def test_three_lines():
     conv = ToPointsAndSegments()
@@ -47,13 +64,7 @@ def test_three_lines():
     conv.add_segment((0, 0), (10,0))
     conv.add_segment((0, 0), (-2,8))
     conv.add_segment((0, 0), (-2,-8))
-
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
-
+    calc_skel(conv)
 
 def test_arrow_four_lines():
     conv = ToPointsAndSegments()
@@ -68,18 +79,13 @@ def test_arrow_four_lines():
     conv.add_segment((8,5), (12,0.5))
     conv.add_segment((12,0.5), (8,-5))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 
 def test_single_point():
     conv = ToPointsAndSegments()
     conv.add_point((0, 0))
-    dt = triangulate(conv.points, None, conv.segments)
-    init_skeleton(dt)
+    calc_skel(conv)
 
 
 def test_triangle():
@@ -90,21 +96,7 @@ def test_triangle():
     conv.add_segment((10,0), (-2,8))
     conv.add_segment((-2,8), (-2,-8))
     conv.add_segment((-2,-8), (10,0))
-    dt = triangulate(conv.points, None, conv.segments)
-    output_dt(dt)
-    skel = init_skeleton(dt)
-    el = init_event_list(skel)
-    event_loop(el, skel)
-
-    print skel.sk_nodes
-    for node in skel.sk_nodes:
-        print "POINT({0[0]} {0[1]})".format(node.pos)
-    print skel.vertices
-    for v in skel.vertices:
-        print v.starts_at, v.stops_at
-
-    output_offsets(skel)
-    output_skel(skel)
+    calc_skel(conv)
 
 
 def test_quad():
@@ -121,34 +113,7 @@ def test_quad():
     conv.add_segment((4,5), (14,10))
     conv.add_segment((-2,-8), (4,5))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-    skel = init_skeleton(dt)
-    el = init_event_list(skel)
-    event_loop(el, skel)
-
-    print skel.sk_nodes
-    for node in skel.sk_nodes:
-        print "POINT({0[0]} {0[1]})".format(node.pos)
-    print skel.vertices
-    for v in skel.vertices:
-        print v.starts_at, v.stops_at
-
-    # FIXME: offsetting does not work like this for now ->
-    # kinetic vertices get new neighbours, making the left / right
-    # references in the circulair list invalid, i.e. they are time dependent
-    # but no historical records are kept!
-    output_offsets(skel)
-
-    # Output the skeleton edges
-    output_skel(skel)
-    for v in skel.vertices:
-        print "", id(v)
-        for start, stop, kv in v._left:
-            print "  left  ", start, stop, id(kv)
-        for start, stop, kv in v._right:
-            print "  right ", start, stop, id(kv)
+    calc_skel(conv)
 
 def test_two_lines_par():
     conv = ToPointsAndSegments()
@@ -161,11 +126,7 @@ def test_two_lines_par():
     conv.add_segment((0,0), (10,0))
     conv.add_segment((12,1), (22,1))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 def test_polyline():
 
@@ -180,11 +141,7 @@ def test_polyline():
     conv.add_segment((10,-1), (22,1))
     conv.add_segment((22,1), (30,-5))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 def test_1_segment():
 
@@ -198,11 +155,7 @@ def test_1_segment():
     conv.add_segment((0,0), (10,0))
 #     conv.add_segment((22,0), (30,0))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 def test_2_segments():
 
@@ -216,11 +169,7 @@ def test_2_segments():
     conv.add_segment((0,0), (10,0))
     conv.add_segment((22,0), (30,0))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 
 def test_2_perp_segments():
@@ -235,11 +184,7 @@ def test_2_perp_segments():
     conv.add_segment((0,0), (10,0))
     conv.add_segment((12,2), (12,10))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 def test_45_deg_segments():
 
@@ -253,11 +198,7 @@ def test_45_deg_segments():
     conv.add_segment((0,0), (10,0))
     conv.add_segment((12,2), (14,4))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 def test_30_deg_segments():
 
@@ -271,11 +212,7 @@ def test_30_deg_segments():
     conv.add_segment((0,5), (9,0.5))
     conv.add_segment((12,2), (14,4))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 
 def test_4_segments():
@@ -303,12 +240,7 @@ def test_4_segments():
     conv.add_segment((30,0), (16,6))
     conv.add_segment((16,6), (0,0))
 
-
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 def test_cocircular_segments():
 
@@ -331,11 +263,7 @@ def test_cocircular_segments():
     conv.add_segment((0,3), (1,2))
     conv.add_segment((3,3), (2,2))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 def test_parallel_movement():
 
@@ -350,11 +278,7 @@ def test_parallel_movement():
     conv.add_segment((1,0), (2,0))
     conv.add_segment((2,0), (3,0))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 
 def test_crash_vertex():
@@ -373,11 +297,7 @@ def test_crash_vertex():
     conv.add_segment((0,2), (0.5,1.5))
     conv.add_segment((1,2), (0.5,1.5))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-
-    init_skeleton(dt)
+    calc_skel(conv)
 
 
 def test4_3_3():
@@ -571,26 +491,7 @@ def test_split():
     #conv.add_segment((-2,-8), (8,2))
     conv.add_segment((0,20), (0,0))
 
-    dt = triangulate(conv.points, None, conv.segments)
-
-    output_dt(dt)
-    skel = init_skeleton(dt)
-    el = init_event_list(skel)
-    event_loop(el, skel)
-
-    print skel.sk_nodes
-    for node in skel.sk_nodes:
-        print "POINT({0[0]} {0[1]})".format(node.pos)
-    print skel.vertices
-    for v in skel.vertices:
-        print v.starts_at, v.stops_at
-
-    # FIXME: offsetting does not work like this for now ->
-    # kinetic vertices get new neighbours, making the left / right
-    # references in the circulair list invalid, i.e. they are time dependent
-    # but no historical records are kept!
-    output_offsets(skel)
-    output_skel(skel)
+    calc_skel(conv)
 
 def test_left_right_for_vertex():
     kva = KineticVertex()
@@ -615,6 +516,7 @@ def test_left_right_for_vertex():
     kva.left_at(-1)
 
 def test_collinear_bisectors():
+    from calc import bisector
     a = (10,0)
     b = (0,0)
     c = (10.,0)
@@ -627,6 +529,9 @@ def test_collinear_bisectors():
     print bi
     bi = bisector(a, b, d)
     print bi
+    p1, p2, p3 = (-9.171572875253812, 2.4142135623730936), (0.0, 2.414213562373094), (9.171572875253812, 2.4142135623730936)
+    print bisector(p1, p2, p3)
+    print bisector(p3, p2, p1)
 
 def test_ordering():
     tri1 = ("1", )
@@ -656,31 +561,38 @@ if __name__ == "__main__":
 
 # working tests
 # -------------
-    test_simple_poly()
+
+#     test_split()
+#     test_simple_poly()
 #     test_quad()
 #     test_triangle()
 #     try:
 #         test_single_point()
 #     except:
 #         pass
+#     test_diamant()
+
+# not working
+#     test_poly()
+
+# unknown
+# -------
+    #     test_diamantlike()
+    test_intermediate_vertex()
+#     test_collinear_bisectors()
 
 # remainder
 # -------------
-
+#     test_crash_vertex()
 #     test_ordering()
 #     test_collinear_bisectors()
 #     test_left_right_for_vertex()
 #     test_flip()
-
-#     test_poly()
 #     test_1_segment()
 #     test_single_line()
 #     test_three_lines()
 #     test_arrow_four_lines()
-#     test_triangle()
 #     test_parallel_movement()
-
-#     test_split()
 #     test_two_lines_par()
 #     test_polyline()
 #     test_2_segments()
@@ -689,7 +601,7 @@ if __name__ == "__main__":
 #     test_30_deg_segments()
 #     test_4_segments()
 #     test_cocircular_segments()
-#     test_crash_vertex()
+
 #     test4_3_3()
 #     test_compute_0()
 #     test_compute_1()
