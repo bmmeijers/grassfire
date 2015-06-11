@@ -17,7 +17,7 @@ class Event(object):
 #         return self.time > other.time
 
     def __str__(self):
-        return """<Event at {0:.5f}, {1}, {2}, {3}>""".format(self.time, id(self.triangle), self.side, self.tp)
+        return """<Event at {0:.5f}, triangle: {1}, side: {2}, {3}, type: {4}>""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 
@@ -67,7 +67,7 @@ class KineticVertex(object):
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
-        time = 2.3
+        time = 0
         # 4.281470022378475
         return "{0[0]} {0[1]}".format(self.position_at(time))
 

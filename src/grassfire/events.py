@@ -84,6 +84,7 @@ def stop_kvertices3(v0, v1, v2, now):
     x = sum([a[0], b[0], c[0]]) / 3.
     y = sum([a[1], b[1], c[1]]) / 3.
     pos = (x, y)
+    print "POINT({0[0]} {0[1]})".format(pos)
     sk_node = SkeletonNode(pos)
 
     v0.stop_node = sk_node
@@ -128,9 +129,10 @@ def compute_new_kvertex(v1, v2, now, sk_node):
     kv.velocity = velo
     return kv
 
+
 def replace_kvertex(t, v, newv, now, direction, queue):
     while t is not None:
-        print t, v
+        print "UPDATING ", id(t), v
         side = t.vertices.index(v)
         t.vertices[side] = newv
         print "updated", id(t), "at", side
@@ -150,8 +152,12 @@ def replace_kvertex(t, v, newv, now, direction, queue):
             raise NotImplementedError("not handled")
         t = t.neighbours[direction(side)]
 
+
 def update_circ(kv, v1, v2, now):
-    # update circular list
+    # update circular list:
+    #               <-----v2
+    #    <----- kv ----->       
+    # v1 ---->    
     kv.left = v1, now
     kv.right = v2, now
 
@@ -216,12 +222,12 @@ def handle_edge_event(evt, skel, queue):
             a_idx = a.neighbours.index(t)
             print "changing neighbour a"
             a.neighbours[a_idx] = b
-            replace_kvertex(a, v2, kv, now, ccw, queue)
+            replace_kvertex(a, v2, kv, now, cw, queue)
         if b is not None:
             print "changing neighbour b"
             b_idx = b.neighbours.index(t)
             b.neighbours[b_idx] = a
-            replace_kvertex(b, v1, kv, now, cw, queue)
+            replace_kvertex(b, v1, kv, now, ccw, queue)
         if n is not None:
             print "changing neighbour n"
             n_idx = n.neighbours.index(t)
@@ -288,12 +294,12 @@ def handle_edge_event(evt, skel, queue):
             a_idx = a.neighbours.index(t)
             print "changing neighbour a"
             a.neighbours[a_idx] = b
-            replace_kvertex(a, v2, kv, now, ccw, queue)
+            replace_kvertex(a, v2, kv, now, cw, queue)
         if b is not None:
             print "changing neighbour b"
             b_idx = b.neighbours.index(t)
             b.neighbours[b_idx] = a
-            replace_kvertex(b, v1, kv, now, cw, queue)
+            replace_kvertex(b, v1, kv, now, ccw, queue)
         if n is not None:
             print "changing neighbour n"
             n_idx = n.neighbours.index(t)
@@ -346,19 +352,34 @@ def handle_split_event(evt, skel, queue):
     print "=" * 20
     print evt
     t = evt.triangle
-    print "TYPE", t.type
     e = evt.side
     now = evt.time
     v = t.vertices[(e) % 3]
     v1 = t.vertices[(e+1) % 3]
     v2 = t.vertices[(e+2) % 3]
     sk_node = stop_kvertex(v, now)
+    raw_input("Paused")
 
     assert v1.right is v2
     assert v2.left is v1
 
     vb = compute_new_kvertex(v.left, v2, now, sk_node)
+    
+    print """
+    
+    
+    """
+    for pt in [vb.position_at(now), v.left.position_at(now), v2.position_at(now)]:
+        print "POINT({0[0]} {0[1]})".format(pt)
+    
     va = compute_new_kvertex(v1, v.right,  now, sk_node)
+
+    print """
+    
+    
+    """
+    for pt in [va.position_at(now), v.right.position_at(now), v1.position_at(now)]:
+        print "POINT({0[0]} {0[1]})".format(pt)
 
     # splice circular list into 2 lists here
     update_circ(vb, v.left, v2, now)
@@ -371,11 +392,18 @@ def handle_split_event(evt, skel, queue):
     # update neighbours
     a = t.neighbours[(e+1)%3]
     a.neighbours[a.neighbours.index(t)] = None
-    replace_kvertex(a, v, va, now, ccw, queue)
+    replace_kvertex(a, v, vb, now, ccw, queue)
 
     b = t.neighbours[(e+2)%3]
     b.neighbours[b.neighbours.index(t)] = None
-    replace_kvertex(b, v, vb, now, ccw, queue)
+    replace_kvertex(b, v, va, now, ccw, queue)
+
+    for v in skel.vertices:
+        print "v  ", str(id(v))[-7:]
+        print "v.l", str(id(v.left))[-7:]
+        print "v.r", str(id(v.right))[-7:]
+        print ""
+    output_kdt(skel, now+.1)
 
 
 # ------------------------------------------------------------------------------
@@ -442,7 +470,7 @@ def event_loop(queue, skel):
 #     evt = events[0]
     while queue:
         evt = queue.popleft()
-        output_kdt(skel, evt.time-0.1)
+        output_kdt(skel, evt.time-0.05)
         # decide what to do based on event type
         if evt.tp == "edge":
             handle_edge_event(evt, skel, queue)
@@ -454,3 +482,6 @@ def event_loop(queue, skel):
 
         
         raw_input("handled  event ")
+
+# if __name__ == "__main__":
+#     test_replace_kvertex()

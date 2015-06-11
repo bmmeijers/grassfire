@@ -1,23 +1,7 @@
-from tri import ToPointsAndSegments, triangulate
+"""Manual tests, check output manually in QGIS
+"""
 
-from io import output_dt, output_offsets, output_skel
-from initialize import init_skeleton
-from events import init_event_list, event_loop
-
-# ------------------------------------------------------------------------------
-# test cases
-
-def calc_skel(conv):
-    """Perform the calulation of the skeleton, given 
-    points, info and segments
-    """
-    dt = triangulate(conv.points, None, conv.segments)
-    output_dt(dt)
-    skel = init_skeleton(dt)
-    el = init_event_list(skel)
-    event_loop(el, skel)
-    output_offsets(skel)
-    output_skel(skel)
+from grassfire import ToPointsAndSegments, calc_skel
 
 def test_poly():
     conv = ToPointsAndSegments()
@@ -40,7 +24,7 @@ def test_diamantlike():
 
 def test_intermediate_vertex():
     conv = ToPointsAndSegments()
-    conv.add_polygon([[(-15,0), (0,0), (15,0), (0, 15), (-15,0)]])
+    conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
     calc_skel(conv)
 
 def test_simple_poly():
@@ -300,6 +284,18 @@ def test_crash_vertex():
     calc_skel(conv)
 
 
+def test_2triangle_eq_sides():
+    from math import sqrt
+    conv = ToPointsAndSegments()
+    polygon = [[(1,0), 
+                (-5, 0), (-4.25, -6.65),# (-1,-0.9),
+                (1, -10), (11,-10), 
+                #(11,0), 
+                (11, 10), (1,10), (1,2), (1-(sqrt(3)),1), (1,0)]]
+    conv.add_polygon(polygon)
+
+    calc_skel(conv)
+
 def test4_3_3():
     # make this a function
     # crash_time(tri)
@@ -480,7 +476,7 @@ def test_split():
     conv.add_point((0, 0))
     conv.add_point((10, 0))
     conv.add_point((10, 20))
-    close = (5,4)
+    close = (5, 4)
     conv.add_point(close)
     conv.add_point((0, 20))
     #conv.add_segment((8,2), (14,10))
@@ -557,12 +553,48 @@ def test_ordering():
         assert e.triangle is tri2
     assert len(queue) == 0
 
+def helper_make_test_collapse_time():
+    from math import sqrt
+    conv = ToPointsAndSegments()
+    polygon = [[(1,0), 
+                (-5, 0), (-4.25, -6.65),# (-1,-0.9),
+                (1, -10), (11,-10), 
+                #(11,0), 
+                (11, 10), (1,10), (1,2), (1-(sqrt(3)),1), (1,0)]]
+    from simplegeom.wkt import loads
+    p = """
+    POLYGON((-2.28464419475655456 -0.62568847763824631,-1.01123595505618002 0.05287508261731655,0.54857898215465939 0.05287508261731655,1.50914298303591066 -0.63450099140779903,1.27561136814276255 0.76228244106631404,0.46045384445913173 1.20731438642872879,-0.69839171623705676 1.20731438642872879,-1.72945582727473024 0.77109495483586699,-2.28464419475655456 -0.62568847763824631))\
+    """
+    polygon = loads(p)
+    conv.add_polygon(polygon)
+    dt = triangulate(conv.points, None, conv.segments)
+    output_dt(dt)
+    skel = init_skeleton(dt)
+    print "triangles = {}"
+    for t in skel.triangles:
+        if t.finite:
+            print "###", id(t)
+            print "k = KineticTriangle()"
+            print "V = []"
+            for v in t.vertices:
+                print "v = KineticVertex()"
+                print "v.origin =", v.origin
+                print "v.velocity =", v.velocity
+                print "V.append(v)"
+            print "k.vertices = V"
+            print "triangles[",id(t),"] = k"
+
+
+
+
+
 if __name__ == "__main__":
+#     test_replace_kvertex()
 
 # working tests
 # -------------
 
-#     test_split()
+    test_split() # seems that triangles are wrongly connected!
 #     test_simple_poly()
 #     test_quad()
 #     test_triangle()
@@ -578,9 +610,11 @@ if __name__ == "__main__":
 # unknown
 # -------
     #     test_diamantlike()
-    test_intermediate_vertex()
+#     test_intermediate_vertex()
 #     test_collinear_bisectors()
-
+#     helper_make_test_collapse_time()
+#     test_2triangle_eq_sides()
+#     output_ktri()
 # remainder
 # -------------
 #     test_crash_vertex()

@@ -3,7 +3,7 @@ import numpy
 import weakref
 
 from operator import sub
-from tri.delaunay import cw, ccw
+from tri.delaunay import cw, ccw, orient2d
 from tri.delaunay import orig, dest, apex
 
 from primitives import Event
@@ -24,7 +24,7 @@ def ignore_lte_and_sort(L, val=0):
     # FIXME: not sure if filtering 0 values always out is what we want
     # e.g. while doing length comparision, we probably want to keep a length
     # of 0????
-    L = filter(lambda x: x[0]>val, L)
+    L = filter(lambda x: x[0]>=val, L)
     L.sort(key=lambda x: x[0])
     return L
 
@@ -45,18 +45,17 @@ def compute_collapse_time(t, now=0):
             a, b, c = t.vertices
             coeff = area_collapse_time_coeff(a, b, c)
             times = list(solve_quadratic(coeff[0], coeff[1], coeff[2]))
-            times = filter(lambda x: x>0, times)
-            time_det = min(times)
-            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-            print "   roots found by numpy", numpy.roots(coeff)
-            print times
+            if times:
+                time_det = min(times)
+                print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+                print "   roots found by numpy", numpy.roots(coeff)
+                print times
             times = []
             for side in range(3):
                 i, j = cw(side), ccw(side)
                 v1, v2 = t.vertices[i], t.vertices[j]
                 times.append((collapse_time_edge(v1, v2), side))
-            times = filter(lambda x: x[0]>0, times)
-            times.sort(key=lambda x: x[0])
+            times = ignore_lte_and_sort(times, now)
             print "te [edge collapse time]", times
             if times:
                 time_edge = times[0][0]
@@ -385,3 +384,192 @@ def area_collapse_time_coeff(kva, kvb, kvc):
 #    print "coefficients", A, B, C
     return tuple(map(lambda x: x*0.5, [A, B, C]))
 
+
+def test_():
+    from primitives import KineticTriangle, KineticVertex
+    triangles = {}
+    ### 140610708165200
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (1.0, -10.0)
+    v.velocity = (0.29186878571035085, 1.0)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 0.0)
+    v.velocity = (3.7320508075688794, -1.0000000000000009)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (-4.25, -6.65)
+    v.velocity = (0.9402165904944717, 0.5862923531377515)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165200 ] = k
+    ### 140610708165264
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (11.0, -10.0)
+    v.velocity = (-1.0, 1.0)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 0.0)
+    v.velocity = (3.7320508075688794, -1.0000000000000009)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, -10.0)
+    v.velocity = (0.29186878571035085, 1.0)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165264 ] = k
+    ### 140610708165328
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (11.0, 10.0)
+    v.velocity = (-1.0, -1.0)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 0.0)
+    v.velocity = (3.7320508075688794, -1.0000000000000009)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (11.0, -10.0)
+    v.velocity = (-1.0, 1.0)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165328 ] = k
+    ### 140610708165392
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (11.0, 10.0)
+    v.velocity = (-1.0, -1.0)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 2.0)
+    v.velocity = (1.0000000000000002, -0.5773502691896257)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 0.0)
+    v.velocity = (3.7320508075688794, -1.0000000000000009)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165392 ] = k
+    ### 140610708165456
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (1.0, 2.0)
+    v.velocity = (1.0000000000000002, -0.5773502691896257)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (11.0, 10.0)
+    v.velocity = (-1.0, -1.0)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 10.0)
+    v.velocity = (1.0, -1.0)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165456 ] = k
+    ### 140610708165520
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (1.0, 10.0)
+    v.velocity = (-0.9999999999999998, 0.9999999999999998)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (-0.7320508075688772, 1.0)
+    v.velocity = (-1.9999999999999987, -0.0)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 2.0)
+    v.velocity = (-1.0000000000000002, 0.5773502691896257)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165520 ] = k
+    ### 140610708165584
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (-0.7320508075688772, 1.0)
+    v.velocity = (-1.9999999999999987, -0.0)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 10.0)
+    v.velocity = (-0.9999999999999998, 0.9999999999999998)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (-5.0, 0.0)
+    v.velocity = (-1.1191217431039924, 0.9999999999999997)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165584 ] = k
+    ### 140610708165648
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (1.0, 0.0)
+    v.velocity = (-3.732050807568878, 1.0000000000000004)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (-0.7320508075688772, 1.0)
+    v.velocity = (-1.9999999999999987, -0.0)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (-5.0, 0.0)
+    v.velocity = (-1.1191217431039924, 0.9999999999999997)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165648 ] = k
+    ### 140610708165712
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (1.0, 0.0)
+    v.velocity = (3.7320508075688794, -1.0000000000000009)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 2.0)
+    v.velocity = (1.0000000000000002, -0.5773502691896257)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (-0.7320508075688772, 1.0)
+    v.velocity = (2.0, 0.0)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165712 ] = k
+    ### 140610708165776
+    k = KineticTriangle()
+    V = []
+    v = KineticVertex()
+    v.origin = (-4.25, -6.65)
+    v.velocity = (0.9402165904944717, 0.5862923531377515)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (1.0, 0.0)
+    v.velocity = (3.7320508075688794, -1.0000000000000009)
+    V.append(v)
+    v = KineticVertex()
+    v.origin = (-5.0, 0.0)
+    v.velocity = (1.1191217431039924, -0.9999999999999999)
+    V.append(v)
+    k.vertices = V
+    triangles[ 140610708165776 ] = k
+    print triangles
+    times = []
+    for tid, t in triangles.iteritems():
+        print "area at t=0:", orient2d(*[v.position_at(0) for v in t.vertices])
+        evt = compute_collapse_time(t, 0)
+        print evt
+        if evt is not None:
+            print "area at t=",evt.time,":", orient2d(*[v.position_at(evt.time) for v in t.vertices])
+            times.append(evt)
+        print ""
+    for e in times:
+        if e is not None:
+            print e.time
+if __name__ == "__main__":
+    test_()

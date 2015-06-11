@@ -4,6 +4,7 @@ from tri.delaunay import TriangleIterator, FiniteEdgeIterator
 # output
 
 def output_kdt(skel, time):
+#     time = 0
     with open("/tmp/ktris.wkt", "w") as fh:
         fh.write("id;wkt;n0;n1;n2;v0;v1;v2\n")
         for t in skel.triangles:
