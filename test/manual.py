@@ -22,7 +22,7 @@ def test_diamantlike():
     conv.add_polygon([[(-15,0), (-1,0), (0,-1), (1,0), (15,0), (0,15), (-15,0)]])
     calc_skel(conv)
 
-def test_intermediate_vertex():
+def test_parallellogram():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
     calc_skel(conv)
@@ -284,6 +284,18 @@ def test_crash_vertex():
     calc_skel(conv)
 
 
+def test_2triangle():
+    from math import sqrt
+    conv = ToPointsAndSegments()
+    polygon = [[(1,0), 
+                #(-5, 0), (-4.25, -6.65),# (-1,-0.9),
+                (1, -10), (11,-10), 
+                #(11,0), 
+                (11, 10), (1,10), (1,2), (1-(sqrt(3)),1), (1,0)]]
+    conv.add_polygon(polygon)
+    calc_skel(conv)
+
+
 def test_2triangle_eq_sides():
     from math import sqrt
     conv = ToPointsAndSegments()
@@ -293,7 +305,6 @@ def test_2triangle_eq_sides():
                 #(11,0), 
                 (11, 10), (1,10), (1,2), (1-(sqrt(3)),1), (1,0)]]
     conv.add_polygon(polygon)
-
     calc_skel(conv)
 
 def test4_3_3():
@@ -555,46 +566,55 @@ def test_ordering():
 
 def helper_make_test_collapse_time():
     from math import sqrt
+    from tri import triangulate, ToPointsAndSegments
+    from grassfire import init_skeleton
+#     conv = ToPointsAndSegments()
+#     polygon = [[(1,0), 
+#                 (-5, 0), (-4.25, -6.65),# (-1,-0.9),
+#                 (1, -10), (11,-10), 
+#                 #(11,0), 
+#                 (11, 10), (1,10), (1,2), (1-(sqrt(3)),1), (1,0)]]
+#     from simplegeom.wkt import loads
+#     p = """
+#     POLYGON((-2.28464419475655456 -0.62568847763824631,-1.01123595505618002 0.05287508261731655,0.54857898215465939 0.05287508261731655,1.50914298303591066 -0.63450099140779903,1.27561136814276255 0.76228244106631404,0.46045384445913173 1.20731438642872879,-0.69839171623705676 1.20731438642872879,-1.72945582727473024 0.77109495483586699,-2.28464419475655456 -0.62568847763824631))\
+#     """
+#     polygon = loads(p)
+#     conv.add_polygon(polygon)
     conv = ToPointsAndSegments()
-    polygon = [[(1,0), 
-                (-5, 0), (-4.25, -6.65),# (-1,-0.9),
-                (1, -10), (11,-10), 
-                #(11,0), 
-                (11, 10), (1,10), (1,2), (1-(sqrt(3)),1), (1,0)]]
-    from simplegeom.wkt import loads
-    p = """
-    POLYGON((-2.28464419475655456 -0.62568847763824631,-1.01123595505618002 0.05287508261731655,0.54857898215465939 0.05287508261731655,1.50914298303591066 -0.63450099140779903,1.27561136814276255 0.76228244106631404,0.46045384445913173 1.20731438642872879,-0.69839171623705676 1.20731438642872879,-1.72945582727473024 0.77109495483586699,-2.28464419475655456 -0.62568847763824631))\
-    """
-    polygon = loads(p)
-    conv.add_polygon(polygon)
+    conv.add_point((10,0))
+    conv.add_point((-2,8))
+    conv.add_point((-2,-8))
+    conv.add_segment((10,0), (-2,8))
+    conv.add_segment((-2,8), (-2,-8))
+    conv.add_segment((-2,-8), (10,0))
     dt = triangulate(conv.points, None, conv.segments)
-    output_dt(dt)
     skel = init_skeleton(dt)
     print "triangles = {}"
     for t in skel.triangles:
-        if t.finite:
-            print "###", id(t)
-            print "k = KineticTriangle()"
-            print "V = []"
-            for v in t.vertices:
-                print "v = KineticVertex()"
-                print "v.origin =", v.origin
-                print "v.velocity =", v.velocity
-                print "V.append(v)"
-            print "k.vertices = V"
-            print "triangles[",id(t),"] = k"
-
-
-
-
+#         if t.finite:
+        print "###", id(t)
+        print "k = KineticTriangle()"
+        print "V = []"
+        for v in t.vertices:
+            print "v = KineticVertex()"
+            print "v.origin =", v.origin
+            print "v.velocity =", v.velocity
+            print "V.append(v)"
+        print "k.vertices = V"
+        print "triangles[",id(t),"] = k"
+    print ""
+    print "### neighbour relationships"
+    for t in skel.triangles:
+        print "n =", ", ".join(["triangles[{0}]".format(id(n)) if n is not None else "None" for n in t.neighbours])
+        print "triangles[",id(t),"].neighbours = list(n)"
 
 if __name__ == "__main__":
 #     test_replace_kvertex()
-
+    helper_make_test_collapse_time()
 # working tests
 # -------------
 
-    test_split() # seems that triangles are wrongly connected!
+#     test_split() 
 #     test_simple_poly()
 #     test_quad()
 #     test_triangle()
@@ -602,17 +622,23 @@ if __name__ == "__main__":
 #         test_single_point()
 #     except:
 #         pass
-#     test_diamant()
+
+# nearly working tests
+# -------------
+#     test_diamant() # RESULTS IN 5 lines, while this should be 4!!!
 
 # not working
 #     test_poly()
 
 # unknown
 # -------
-    #     test_diamantlike()
-#     test_intermediate_vertex()
+#     test_diamantlike()
+
+#     test_parallellogram() # Infinite speed problem
+
 #     test_collinear_bisectors()
 #     helper_make_test_collapse_time()
+#     test_2triangle()
 #     test_2triangle_eq_sides()
 #     output_ktri()
 # remainder
@@ -623,6 +649,8 @@ if __name__ == "__main__":
 #     test_left_right_for_vertex()
 #     test_flip()
 #     test_1_segment()
+
+#### LINES
 #     test_single_line()
 #     test_three_lines()
 #     test_arrow_four_lines()
@@ -635,6 +663,7 @@ if __name__ == "__main__":
 #     test_30_deg_segments()
 #     test_4_segments()
 #     test_cocircular_segments()
+####
 
 #     test4_3_3()
 #     test_compute_0()

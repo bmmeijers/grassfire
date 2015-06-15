@@ -138,6 +138,24 @@ class InfiniteVertex(object): # Stationary Vertex
     def __str__(self):
         return "{0} {1}".format(self.x, self.y)
 
+    def distance2_at(self, other, time):
+        """Cartesian distance *squared* to other point """
+        (sx,sy) = (self.x, self.y)
+        (ox,oy) = other.position_at(time)
+        # Used for distances in random triangle close to point
+        return pow(sx - ox, 2) + pow(sy - oy, 2)
+
+    def position_at(self, time):
+        """ """
+        return (self.x, self.y)
+
+    @property
+    def origin(self):
+        return (self.x, self.y)
+
+    @property
+    def velocity(self):
+        return (0,0)
 
 class KineticTriangle(object):
     def __init__(self):

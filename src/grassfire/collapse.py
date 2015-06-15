@@ -7,7 +7,7 @@ from tri.delaunay import cw, ccw, orient2d
 from tri.delaunay import orig, dest, apex
 
 from primitives import Event
-from grassfire.calc import perp
+from grassfire.calc import rotate90ccw
 
 # ------------------------------------------------------------------------------
 # solve
@@ -37,159 +37,166 @@ def compute_collapse_time(t, now=0):
     collapses_at = None 
     collapses_side = None
     collapses_type = None
-    if t.finite:
-        # finite triangles
-        tp = t.type
-        print "TYPE", tp
-        if tp == 0:
-            a, b, c = t.vertices
-            coeff = area_collapse_time_coeff(a, b, c)
-            times = list(solve_quadratic(coeff[0], coeff[1], coeff[2]))
-            if times:
-                time_det = min(times)
-                print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-                print "   roots found by numpy", numpy.roots(coeff)
-                print times
-            times = []
-            for side in range(3):
-                i, j = cw(side), ccw(side)
-                v1, v2 = t.vertices[i], t.vertices[j]
-                times.append((collapse_time_edge(v1, v2), side))
-            times = ignore_lte_and_sort(times, now)
-            print "te [edge collapse time]", times
-            if times:
-                time_edge = times[0][0]
-                if time_det < time_edge:
-                    print "flip event of zero triangle"
-                    collapses_at = time_det
-                    # -> side_at = longest of these edges should flip
-                    for side in range(3):
-                        i, j = cw(side), ccw(side)
-                        v1, v2 = t.vertices[i], t.vertices[j]
-                        print "dist", side, v1.distance2(v2)
-                else:
-                    collapses_at = time_edge
-                    collapses_side = times[0][1]
-                    collapses_type = "edge"
-                    print "vertices crashing into each other, handle as edge event @side", collapses_side
-        elif tp == 1: # FINISHED
-            # 2 cases can happen:
-            # a. the wavefront edge can collapse -> edge event
-            # b. the vertex v opposite this edge can crash into
-            #    this edge, or sweep over its supporting line -> split or flip event 
-
-            side = t.neighbours.index(None)
-            org, dst, apx = t.vertices[orig(side)], t.vertices[dest(side)], t.vertices[apex(side)]
-
-            # 
-            coeff = area_collapse_time_coeff(org, dst, apx)
-            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-            print "   roots found by numpy", numpy.roots(coeff)
-
-            # 
-            #print id(org), id(dst), id(apx)
-            Mv = tuple(map(sub, apx.origin, org.origin))
-            #print Mv
-            #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + Mv[0], org.origin[1] + Mv[1])
-            m =  map(sub, dst.origin, org.origin)
-            #print m
-            m = norm(m) # normalize m
-            #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + m[0], org.origin[1] + m[1])
-            #print m
-            n = perp(m) # take perpendicular vector
-            #print n
-            #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + n[0], org.origin[1] + n[1])
-            distance_v_e = dot(Mv, n)
-            #print "dist", distance_v_e
-            s = apx.velocity
-            #print dot(s, n)
-            t_v = distance_v_e / (1 - dot(s, n))
-            #print crash_time
-            print "tv [vertex crash time]:", t_v 
-
-            t_e = collapse_time_edge(org, dst)
-            print "te [edge collapse time]", t_e
-            # given that we ignore negative times!!!
-            if t_e <= t_v:
-                collapses_at = t_e
-                collapses_side = t.neighbours.index(None)
-                collapses_type = "edge"
-            else:
-                print "tv strictly earlier than te -> split or flip"
-                # compute side lengths of triangle at time tv
-                print "should compute side lengths at time tv"
-                lengths = []
+#     if t.finite:
+    # finite triangles
+    tp = t.type
+    if tp == 0:
+        a, b, c = t.vertices
+        coeff = area_collapse_time_coeff(a, b, c)
+        times = list(solve_quadratic(coeff[0], coeff[1], coeff[2]))
+        if times:
+            time_det = min(times)
+        else:
+            time_det = None
+#                 print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+#                 print "   roots found by numpy", numpy.roots(coeff)
+#                 print times
+        times = []
+        for side in range(3):
+            i, j = cw(side), ccw(side)
+            v1, v2 = t.vertices[i], t.vertices[j]
+            times.append((collapse_time_edge(v1, v2), side))
+        times = ignore_lte_and_sort(times, now)
+#             print "te [edge collapse time]", times
+        if times:
+            time_edge = times[0][0]
+            if time_det < time_edge:
+#                     print "flip event of zero triangle"
+                collapses_at = time_det
+                # -> side_at = longest of these edges should flip
                 for side in range(3):
                     i, j = cw(side), ccw(side)
                     v1, v2 = t.vertices[i], t.vertices[j]
-                    dist = v1.distance2_at(v2, t_v)
-                    print " dist", side, dist
-                    lengths.append((dist, side))
-                lengths = ignore_lte_and_sort(lengths)
-                dist, side = lengths[-1] # take longest is last
-                print dist, side
-                # if longest edge at time t_v is wavefronte edge -> split event
-                if side == t.neighbours.index(None):
-                    collapses_type = "split"
-                # otherwise -> flip event
-                else:
-                    collapses_type = "flip"
-                collapses_at = t_v
-                collapses_side = side # FIXME: is that correct?
-        elif tp == 2: # FINISHED
-            # compute with edge collapse time
-            # use earliest of the two edge collapse times
-            # ignore times in the past
-            a, b, c = t.vertices
-            coeff = area_collapse_time_coeff(a, b, c)
-            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-            print "   roots found by numpy", numpy.roots(coeff)
-            sides = []
-            for i in range(3):
-                if t.neighbours[i] is None:
-                    sides.append(i)
-            assert len(sides) == 2
-            print sides
-            times = []
-            for side in sides:
-                i, j = cw(side), ccw(side)
-                v1, v2 = t.vertices[i], t.vertices[j]
-                times.append((collapse_time_edge(v1, v2), side))
-            # remove times in the past, same as None values
-            times = ignore_lte_and_sort(times, now)
-            print len(times), "->", len(set([xx for xx, _ in times])), "NUMBER OF TIMES"
-            if times:
-                time, side = times[0]
-                collapses_at = time
-                collapses_side = side
+#                         print "dist", side, v1.distance2(v2)
+            else:
+                collapses_at = time_edge
+                collapses_side = times[0][1]
                 collapses_type = "edge"
-                print "SIDE", side
+#                     print "vertices crashing into each other, handle as edge event @side", collapses_side
+    elif tp == 1: # FINISHED
+        # 2 cases can happen:
+        # a. the wavefront edge can collapse -> edge event
+        # b. the vertex v opposite this edge can crash into
+        #    this edge, or sweep over its supporting line -> split or flip event 
 
-            if len(times) == 2 and len(set([xx for xx, _ in times])) == 1:
-                for i, _ in enumerate(t.neighbours):
-                    if _ is not None:
-                        collapses_side = i
-                        print "MODIFY SIDE TO", collapses_side
-                        break
-        elif tp == 3:
-            # compute with edge collapse time of all three edges
-            a, b, c = t.vertices
-            coeff = area_collapse_time_coeff(a, b, c)
-            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-            times = []
+        side = t.neighbours.index(None)
+        org, dst, apx = t.vertices[orig(side)], t.vertices[dest(side)], t.vertices[apex(side)]
+
+        # 
+        coeff = area_collapse_time_coeff(org, dst, apx)
+#             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+#             print "   roots found by numpy", numpy.roots(coeff)
+
+        # 
+        #print id(org), id(dst), id(apx)
+        Mv = tuple(map(sub, apx.origin, org.origin))
+        #print Mv
+        #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + Mv[0], org.origin[1] + Mv[1])
+        m =  map(sub, dst.origin, org.origin)
+        #print m
+        m = norm(m) # normalize m
+        #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + m[0], org.origin[1] + m[1])
+        #print m
+        n = rotate90ccw(m) # take perpendicular vector
+        #print n
+        #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + n[0], org.origin[1] + n[1])
+        distance_v_e = dot(Mv, n)
+        #print "dist", distance_v_e
+        s = apx.velocity
+        #print dot(s, n)
+        t_v = distance_v_e / (1 - dot(s, n))
+        #print crash_time
+#             print "tv [vertex crash time]:", t_v 
+
+        t_e = collapse_time_edge(org, dst)
+#             print "te [edge collapse time]", t_e
+
+        # given that we ignore negative times we return that there is no
+        # event for this triangle...
+        if t_e < now and t_v < now:
+            return None
+
+        if t_e <= t_v:
+            collapses_at = t_e
+            collapses_side = t.neighbours.index(None)
+            collapses_type = "edge"
+        else:
+#                 print "tv strictly earlier than te -> split or flip"
+#                 # compute side lengths of triangle at time tv
+#                 print "should compute side lengths at time tv"
+            lengths = []
             for side in range(3):
                 i, j = cw(side), ccw(side)
                 v1, v2 = t.vertices[i], t.vertices[j]
-                times.append((collapse_time_edge(v1, v2), side))
-            # remove times in the past, same as None values
-            times = ignore_lte_and_sort(times, now)
-            if times:
-                collapses_at = times[0][0]
-                collapses_side = times[0][1]
-                collapses_type = "edge"
-    else:
-        # infinite triangles
-        print "infinite triangle found"
+                dist = v1.distance2_at(v2, t_v)
+#                     print " dist", side, dist
+                lengths.append((dist, side))
+            lengths = ignore_lte_and_sort(lengths)
+            dist, side = lengths[-1] # take longest is last
+#                 print dist, side
+            # if longest edge at time t_v is wavefronte edge -> split event
+            if side == t.neighbours.index(None):
+                collapses_type = "split"
+            # otherwise -> flip event
+            else:
+                collapses_type = "flip"
+            collapses_at = t_v
+            collapses_side = side # FIXME: is that correct?
+    elif tp == 2: # FINISHED
+        # compute with edge collapse time
+        # use earliest of the two edge collapse times
+        # ignore times in the past
+        a, b, c = t.vertices
+        coeff = area_collapse_time_coeff(a, b, c)
+#             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+#             print "   roots found by numpy", numpy.roots(coeff)
+        sides = []
+        for i in range(3):
+            if t.neighbours[i] is None:
+                sides.append(i)
+        assert len(sides) == 2
+#             print sides
+        times = []
+        for side in sides:
+            i, j = cw(side), ccw(side)
+            v1, v2 = t.vertices[i], t.vertices[j]
+            times.append((collapse_time_edge(v1, v2), side))
+        # remove times in the past, same as None values
+        times = ignore_lte_and_sort(times, now)
+#             print len(times), "->", len(set([xx for xx, _ in times])), "NUMBER OF TIMES"
+        if times:
+            time, side = times[0]
+            collapses_at = time
+            collapses_side = side
+            collapses_type = "edge"
+#                 print "SIDE", side
+
+        if len(times) == 2 and len(set([xx for xx, _ in times])) == 1:
+            for i, _ in enumerate(t.neighbours):
+                if _ is not None:
+                    collapses_side = i
+#                         print "MODIFY SIDE TO", collapses_side
+                    break
+    elif tp == 3:
+        # compute with edge collapse time of all three edges
+        a, b, c = t.vertices
+        coeff = area_collapse_time_coeff(a, b, c)
+#             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+        times = []
+        for side in range(3):
+            i, j = cw(side), ccw(side)
+            v1, v2 = t.vertices[i], t.vertices[j]
+            times.append((collapse_time_edge(v1, v2), side))
+        # remove times in the past, same as None values
+        times = ignore_lte_and_sort(times, now)
+        if times:
+            collapses_at = times[0][0]
+            collapses_side = times[0][1]
+            collapses_type = "edge"
+#     else:
+#         # infinite triangles
+# #         print "infinite triangle found"
+#         pass
 
     if collapses_at is not None:
         e = Event(when=collapses_at, 

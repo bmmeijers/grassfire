@@ -7,6 +7,7 @@ from itertools import imap
 from operator import add, sub, mul, truediv
 from math import pi, atan2, degrees, hypot, sin
 from pprint import pprint
+from tri.delaunay import orient2d
 
 #from math import pi, degrees
 #PI2 = 2 * pi
@@ -61,6 +62,12 @@ from pprint import pprint
 #    # b = sweep_angle(i/100.0*pi, 0.25*pi, ccw = False)
 
 
+def vector(end, start):
+    """Creates a vector from the start to the end.
+
+    It calculates based on two points: end -(minus) start.
+    """
+    return tuple(map(sub, end, start))
 
 def normalize(v):
     """Normalizes the length of the vector with 2 elements
@@ -69,13 +76,32 @@ def normalize(v):
     assert lengthv != 0, "Vector without length cannot be normalized: {0}".format(v)
     return tuple([i/lengthv for i in v])
 
-def negate(val):
-    return -val
-
 def perp(v):
-    """rotate 2d vector 90 degrees counter clockwise
+    # FIXME: 
+    # rename to: rotate90ccw(v)
+    # and make: rotate90cw(v)
+    # Rotating a vector 90 degrees is particularily simple.
+    # (x, y) rotated 90 degrees around (0, 0) is (-y, x).
+    # If you want to rotate clockwise, 
+    # you simply do it the other way around, getting (y, -x).
+    """Rotate 2d vector 90 degrees counter clockwise
     """
-    return (negate(v[1]), v[0])
+    import warnings
+    warnings.warn("deprecated")
+    return rotate90ccw(v)
+
+def rotate90ccw(v):
+    """Rotate 2d vector 90 degrees counter clockwise
+    """
+    return (-(v[1]), v[0])
+
+def rotate90cw(v):
+    """Rotate 2d vector 90 degrees clockwise
+    """
+    return (v[1], -v[0])
+
+def rotate180(v):
+    return vector_mul_scalar(v, -1)
 
 def outward_unit_p1(p0, p1, p2):
     """Gets two normalized (i.e. unit) vectors pointing from
@@ -90,92 +116,111 @@ def outward_unit_p1(p0, p1, p2):
     # FIXME: division by zero
     u = normalize(u)
     v = normalize(v)
-    return tuple(u), tuple(v)
+    return u, v
 
-def angle(u, v):
+# def angle(u, v):
+#     """
+#     u and v are vectors in common point p1 on boundary <p0-p1-p2>
+#     when sweeping from u to v, returns angle that is swept when
+#     going from p0 to p2, on left side, when looking from above
+#     """
+#     v1x, v1y, = u[0], u[1]
+#     v2x, v2y, = v[0], v[1]
+#     r = atan2(v1y, v1x) - atan2(v2y, v2x)
+#     # print r
+#     while r <= 0:
+#         # print r
+#         r += 2 * pi
+#     return r
+
+def bisector(p0, p1, p2):
+    """Scaled bisector so that intersection point from segment p0-p1 and p1-p2
+    lies 1 unit away from these segments.
+
+    In case the vertex should have an infinite speed this method raises a
+    ValueError.
     """
-    u and v are vectors in common point p1 on boundary <p0-p1-p2>
-    when sweeping from u to v, returns angle that is swept when
-    going from p0 to p2, on left side, when looking from above
+    # FIXME: 
+    # should we do something with points that are collinear 
+    # and therefore get 'infinite' speed?
+    v = bisector_unit(p0, p1, p2)
+    s = scaling_factor(p0, p1, p2)
+    if s is None:
+        raise ValueError("Infinite speed")
+    return vector_mul_scalar(v, s)
+
+
+def bisector_unit(p0, p1, p2): #1.0):
+    """Calculates bisector unit vector that indicates direction of bisector
+    (at half angle).
+
+    The bisector that is generated lies on the left when you go from point
+    p0 to p1 to p2, while looking from above.
     """
-    v1x, v1y, = u[0], u[1]
-    v2x, v2y, = v[0], v[1]
-    r = atan2(v1y, v1x) - atan2(v2y, v2x)
-    # print r
-    while r <= 0:
-        # print r
+    # get two unit vectors, from p1 to p0 and p1 to p2
+    u, v = outward_unit_p1(p0, p1, p2)
+    # signed area covered by the points 
+    z = orient2d(p0, p1, p2) 
+    r = tuple([item * .5 for item in map(add, u, v)])
+    bi = None
+    # collinear / near collinear
+    if r == (0., 0.):
+        # r == (0,0) means they cancel out
+        # hence vectors are pointing away from each other
+        # print "collinear, opposite direction vectors!"
+        v = vector(p2, p0)
+        return normalize(rotate90ccw(v))
+    elif z == 0.:
+        # when that does not hold but z == 0 (no area covered)
+        # we have vectors pointing in same direction!
+        # print "collinear, similar direction vectors!"
+        return normalize(vector(p1, p0))
+    elif z < 0: 
+        # points make turn to right
+        bi = -r[0], -r[1]
+    # points make turn to left
+    elif z > 0: 
+        bi = r
+    return normalize(bi)
+
+
+def angle(p0, p1, p2):
+    """Returns angle in range [0,2pi> 
+
+    The angle returned is swept when rotating around p1 going from p0 to p2
+    (on left side, when looking from above), e.g.
+
+     + p2
+      \
+       \
+      R + p1
+        |
+        |
+        + p0
+    """
+    u, v = outward_unit_p1(p0, p1, p2)
+    r = atan2(u[1], u[0]) - atan2(v[1], v[0])
+    while r < 0:
         r += 2 * pi
     return r
 
-def bisector(p0, p1, p2, factor=1.0): #1.0):
-    """Calculates bisector vector that has correct
-    length, so that edges are offset 1 unit, if points of bisectors
-    are to be connected (playing 'connect-the-dot').
+def scaling_factor(p0, p1, p2):
+    """Give the scaling factor so that we can determine how much we have
+    to scale a unit vector to end up at the point in the bisector, so that
+    the point is 1 unit away from the segment p0 and p1.
     
-    The bisector that is generated lies on the left when you go from point
-    p0 to p1 to p2, while looking from above.
-    
-    Pre-condition:
-    
-    p0, p1, p2 are *not* (near) collinear (i.e. all on a straight line), as
-    direction can not be determined reliably then
+    It returns None if the angle between the given points is 0 (folding back)
     """
+    alpha = angle(p0, p1, p2) *.5
+    if alpha == 0:
+        return None
+    else:
+        return 1. / sin(alpha)
 
-# if u/|u|+v/|v| !=0
-# 
-# first calculate the unit vector of u and v
-# 
-# then use the parallelogram rule to get the bisection (just add them)
-# 
-# since they both have unit of 1, their sum is the bisector vector 
-# 
-# then calculate the unit vector of the calculated vector.
-# 
-# else (if u/|u|+v/|v| ==0):
-#  (if you use the method above, it's like a indintermination: 0*infinity=?)
-# 
-#  if you want the bisector of (u0v) if u/|u| = (cos(t),sin(t)) 
-#  take b=(cost(t+Pi/2),sin(t+Pi/2)) = (-sin(t),cos(t) )as the bisector
-#  therefore if u/|u|=(a1,a2) chose b=(-a2,a1)
-
-    
-    # print "bisector for"
-#     for p in p0, p1, p2:
-#         print "POINT({0[0]} {0[1]})".format(p)
-    u, v = outward_unit_p1(p0, p1, p2)
-#    print u, v
-    r = map(add, u, v)
-#    print r
-    # if result is r = (0,0), then this means that 
-    # we have u and v on same supporting line and p0, p1, p2 are
-    # collinear, thus we are looking for normal to u (or v)
-    if r == [0., 0.]:
-        # rotate 90 cw
-        return (u[1], negate(u[0]))
-    r = normalize(r)
-    alpha = angle(u, v)
-    print alpha
-    print alpha - pi
-#    print alpha, r, degrees(alpha)
-    # if alpha is making a sweep larger than 180 degrees,
-    # our vector will be on the wrong side of the line, 
-    # thus swap position to mirror it
-    if alpha >= pi:
-        print "rotating 180 deg"
-        # negate the original vector so it is pointing in opposite
-        # direction, thus rotate 180 degrees
-        # r = (-1*r[0], -1*r[1])
-        r = perp(perp(r))
-    alpha *= 0.5
-    # scaling for unit vector pointing in right direction
-    # so that offset curve is 1 unit from original edge
-
-    # FIXME: when the sin = 0 this brings division by zero
-    # this happens when p0, p1, p2 are collinear
-    scaling = 1. / sin(alpha)
-    # print "scaling", scaling
-    # print "r", r
-    return tuple([i * scaling * factor for i in r])
+def vector_mul_scalar(v, s):
+    """Multiply vector v with a scalar value s
+    """
+    return tuple([i * s for i in v])
 
 def bisector_vectors(linearring):
     """Returns bisector unit vectors for given linearring
@@ -197,10 +242,13 @@ def bisector_vectors(linearring):
 
 
 def _test():
+    from math import sqrt
+    a,b,c = (0,0), (10,-10), (20,0)
+    assert scaling_factor(a,b,c) == sqrt(2)
     #
-    print bisector((2,7), (2,3), (0,3))
-    print bisector((0,3), (2,3), (2,7))
-    print bisector((6,10), (5.5, 1), (5,10))
+#     print bisector((2,7), (2,3), (0,3))
+#     print bisector((0,3), (2,3), (2,7))
+#     print bisector((6,10), (5.5, 1), (5,10))
 
 if __name__ == "__main__":
 #     _test()

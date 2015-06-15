@@ -5,7 +5,7 @@ from oseq import OrderedSequence
 from grassfire.primitives import Event
 from grassfire.events import compare_event_by_time
 
-class TestSplice(unittest.TestCase):
+class TestOrdering(unittest.TestCase):
 
     def test_ordering(self):
         class TriMock(object):

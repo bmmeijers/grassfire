@@ -15,7 +15,7 @@ def find_overlapping_triangle(E):
     of triangle edge of the first triangle
 
     it assumes that the edges are around a central vertex
-    and that the first triangle has a constrained and other edges do not.
+    and that the first triangle has a constrained edge and other edges are not.
 
     returns index in the list of the triangle that overlaps  
     """
@@ -48,6 +48,16 @@ def is_quad(L):
     result = all(items[0] == item for item in items)
     return result
 
+def rotate_until_not_in_candidates(t, v, direction, candidates):
+    seen = set()
+    while t is not None and t not in seen:
+        seen.add(t)
+        side = t.vertices.index(v)
+        t = t.neighbours[direction(side)]
+        if t not in candidates:
+            return t
+
+
 def init_skeleton(dt):
     """Initialize a data structure that can be used for making the straight
     skeleton.
@@ -57,10 +67,14 @@ def init_skeleton(dt):
     # make skeleton nodes 
     # -> every triangulation vertex becomes a skeleton node
     nodes = {}
+    avg_x = 0.
+    avg_y = 0.
     for v in dt.vertices:
         if v.is_finite:
             nodes[v] = SkeletonNode(pos=(v.x, v.y), info=v.info)
-
+            avg_x += v.x / len(dt.vertices)
+            avg_y += v.y / len(dt.vertices)
+    centroid = InfiniteVertex(avg_x, avg_y)
     # make kinetic triangles, so that for every delaunay triangle we have
     # a kinetic counter part
 
@@ -82,7 +96,7 @@ def init_skeleton(dt):
     link_around = []
     # set up properly the neighbours of all kinetic triangles
     # blank out the neighbour, if a side is constrained
-    #remove = []
+    unwanted = []
     it = TriangleIterator(dt)
     next(it)# skip the external triangle (which is the first the iterator gives)
     for t in it:
@@ -93,11 +107,9 @@ def init_skeleton(dt):
                 continue
             # skip linking to the external triangle
             if n is dt.external or n is None:
+                unwanted.append(k)
                 continue
             k.neighbours[j] = triangle2ktriangle[n]
-        # if we found a triangle that has a None Neighbour -> triangle to remove
-        #if any([n is None for n in k.neighbours]):
-        #    remove.append(t)
 
     # make kinetic vertices
     # and link them to the kinetic triangles
@@ -153,6 +165,7 @@ def init_skeleton(dt):
                 edge = around[0]
                 start, end = v, edge.triangle.vertices[ccw(edge.side)]
                 vec = normalize((end.x - start.x , end.y - start.y))
+                # FIXME: Replace perp with rotate90cw / rotate90ccw
 
                 # from segment over terminal vertex to this kinetic vertex, 
                 # turns right
@@ -374,9 +387,45 @@ def init_skeleton(dt):
         else:
             raise ValueError("Unexpected # kinetic triangles at terminal vertex")
 
+    # there are 3 infinite triangles that are supposed to be removed
+    # these triangles were already stored in the unwanted list
+    remove = []
+    for kt in ktriangles:
+        if [isinstance(v,InfiniteVertex) for v in kt.vertices].count(True) == 2:
+            remove.append(kt)
+    assert len(remove) == 3
+    assert len(unwanted) == 3
+    assert remove == unwanted
+    # remove the 3 unwanted triangles and link their neighbours together
+    link = []
+    for kt in unwanted:
+        v = kt.vertices[kt.neighbours.index(None)]
+        assert isinstance(v, KineticVertex)
+        neighbour_cw = rotate_until_not_in_candidates(kt, v, cw, unwanted)
+        neighbour_ccw = rotate_until_not_in_candidates(kt, v, ccw, unwanted)
+        side_cw = ccw(neighbour_cw.vertices.index(v))
+        side_ccw = cw(neighbour_ccw.vertices.index(v))
+        link.append(
+            (neighbour_cw, side_cw, neighbour_ccw)
+        )
+        link.append(
+            (neighbour_ccw, side_ccw, neighbour_cw)
+        )
+    for item in link:
+        ngb, side,new_ngb , = item
+        ngb.neighbours[side] = new_ngb
+    for kt in unwanted:
+        kt.vertices = [None, None, None]
+        kt.neighbours = [None, None, None]
+        ktriangles.remove(kt)
+    # replace the infinite vertices by one point in the center of the PSLG
+    # (this could be the origin (0,0) if we would scale input to [-1,1] range
+    for kt in ktriangles:
+        for i, v in enumerate(kt.vertices):
+            if isinstance(v, InfiniteVertex):
+                kt.vertices[i] = centroid
     assert check_ktriangles(ktriangles)
     # INITIALIZATION FINISHES HERE
-
 
     # write bisectors to file
     with open("/tmp/bisectors.wkt", "w") as bisector_fh:
@@ -410,6 +459,7 @@ def check_ktriangles(L):
             ngb = ktri.neighbours[i]
             if ngb is not None:
                 if ktri not in ngb.neighbours:
+                    print "non neighbouring triangles"
                     valid = False
     # check if the sides of a triangle share the correct vertex at begin / end
     for ktri in L:
@@ -418,7 +468,9 @@ def check_ktriangles(L):
             if ngb is not None:
                 j = ngb.neighbours.index(ktri)
                 if not ngb.vertices[cw(j)] is ktri.vertices[ccw(i)]:
+                    print "something wrong with vertices 1"
                     valid = False
                 if not ngb.vertices[ccw(j)] is ktri.vertices[cw(i)]:
+                    print "something wrong with vertices 2"
                     valid = False
     return valid

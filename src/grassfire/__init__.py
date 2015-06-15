@@ -16,5 +16,5 @@ def calc_skel(conv):
     skel = init_skeleton(dt)
     el = init_event_list(skel)
     event_loop(el, skel)
-    output_offsets(skel)
-    output_skel(skel)
+#     output_offsets(skel)
+#     output_skel(skel)
