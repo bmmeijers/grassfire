@@ -43,7 +43,6 @@ def init_event_list(skel):
     q = OrderedSequence(cmp=compare_event_by_time)
     for tri in skel.triangles:
         res = compute_collapse_time(tri)
-        print res
         if res is not None:
             q.add(res)
     return q
@@ -174,18 +173,22 @@ def handle_edge_event(evt, skel, queue):
 #     print v1.position_at(now)
 #     print v2.position_at(now)
     if t.type == 3:
-        sk_node = stop_kvertices3(v0, v1, v2, now)
-        #
-        kv = KineticVertex()
-        kv.starts_at = now
-        kv.start_node = sk_node
-        # always stationary from begin
-        kv.origin = sk_node.pos
-        kv.velocity = (0,0)
-
         # add to skeleton structure
+        sk_node = stop_kvertices3(v0, v1, v2, now)
         skel.sk_nodes.append(sk_node)
-        skel.vertices.append(kv)
+        # we could make a kinetic vertex, but it will not have any
+        # circular references, making it slightly complicated for the
+        # offsetting functions
+        # Let's not generate it for now, and investigate later whether 
+        # we would need a kinetic vertex (or that we should build the tree of
+        # skeleton nodes in some different fashion)
+        #kv = KineticVertex()
+        #kv.starts_at = now
+        #kv.start_node = sk_node
+        # always stationary from begin
+        #kv.origin = sk_node.pos
+        #kv.velocity = (0,0)
+        #skel.vertices.append(kv)
 
     elif t.type == 2 and t.neighbours[e] is not None:
         # all 3 sides collapse at the same time

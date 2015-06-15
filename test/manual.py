@@ -610,14 +610,14 @@ def helper_make_test_collapse_time():
 
 if __name__ == "__main__":
 #     test_replace_kvertex()
-    helper_make_test_collapse_time()
+#     helper_make_test_collapse_time()
 # working tests
 # -------------
 
 #     test_split() 
 #     test_simple_poly()
 #     test_quad()
-#     test_triangle()
+    test_triangle()
 #     try:
 #         test_single_point()
 #     except:

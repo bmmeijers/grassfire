@@ -52,17 +52,18 @@ def output_dt(dt):
 def output_offsets(skel):
     with open("/tmp/offsetsl.wkt", "w") as fh:
         fh.write("wkt\n")
-        for t in range(0, 100):
-            t *= .2
+        for t in range(0, 1000):
+            t *= 10.
             for v in skel.vertices:
-                if v.starts_at <= t and v.stops_at > t: # finite ranges only (not None is filtered out)
+                if (v.starts_at <= t and v.stops_at > t) or \
+                    (v.starts_at <= t and v.stops_at is None): 
                     try:
                         s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(t), 
                                                                               v.left_at(t).position_at(t))
                         fh.write(s)
                         fh.write("\n")
                     except AttributeError:
-                        print "FIXME: investigate"
+                        print "*"
 
     with open("/tmp/offsetsr.wkt", "w") as fh:
         fh.write("wkt\n")
