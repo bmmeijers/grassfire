@@ -53,7 +53,7 @@ def output_offsets(skel):
     with open("/tmp/offsetsl.wkt", "w") as fh:
         fh.write("wkt\n")
         for t in range(0, 1000):
-            t *= 10.
+            t *= .2
             for v in skel.vertices:
                 if (v.starts_at <= t and v.stops_at > t) or \
                     (v.starts_at <= t and v.stops_at is None): 
@@ -87,6 +87,11 @@ def output_skel(skel):
             if v.stops_at is not None:
                 s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(v.starts_at), 
                                                                       v.position_at(v.stops_at))
+                fh.write(s)
+                fh.write("\n")
+            else:
+                s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(v.starts_at), 
+                                                                      v.position_at(1000))
                 fh.write(s)
                 fh.write("\n")
 

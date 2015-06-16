@@ -10,6 +10,24 @@ def test_poly():
     # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
     calc_skel(conv)
 
+def test_cocircular():
+    conv = ToPointsAndSegments()
+    conv.add_polygon([[(0,1), (1,0), (2,0), (3,1), (3,2), (2,3), (1,3), (0,2), (0,1)]])
+    # FIXME: works but wrong:
+    # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
+    calc_skel(conv)
+
+
+def test_cocircular1():
+    # FIXME: Point 
+    ok = (3.8,0.8) # this works
+    fail = (4,1) # substitute with this and we get a lot of simultaneous events!
+    conv = ToPointsAndSegments()
+    conv.add_polygon([[(0,1), (1,0), (3,0), ok, (4,3), (3,4), (1,4), (0,3), (0,1)]])
+    # FIXME: works but wrong:
+    # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
+    calc_skel(conv)
+
 def test_diamant():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
@@ -617,7 +635,7 @@ if __name__ == "__main__":
 #     test_split() 
 #     test_simple_poly()
 #     test_quad()
-    test_triangle()
+#     test_triangle()
 #     try:
 #         test_single_point()
 #     except:
@@ -627,6 +645,8 @@ if __name__ == "__main__":
 # -------------
 #     test_diamant() # RESULTS IN 5 lines, while this should be 4!!!
 
+
+    test_cocircular1()
 # not working
 #     test_poly()
 
