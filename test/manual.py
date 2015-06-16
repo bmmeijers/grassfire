@@ -598,13 +598,18 @@ def helper_make_test_collapse_time():
 #     """
 #     polygon = loads(p)
 #     conv.add_polygon(polygon)
+
     conv = ToPointsAndSegments()
-    conv.add_point((10,0))
-    conv.add_point((-2,8))
-    conv.add_point((-2,-8))
-    conv.add_segment((10,0), (-2,8))
-    conv.add_segment((-2,8), (-2,-8))
-    conv.add_segment((-2,-8), (10,0))
+    conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
+
+#     conv = ToPointsAndSegments()
+#     conv.add_point((10,0))
+#     conv.add_point((-2,8))
+#     conv.add_point((-2,-8))
+#     conv.add_segment((10,0), (-2,8))
+#     conv.add_segment((-2,8), (-2,-8))
+#     conv.add_segment((-2,-8), (10,0))
+
     dt = triangulate(conv.points, None, conv.segments)
     skel = init_skeleton(dt)
     print "triangles = {}"
@@ -623,12 +628,23 @@ def helper_make_test_collapse_time():
     print ""
     print "### neighbour relationships"
     for t in skel.triangles:
-        print "n =", ", ".join(["triangles[{0}]".format(id(n)) if n is not None else "None" for n in t.neighbours])
-        print "triangles[",id(t),"].neighbours = list(n)"
+        print "n = [", ", ".join(["triangles[{0}]".format(id(n)) if n is not None else "None" for n in t.neighbours]), "]"
+        print "triangles[",id(t),"].neighbours = n"
 
 if __name__ == "__main__":
+    import logging
+    import sys
+
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    root.addHandler(ch)
 #     test_replace_kvertex()
-#     helper_make_test_collapse_time()
+    helper_make_test_collapse_time()
 # working tests
 # -------------
 
@@ -643,7 +659,7 @@ if __name__ == "__main__":
 
 # nearly working tests
 # -------------
-    test_diamant() # RESULTS IN 5 lines, while this should be 4!!!
+#     test_diamant() # RESULTS IN 5 lines, while this should be 4!!!
 
 
 #     test_cocircular1()

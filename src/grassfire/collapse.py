@@ -1,9 +1,8 @@
 from math import copysign, sqrt
-import numpy
-import weakref
+import logging
 
 from operator import sub
-from tri.delaunay import cw, ccw, orient2d
+from tri.delaunay import cw, ccw
 from tri.delaunay import orig, dest, apex
 
 from primitives import Event
@@ -148,7 +147,7 @@ def compute_collapse_time(t, now=0):
         # ignore times in the past
         a, b, c = t.vertices
         coeff = area_collapse_time_coeff(a, b, c)
-#             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+        logging.debug("td [area zero time] {0}".format(solve_quadratic(coeff[0], coeff[1], coeff[2])))
 #             print "   roots found by numpy", numpy.roots(coeff)
         sides = []
         for i in range(3):
