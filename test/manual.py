@@ -1,6 +1,5 @@
-"""Manual tests, check output manually in QGIS
+"""Manual tests, for checking output manually in QGIS
 """
-
 from grassfire import ToPointsAndSegments, calc_skel
 
 def test_poly():
@@ -17,7 +16,6 @@ def test_cocircular():
     # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
     calc_skel(conv)
 
-
 def test_cocircular1():
     # FIXME: Point 
     ok = (3.8,0.8) # this works
@@ -33,7 +31,8 @@ def test_diamant():
     conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
     # FIXME: works but wrong:
     # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
-    calc_skel(conv)
+    skel = calc_skel(conv, pause=True, output=True)
+    assert len(skel.segments()) == 8
 
 def test_diamantlike():
     conv = ToPointsAndSegments()
@@ -48,7 +47,8 @@ def test_parallellogram():
 def test_simple_poly():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
-    calc_skel(conv)
+    skel = calc_skel(conv)
+    assert len(skel.segments()) == 12
 
 def test_single_line():
     conv = ToPointsAndSegments()
@@ -87,7 +87,7 @@ def test_arrow_four_lines():
 def test_single_point():
     conv = ToPointsAndSegments()
     conv.add_point((0, 0))
-    calc_skel(conv)
+    skel = calc_skel(conv)
 
 
 def test_triangle():
@@ -98,7 +98,8 @@ def test_triangle():
     conv.add_segment((10,0), (-2,8))
     conv.add_segment((-2,8), (-2,-8))
     conv.add_segment((-2,-8), (10,0))
-    calc_skel(conv)
+    skel = calc_skel(conv)
+    assert len(skel.segments()) == 6
 
 
 def test_quad():
@@ -114,8 +115,8 @@ def test_quad():
     #conv.add_segment((-2,-8), (8,2))
     conv.add_segment((4,5), (14,10))
     conv.add_segment((-2,-8), (4,5))
-
-    calc_skel(conv)
+    skel = calc_skel(conv)
+    assert len(skel.segments()) == 9
 
 def test_two_lines_par():
     conv = ToPointsAndSegments()
@@ -497,8 +498,6 @@ def test_flip():
     assert "c" in tri1.vertices
     assert "d" in tri1.vertices
 
-
-
 def test_split():
     conv = ToPointsAndSegments()
     #conv.add_point((8,2))
@@ -516,7 +515,8 @@ def test_split():
     #conv.add_segment((-2,-8), (8,2))
     conv.add_segment((0,20), (0,0))
 
-    calc_skel(conv)
+    skel = calc_skel(conv)
+    assert len(skel.segments()) == 12
 
 def test_left_right_for_vertex():
     kva = KineticVertex()
@@ -632,7 +632,7 @@ if __name__ == "__main__":
 # working tests
 # -------------
 
-#     test_split() 
+#     test_split()
 #     test_simple_poly()
 #     test_quad()
 #     test_triangle()
@@ -643,10 +643,10 @@ if __name__ == "__main__":
 
 # nearly working tests
 # -------------
-#     test_diamant() # RESULTS IN 5 lines, while this should be 4!!!
+    test_diamant() # RESULTS IN 5 lines, while this should be 4!!!
 
 
-    test_cocircular1()
+#     test_cocircular1()
 # not working
 #     test_poly()
 

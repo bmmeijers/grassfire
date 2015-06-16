@@ -8,8 +8,6 @@ from grassfire.calc import bisector, normalize, perp
 from primitives import Skeleton, SkeletonNode
 from primitives import InfiniteVertex, KineticTriangle, KineticVertex
 
-from io import output_triangles, output_kvertices
-
 def find_overlapping_triangle(E):
     """find overlapping triangle 180 degrees other way round
     of triangle edge of the first triangle
@@ -56,7 +54,6 @@ def rotate_until_not_in_candidates(t, v, direction, candidates):
         t = t.neighbours[direction(side)]
         if t not in candidates:
             return t
-
 
 def init_skeleton(dt):
     """Initialize a data structure that can be used for making the straight
@@ -425,27 +422,11 @@ def init_skeleton(dt):
             if isinstance(v, InfiniteVertex):
                 kt.vertices[i] = centroid
     assert check_ktriangles(ktriangles)
-    # INITIALIZATION FINISHES HERE
-
-    # write bisectors to file
-    with open("/tmp/bisectors.wkt", "w") as bisector_fh:
-        bisector_fh.write("wkt\n")
-        for kvertex in kvertices:
-            p1 = kvertex.origin
-            bi = kvertex.velocity
-            bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(p1, map(add, p1, bi)))
-
 
     skel.sk_nodes = nodes.values()
     skel.triangles = ktriangles
     skel.vertices = kvertices
-
-
-    with open("/tmp/ktris.wkt", "w") as fh:
-        output_triangles(ktriangles, fh)
-
-    with open("/tmp/kvertices.wkt", "w") as fh:
-        output_kvertices(skel.vertices, fh)
+    # INITIALIZATION FINISHES HERE
 
     return skel
 

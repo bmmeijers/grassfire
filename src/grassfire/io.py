@@ -95,3 +95,8 @@ def output_skel(skel):
                 fh.write(s)
                 fh.write("\n")
 
+
+    with open("/tmp/skelnodes.wkt", "w") as fh:
+        fh.write("wkt\n")
+        for n in skel.sk_nodes:
+            fh.write("POINT({0[0]} {0[1]})\n".format(n.pos))

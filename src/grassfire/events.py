@@ -41,10 +41,10 @@ def init_event_list(skel):
     for further processing
     """
     q = OrderedSequence(cmp=compare_event_by_time)
-    print "Calculate events"
+    logging.debug("Calculate events")
     for tri in skel.triangles:
         res = compute_collapse_time(tri)
-        print id(tri), res
+        logging.debug("{0} {1}".format(id(tri), res))
         if res is not None:
             q.add(res)
     return q
@@ -373,7 +373,7 @@ def handle_split_event(evt, skel, queue):
     v1 = t.vertices[(e+1) % 3]
     v2 = t.vertices[(e+2) % 3]
     sk_node = stop_kvertex(v, now)
-    raw_input("Paused, key to continue >>> ")
+#     raw_input("Paused, key to continue >>> ")
 
     assert v1.right is v2
     assert v2.left is v1
@@ -471,17 +471,16 @@ def flip(t0, side0, t1, side1):
 #     for v in t1.vertices:
 #         v.triangle = t1
 
-def event_loop(queue, skel):
-    print "=" * 80
-    print "Event queue"
-    print "=" * 80
-    for i, e in enumerate(queue):
-        print i, e
-    print "=" * 80
-#     evt = events[0]
+def event_loop(queue, skel, pause=False):
+    logging.debug("=" * 80)
+#     print "Event queue"
+#     print "=" * 80
+#     for i, e in enumerate(queue):
+#         print i, e
+#     print "=" * 80
     while queue:
         evt = queue.popleft()
-        output_kdt(skel, evt.time-0.05)
+#         output_kdt(skel, evt.time-0.05)
         # decide what to do based on event type
         if evt.tp == "edge":
             handle_edge_event(evt, skel, queue)
@@ -492,7 +491,8 @@ def event_loop(queue, skel):
 #             print "SKIP SPLIT"
             handle_split_event(evt, skel, queue)
 
-        raw_input("handled  event, key to continue >>> ")
+        if pause:
+            raw_input("handled event [" + str(evt) + "], key to continue >>> ")
 
 # if __name__ == "__main__":
 #     test_replace_kvertex()

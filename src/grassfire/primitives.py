@@ -29,6 +29,16 @@ class Skeleton(object):
         self.vertices = []
         self.triangles = []
 
+    def segments(self):
+        segments = []
+        for v in self.vertices:
+            if v.stops_at is not None:
+                s = (v.position_at(v.starts_at), v.position_at(v.stops_at))
+            else:
+                s = (v.position_at(v.starts_at), v.position_at(1000))
+            segments.append(s)
+        return segments
+
 Vector = namedtuple("Vector", "x y")
 
 class SkeletonNode(object):
