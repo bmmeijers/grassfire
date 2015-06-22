@@ -19,6 +19,8 @@ class TestRotateAndReplace(unittest.TestCase):
                 pass
             def remove(self, one):
                 pass
+            def discard(self, one):
+                pass
         # init skeleton structure
         conv = ToPointsAndSegments()
         polygon = [[(-2,-1), (-1,0), (1,0), (1.5,-.5), (1.2,.7), 

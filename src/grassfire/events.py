@@ -525,7 +525,7 @@ def event_loop(queue, skel, pause=False):
                 "/tmp/vertices0_progress.wkt",
                 "/tmp/vertices1_progress.wkt",
                 '/tmp/ktri_progress.wkt',
-                ]:
+            ]:
             with open(file_nm, 'w') as fh:
                 pass
         # log what is in the queue
@@ -617,35 +617,36 @@ def event_loop(queue, skel, pause=False):
                         id(triangle.neighbours[2]),
                     )
                 )
-        with open("/tmp/sknodes_progress.wkt", 'w') as fh:
-            fh.write("wkt\n")
-            for node in skel.sk_nodes:
-                fh.write("POINT({0[0]} {0[1]})\n".format(node.pos))
+        if pause:
+            with open("/tmp/sknodes_progress.wkt", 'w') as fh:
+                fh.write("wkt\n")
+                for node in skel.sk_nodes:
+                    fh.write("POINT({0[0]} {0[1]})\n".format(node.pos))
 
-        with open("/tmp/bisectors_progress.wkt", "w") as bisector_fh:
-            bisector_fh.write("wkt\n")
-            for kvertex in skel.vertices:
-                if kvertex.stops_at is None:
-                    p1 = kvertex.position_at(NOW)
-                    bi = kvertex.velocity
-                    bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(p1, map(add, p1, bi)))
+            with open("/tmp/bisectors_progress.wkt", "w") as bisector_fh:
+                bisector_fh.write("wkt\n")
+                for kvertex in skel.vertices:
+                    if kvertex.stops_at is None:
+                        p1 = kvertex.position_at(NOW)
+                        bi = kvertex.velocity
+                        bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(p1, map(add, p1, bi)))
 
-        with open("/tmp/segments_progress.wkt", "w") as fh:
-            fh.write("wkt\n")
-            for kvertex in skel.vertices:
-                if kvertex.start_node is not None and kvertex.stop_node is not None:
-                    start, end = kvertex.start_node.pos, kvertex.stop_node.pos
-                    fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(start, end))
-
-        with open("/tmp/vertices0_progress.wkt", 'w') as fh0:
-            with open("/tmp/vertices1_progress.wkt", 'w') as fh1:
-                fh0.write("id;wkt\n")
-                fh1.write("id;wkt\n")
+            with open("/tmp/segments_progress.wkt", "w") as fh:
+                fh.write("wkt\n")
                 for kvertex in skel.vertices:
                     if kvertex.start_node is not None and kvertex.stop_node is not None:
-                        fh0.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(kvertex.starts_at), id(kvertex)))
-                    else:
-                        fh1.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(NOW), id(kvertex)))
+                        start, end = kvertex.start_node.pos, kvertex.stop_node.pos
+                        fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(start, end))
+
+            with open("/tmp/vertices0_progress.wkt", 'w') as fh0:
+                with open("/tmp/vertices1_progress.wkt", 'w') as fh1:
+                    fh0.write("id;wkt\n")
+                    fh1.write("id;wkt\n")
+                    for kvertex in skel.vertices:
+                        if kvertex.start_node is not None and kvertex.stop_node is not None:
+                            fh0.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(kvertex.starts_at), id(kvertex)))
+                        else:
+                            fh1.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(NOW), id(kvertex)))
 
         assert check_ktriangles(skel.triangles, NOW)
 # if __name__ == "__main__":

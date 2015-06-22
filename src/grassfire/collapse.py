@@ -291,7 +291,7 @@ def compute_collapse_time(t, now=0):
         assert collapses_type is not None
 
         # HACK
-        assert collapses_at >= now
+        assert collapses_at >= now, "{0} {1}".format(collapses_at, now)
 #         if collapses_at < now:
 #             collapses_at = now
         # /HACK

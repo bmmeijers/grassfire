@@ -2,19 +2,36 @@
 """
 from grassfire import ToPointsAndSegments, calc_skel
 
+
+if __name__ == "__main__":
+    import logging
+    import sys
+ 
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+ 
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    root.addHandler(ch)
+
+
 def test_poly():
     conv = ToPointsAndSegments()
-    conv.add_polygon([[(0, 0), (10, 0), (11, -1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
+#     conv.add_polygon([[(0, 0), (10, 0), (11, -1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
     # FIXME: works but wrong:
-    # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
-    calc_skel(conv)
+    conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
+    calc_skel(conv, output=True, pause=True)
+
+# test_poly()
 
 def test_cocircular():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(0,1), (1,0), (2,0), (3,1), (3,2), (2,3), (1,3), (0,2), (0,1)]])
-    # FIXME: works but wrong:
-    # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
-    calc_skel(conv)
+    calc_skel(conv, output=True, pause=True)
+
+# test_cocircular()
 
 def test_cocircular1():
     # FIXME: Point 
@@ -24,7 +41,9 @@ def test_cocircular1():
     conv.add_polygon([[(0,1), (1,0), (3,0), ok, (4,3), (3,4), (1,4), (0,3), (0,1)]])
     # FIXME: works but wrong:
     # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
-    calc_skel(conv)
+    calc_skel(conv, output=True, pause=True)
+
+# test_cocircular1()
 
 def test_diamant():
     conv = ToPointsAndSegments()
@@ -34,16 +53,22 @@ def test_diamant():
     skel = calc_skel(conv, pause=True, output=True)
     assert len(skel.segments()) == 8
 
+# test_diamant()
+
 def test_diamantlike():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(-15,0), (-1,0), (0,-1), (1,0), (15,0), (0,15), (-15,0)]])
     skel = calc_skel(conv, pause=True, output=True)
     assert len(skel.segments()) == (7+6)
 
+# test_diamantlike()
+
 def test_parallellogram():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
     calc_skel(conv)
+
+test_parallellogram()
 
 def test_simple_poly():
     conv = ToPointsAndSegments()
@@ -620,6 +645,7 @@ def test_split():
     skel = calc_skel(conv, pause = True, output=True)
     assert len(skel.segments()) == 12
 
+
 def test_left_right_for_vertex():
     kva = KineticVertex()
     kvb = KineticVertex()
@@ -733,24 +759,12 @@ def helper_make_test_collapse_time():
         print "n = [", ", ".join(["triangles[{0}]".format(id(n)) if n is not None else "None" for n in t.neighbours]), "]"
         print "triangles[",id(t),"].neighbours = n"
 
-if __name__ == "__main__":
-    import logging
-    import sys
- 
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
- 
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    ch.setFormatter(formatter)
-    root.addHandler(ch)
 # #     test_replace_kvertex()
 #     helper_make_test_collapse_time()
 # working tests
 # -------------
 
-#     test_split()
+#     test_split_unit()
 #     test_2triangle_1side_collapse()
 #     test_simple_poly()
 #     test_diamant()
@@ -765,7 +779,7 @@ if __name__ == "__main__":
     # many simultaneous
 #     test_circular()
 #     test_pointy_star()
-    test_bottom_circle()
+#     test_bottom_circle()
 #     test_bottom_circle_top_square()
 #     test_cross()
 #     test_quad()
