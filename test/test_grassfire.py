@@ -63,5 +63,11 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 12
 
+    def test_diamantlike(self):
+        conv = ToPointsAndSegments()
+        conv.add_polygon([[(-15,0), (-1,0), (0,-1), (1,0), (15,0), (0,15), (-15,0)]])
+        skel = calc_skel(conv)
+        assert len(skel.segments()) == (7+6)
+
 if __name__ == "__main__":
     unittest.main()

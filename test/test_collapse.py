@@ -1,6 +1,6 @@
 import unittest
 
-from grassfire.collapse import compute_collapse_time
+from grassfire.collapse import compute_collapse_time, all_close
 from grassfire.primitives import KineticTriangle, KineticVertex
 
 class TestCollapseTime(unittest.TestCase):
@@ -226,8 +226,44 @@ class TestCollapseSameTime(unittest.TestCase):
 
     def test_equal_sides(self):
         t = self.triangles[139708485589200]
-        evt = compute_collapse_time(t)
-        print evt
+        bottom = compute_collapse_time(t)
+
+        t = self.triangles[139708485589264]
+        top = compute_collapse_time(t)
+
+        print bottom.time == top.time
+
+class TestAllEqual(unittest.TestCase):
+    def test_all_equal0(self):
+        assert all_close([10] * 3)
+
+    def test_all_equal2(self):
+        assert not all_close(range(10))
+
+    def test_all_equal3(self):
+        assert all_close([0.9212014878049224, 
+            0.9212014878049224, 0.9212014878049225])
+
+def perform_one():
+#     tst = TestCollapseSameTime("test_equal_sides")
+    tst = TestAllEqual("test_all_equal0")
+    suite = unittest.TestSuite()
+    suite.addTests([tst])
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
+
+def _enable_logging():
+    import logging
+    import sys
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    root.addHandler(ch)
 
 if __name__ == '__main__':
+    _enable_logging()
     unittest.main()
+#     perform_one()

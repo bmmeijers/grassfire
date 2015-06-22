@@ -8,6 +8,88 @@ from operator import add, sub, mul, truediv
 from math import pi, atan2, degrees, hypot, sin
 from pprint import pprint
 from tri.delaunay import orient2d
+import cmath
+
+def all_close(iterator, rtol=1.e-5, atol=1.e-8):
+    """
+    """
+    iterator = iter(iterator)
+    try:
+        first = next(iterator)
+    except StopIteration:
+        return False
+    return all(is_close(first, other, rtol, atol, 'strong') for other in iterator)
+
+# def is_close(a,b, rtol=1.e-5, atol=1.e-8):
+#     """
+#     See: https://www.python.org/dev/peps/pep-0485/
+#     """
+#     left = abs(a - b)
+#     right = (atol + rtol * abs(b))
+#     logging.debug("comparing {0:.25f} versus {1:.25f}: {2} <= {3}".format(a, b, left, right))
+#     return left <= right
+def is_close(a,
+            b,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+            method='weak'):
+    """
+    returns True if a is close in value to b. False otherwise
+    :param a: one of the values to be tested
+    :param b: the other value to be tested
+    :param rel_tol=1e-8: The relative tolerance -- the amount of error
+                         allowed, relative to the magnitude of the input
+                         values.
+    :param abs_tol=0.0: The minimum absolute tolerance level -- useful for
+                        comparisons to zero.
+    :param method: The method to use. options are:
+                  "asymmetric" : the b value is used for scaling the tolerance
+                  "strong" : The tolerance is scaled by the smaller of
+                             the two values
+                  "weak" : The tolerance is scaled by the larger of
+                           the two values
+                  "average" : The tolerance is scaled by the average of
+                              the two values.
+    NOTES:
+    -inf, inf and NaN behave similarly to the IEEE 754 Standard. That
+    -is, NaN is not close to anything, even itself. inf and -inf are
+    -only close to themselves.
+    Complex values are compared based on their absolute value.
+    The function can be used with Decimal types, if the tolerance(s) are
+    specified as Decimals::
+      isclose(a, b, rel_tol=Decimal('1e-9'))
+    See PEP-0485 for a detailed description
+    """
+    if method not in ("asymmetric", "strong", "weak", "average"):
+        raise ValueError('method must be one of: "asymmetric",'
+                         ' "strong", "weak", "average"')
+
+    if rel_tol < 0.0 or abs_tol < 0.0:
+        raise ValueError('error tolerances must be non-negative')
+
+    if a == b:  # short-circuit exact equality
+        return True
+    # use cmath so it will work with complex or float
+    if cmath.isinf(a) or cmath.isinf(b):
+        # This includes the case of two infinities of opposite sign, or
+        # one infinity and one finite number. Two infinities of opposite sign
+        # would otherwise have an infinite relative tolerance.
+        return False
+    diff = abs(b - a)
+    if method == "asymmetric":
+        return (diff <= abs(rel_tol * b)) or (diff <= abs_tol)
+    elif method == "strong":
+        return (((diff <= abs(rel_tol * b)) and
+                 (diff <= abs(rel_tol * a))) or
+                (diff <= abs_tol))
+    elif method == "weak":
+        return (((diff <= abs(rel_tol * b)) or
+                 (diff <= abs(rel_tol * a))) or
+                (diff <= abs_tol))
+    elif method == "average":
+        return ((diff <= abs(rel_tol * (a + b) / 2) or
+                (diff <= abs_tol)))
+
 
 #from math import pi, degrees
 #PI2 = 2 * pi
@@ -212,7 +294,7 @@ def scaling_factor(p0, p1, p2):
     It returns None if the angle between the given points is 0 (folding back)
     """
     alpha = angle(p0, p1, p2) *.5
-    if alpha == 0:
+    if is_close(0, alpha):
         return None
     else:
         return 1. / sin(alpha)

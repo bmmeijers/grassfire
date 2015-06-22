@@ -430,7 +430,7 @@ def init_skeleton(dt):
 
     return skel
 
-def check_ktriangles(L):
+def check_ktriangles(L, now=0):
     """Check whether kinetic triangles are all linked up properly
     """
     valid = True
@@ -440,7 +440,13 @@ def check_ktriangles(L):
             ngb = ktri.neighbours[i]
             if ngb is not None:
                 if ktri not in ngb.neighbours:
-                    print "non neighbouring triangles"
+                    print "non neighbouring triangles:", id(ktri), "and", id(ngb)
+                    valid = False
+        for i in range(3):
+            v = ktri.vertices[i]
+            if ktri.finite:
+                if not ((v.starts_at <= now and v.stops_at > now) or (v.starts_at <= now and v.stops_at == None)):
+                    print "triangle",id(ktri)," with invalid kinetic vertex", id(v)," for this time"
                     valid = False
     # check if the sides of a triangle share the correct vertex at begin / end
     for ktri in L:

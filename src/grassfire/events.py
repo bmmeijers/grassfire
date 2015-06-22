@@ -6,13 +6,14 @@ from tri.delaunay import apex, orig, dest, cw, ccw
 from oseq import OrderedSequence
 
 # from grassfire
-from primitives import SkeletonNode, KineticVertex
-from calc import perp, bisector, rotate180
-from collapse import compute_collapse_time
-from io import output_kdt
+from grassfire.primitives import SkeletonNode, KineticVertex
+from grassfire.calc import perp, bisector, rotate180
+from grassfire.collapse import compute_collapse_time, is_close
+from grassfire.io import output_kdt
+from grassfire.initialize import check_ktriangles
+from grassfire.calc import all_close
+from grassfire.collapse import new_compute_collapse, collapses_to_pt
 
-def is_similar(a, b):
-    return abs(b - a) <= 1e-12
 
 def compare_event_by_time(one, other):
     # compare by time
@@ -34,6 +35,21 @@ def compare_event_by_time(one, other):
                 return 1
             else:
                 return 0
+
+def tmp_events(skel):
+    from pprint import pprint
+    for tri in skel.triangles:
+        times =  new_compute_collapse(tri)
+        pts, dists = collapses_to_pt(tri, times)
+        print "==="
+        print id(tri)
+        print "pts",
+        pprint(pts)
+        print "dists",
+        pprint(dists)
+        print times
+        print min(times)
+        print "==="
 
 def init_event_list(skel):
     """Compute for all kinetic triangles when they will collapse and 
@@ -124,7 +140,6 @@ def compute_new_kvertex(v1, v2, now, sk_node):
     kv.velocity = velo
     return kv
 
-
 def replace_kvertex(t, v, newv, now, direction, queue):
     while t is not None:
         msg = "UPDATING " + str( id(t)) + "" + str(v)
@@ -138,15 +153,17 @@ def replace_kvertex(t, v, newv, now, direction, queue):
 #         # access to event list, to find the events for this triangles
 #         # and replace them
 #         print "removing", t.event
-        queue.remove(t.event)
-#         print id(t)
-        e = compute_collapse_time(t, now)
-        if e is not None:
-#             print "added", e
-            queue.add(e)
-        else:
-            raise NotImplementedError("not handled")
+        replace_in_queue(t, now, queue)
         t = t.neighbours[direction(side)]
+
+def replace_in_queue(t, now, queue):
+    queue.discard(t.event)
+    e = compute_collapse_time(t, now)
+    if e is not None:
+        queue.add(e)
+    else:
+        raise NotImplementedError("not handled")
+
 
 def update_circ(kv, v1, v2, now):
     # update circular list:
@@ -193,6 +210,8 @@ def handle_edge_event(evt, skel, queue):
         #skel.vertices.append(kv)
 
     elif t.type == 2 and t.neighbours[e] is not None:
+        print t
+        logging.debug("handle event for 2 triangle that collapses completely")
         # all 3 sides collapse at the same time
 #         raise NotImplementedError("problem")
         sk_node = stop_kvertices3(v0, v1, v2, now)
@@ -205,9 +224,9 @@ def handle_edge_event(evt, skel, queue):
   
 #         print kv.origin
 #         print kv.velocity
-#     #     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.origin, kv.position_at(now))
-#     #     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.position_at(now),
-#     #                                                             map(add, kv.position_at(now), kv.velocity))
+        print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.origin, kv.position_at(now))
+        print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.position_at(now),
+                                                                map(add, kv.position_at(now), kv.velocity))
 #         print "neighbours"
 #         print "-" * 20
         a = t.neighbours[(e+1) % 3]
@@ -230,12 +249,13 @@ def handle_edge_event(evt, skel, queue):
             b.neighbours[b_idx] = a
             replace_kvertex(b, v1, kv, now, ccw, queue)
         if n is not None:
-#             print "changing neighbour n"
+            # blank out our neighbour
             n_idx = n.neighbours.index(t)
+            n.neighbours[n_idx] = None
 #             print "ALSO DEAL WITH ", id(n)
 #             print "SIMILAR COLLAPSE TIME", is_similar(n.event.time, now)
-            side = n.event.side
-            assert side == n_idx
+            replace_in_queue(n, n.event.time, queue)
+#             assert side == n_idx
     #         tp = n.event.tp
             # FIXME: schedule immediately
             # means that we have to remove the triangle from the queue
@@ -243,7 +263,7 @@ def handle_edge_event(evt, skel, queue):
             # similar to a/b neighbours above here...
     #         from primitives import Event
     #         new = Event(now, n, side, tp)
-            handle_immediately(n, n_idx, queue)
+            #handle_immediately(n, n_idx, queue)
     #         n.event = new
     #         queue.add(new)
     #         n.neighbours[n_idx] = None
@@ -264,6 +284,9 @@ def handle_edge_event(evt, skel, queue):
         kv.velocity = (0,0)
     
     else:
+        
+        print "COMING HERE"
+        
         sk_node = stop_kvertices2(v1, v2, now)
 #         print "v1      ", id(v1)
 #         print "v2      ", id(v2)
@@ -291,9 +314,9 @@ def handle_edge_event(evt, skel, queue):
 
 #         print kv.origin
 #         print kv.velocity
-#     #     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.origin, kv.position_at(now))
-#     #     print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.position_at(now),
-#     #                                                             map(add, kv.position_at(now), kv.velocity))
+#         print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.origin, kv.position_at(now))
+#         print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.position_at(now),
+#                                                                 map(add, kv.position_at(now), kv.velocity))
 #         print "neighbours"
 #         print "-" * 20
         a = t.neighbours[(e+1) % 3]
@@ -329,7 +352,7 @@ def handle_edge_event(evt, skel, queue):
             # similar to a/b neighbours above here...
     #         from primitives import Event
     #         new = Event(now, n, side, tp)
-            handle_immediately(n, n_idx, queue)
+#             handle_immediately(n, n_idx, queue)
     #         n.event = new
     #         queue.add(new)
     #         n.neighbours[n_idx] = None
@@ -341,12 +364,17 @@ def handle_edge_event(evt, skel, queue):
 #             print "b.", b.neighbours[b_idx]
 #         if n is not None:
 #             print "n.", n.neighbours[n_idx]
+    t.neighbours = [None, None, None]
+    t.vertices = [None, None, None]
+    skel.triangles.remove(t)
+
 
 def handle_immediately(triangle, side, queue):
     """Handle immediately the removal of this triangle as it collapses
 
     Link the two neighbours to each other
     """
+    print "handling immediately event", triangle.event
     queue.remove(triangle.event)
     e = side
     t = triangle
@@ -358,8 +386,6 @@ def handle_immediately(triangle, side, queue):
     if b is not None:
         b_idx = b.neighbours.index(t)
         b.neighbours[b_idx] = a
-    triangle.neighbours = [None, None, None]
-    triangle.vertices = [None, None, None]
 
 def handle_split_event(evt, skel, queue):
 #     print "=" * 20
@@ -410,6 +436,10 @@ def handle_split_event(evt, skel, queue):
     b.neighbours[b.neighbours.index(t)] = None
     replace_kvertex(b, v, va, now, ccw, queue)
 
+    t.neighbours = [None, None, None]
+    t.vertices = [None, None, None]
+    skel.triangles.remove(t)
+
 #     for v in skel.vertices:
 #         print "v  ", str(id(v))[-7:]
 #         print "v.l", str(id(v.left))[-7:]
@@ -419,6 +449,19 @@ def handle_split_event(evt, skel, queue):
 
 # ------------------------------------------------------------------------------
 # Flip
+
+def handle_flip_event(evt, skel, queue):
+    now = evt.time
+    t, s = evt.triangle, evt.side
+    n = t.neighbours[s]
+    ns = n.neighbours.index(t)
+    flip(t, s, n, ns)
+    print t
+    print n
+    replace_in_queue(t, now, queue)
+    replace_in_queue(n, now, queue)
+    logging.debug("flip event handled")
+
 def flip(t0, side0, t1, side1):
     """Performs a flip of triangle t0 and t1
 
@@ -472,27 +515,138 @@ def flip(t0, side0, t1, side1):
 #         v.triangle = t1
 
 def event_loop(queue, skel, pause=False):
-    logging.debug("=" * 80)
-#     print "Event queue"
-#     print "=" * 80
-#     for i, e in enumerate(queue):
-#         print i, e
-#     print "=" * 80
     while queue:
+        print queue
+        for file_nm in [
+                "/tmp/sknodes_progress.wkt",
+                "/tmp/bisectors_progress.wkt",
+                "/tmp/segments_progress.wkt",
+                '/tmp/queue.wkt',
+                "/tmp/vertices0_progress.wkt",
+                "/tmp/vertices1_progress.wkt",
+                '/tmp/ktri_progress.wkt',
+                ]:
+            with open(file_nm, 'w') as fh:
+                pass
+        # log what is in the queue
+        logging.info("=" * 80)
+        for i, e in enumerate(queue):
+            logging.info("{0} {1}".format(i, e))
+        logging.info("=" * 80)
+
+        peek = next(iter(queue))
+#         print peek.time
+        NOW = peek.time
+#         simultaneous = []
+#         for i, evt in enumerate(queue):
+#             positions = []
+#             for v in evt.triangle.vertices:
+#                 positions.append(v.position_at(peek.time))
+#             X = [p[0] for p in positions]
+#             Y = [p[1] for p in positions]
+#             if all_close(X, rtol=0, atol=1e-5) and all_close(Y, rtol=0, atol=1e-5):
+#                 print i, id(evt.triangle), "collapses to point", sum(X) / len(X), sum(Y) / len(Y)
+#                 simultaneous.append((evt, (sum(X) / len(X), sum(Y) / len(Y))))
+#         X = [pt[0] for _, pt in simultaneous]
+#         Y = [pt[1] for _, pt in simultaneous]
+#         if all_close(X, rtol=0, atol=1e-5) and all_close(Y, rtol=0, atol=1e-5):
+#             print "all watching same event"
+#             print (round(sum(X) / len(X), 9), round(sum(Y) / len(Y), 9))
+#             print [evt for evt, _ in simultaneous]
+# 
+#         if pause:
+#             peek = next(iter(queue))
+#             with open('/tmp/queue.wkt', 'w') as fh:
+#                 fh.write("pos;wkt;evttype;tritype;id;n0;n1;n2\n")
+#                 for i, evt in enumerate(queue):
+#                     fh.write("{0};{1};{2};{3};{4};{5};{6};{7}\n".format(
+#                             i,
+#                             evt.triangle.str_at(peek.time),
+#                             evt.tp,
+#                             evt.triangle.type,
+#                             id(evt.triangle),
+#                             id(evt.triangle.neighbours[0]),
+#                             id(evt.triangle.neighbours[1]),
+#                             id(evt.triangle.neighbours[2]),
+#                         )
+#                     )
+#             raw_input("Time: " + str(peek.time) + ", key to continue >>> ")
         evt = queue.popleft()
 #         output_kdt(skel, evt.time-0.05)
         # decide what to do based on event type
         if evt.tp == "edge":
             handle_edge_event(evt, skel, queue)
         elif evt.tp == "flip":
-            pass
+            handle_flip_event(evt, skel, queue)
 #             print "SKIP FLIP"
         elif evt.tp == "split":
 #             print "SKIP SPLIT"
             handle_split_event(evt, skel, queue)
 
-        if pause:
-            raw_input("handled event [" + str(evt) + "], key to continue >>> ")
+        print "Number of skel nodes", len(skel.sk_nodes)
 
+        with open('/tmp/queue.wkt', 'w') as fh:
+            fh.write("pos;wkt;evttype;tritype;id;n0;n1;n2\n")
+            for i, evt in enumerate(queue):
+                fh.write("{0};{1};{2};{3};{4};{5};{6};{7}\n".format(
+                        i,
+                        evt.triangle.str_at(NOW),
+                        evt.tp,
+                        evt.triangle.type,
+                        id(evt.triangle),
+                        id(evt.triangle.neighbours[0]),
+                        id(evt.triangle.neighbours[1]),
+                        id(evt.triangle.neighbours[2]),
+                    )
+                )
+        with open('/tmp/ktri_progress.wkt', 'w') as fh:
+            fh.write("pos;wkt;evttype;tritype;id;n0;n1;n2\n")
+            for i, triangle in enumerate(skel.triangles):
+                if triangle.event is None:
+                    continue
+                if triangle.event.tp is None:
+                    continue
+                fh.write("{0};{1};{2};{3};{4};{5};{6};{7}\n".format(
+                        i,
+                        triangle.str_at(NOW),
+                        triangle.event.tp,
+                        triangle.type,
+                        id(triangle),
+                        id(triangle.neighbours[0]),
+                        id(triangle.neighbours[1]),
+                        id(triangle.neighbours[2]),
+                    )
+                )
+        with open("/tmp/sknodes_progress.wkt", 'w') as fh:
+            fh.write("wkt\n")
+            for node in skel.sk_nodes:
+                fh.write("POINT({0[0]} {0[1]})\n".format(node.pos))
+
+        with open("/tmp/bisectors_progress.wkt", "w") as bisector_fh:
+            bisector_fh.write("wkt\n")
+            for kvertex in skel.vertices:
+                if kvertex.stops_at is None:
+                    p1 = kvertex.position_at(NOW)
+                    bi = kvertex.velocity
+                    bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(p1, map(add, p1, bi)))
+
+        with open("/tmp/segments_progress.wkt", "w") as fh:
+            fh.write("wkt\n")
+            for kvertex in skel.vertices:
+                if kvertex.start_node is not None and kvertex.stop_node is not None:
+                    start, end = kvertex.start_node.pos, kvertex.stop_node.pos
+                    fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(start, end))
+
+        with open("/tmp/vertices0_progress.wkt", 'w') as fh0:
+            with open("/tmp/vertices1_progress.wkt", 'w') as fh1:
+                fh0.write("id;wkt\n")
+                fh1.write("id;wkt\n")
+                for kvertex in skel.vertices:
+                    if kvertex.start_node is not None and kvertex.stop_node is not None:
+                        fh0.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(kvertex.starts_at), id(kvertex)))
+                    else:
+                        fh1.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(NOW), id(kvertex)))
+
+        assert check_ktriangles(skel.triangles, NOW)
 # if __name__ == "__main__":
 #     test_replace_kvertex()

@@ -37,7 +37,8 @@ def test_diamant():
 def test_diamantlike():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(-15,0), (-1,0), (0,-1), (1,0), (15,0), (0,15), (-15,0)]])
-    calc_skel(conv)
+    skel = calc_skel(conv, pause=True, output=True)
+    assert len(skel.segments()) == (7+6)
 
 def test_parallellogram():
     conv = ToPointsAndSegments()
@@ -47,7 +48,7 @@ def test_parallellogram():
 def test_simple_poly():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
-    skel = calc_skel(conv)
+    skel = calc_skel(conv, output=True, pause = True)
     assert len(skel.segments()) == 12
 
 def test_single_line():
@@ -101,7 +102,6 @@ def test_triangle():
     skel = calc_skel(conv)
     assert len(skel.segments()) == 6
 
-
 def test_quad():
     conv = ToPointsAndSegments()
     #conv.add_point((8,2))
@@ -118,6 +118,43 @@ def test_quad():
     skel = calc_skel(conv)
     assert len(skel.segments()) == 9
 
+
+def test_tri_intermediate_pt():
+    conv = ToPointsAndSegments()
+    #conv.add_point((8,2))
+    conv.add_polygon([[(-1, 0), (0,0), (1,0), (0,14), (-1,0)]])
+    skel = calc_skel(conv, output=True)
+    assert len(skel.segments()) == 8
+
+
+def test_tri_2intermediate_pts():
+    conv = ToPointsAndSegments()
+    #conv.add_point((8,2))
+    conv.add_polygon([[(-1, 0), (-0.1,-1), (0.1,-1), (1,0), (0,14), (-1,0)]])
+    skel = calc_skel(conv, pause=True, output=True)
+    assert len(skel.segments()) == 8
+
+def test_tri_intermediate_pt_sharp():
+    conv = ToPointsAndSegments()
+    #conv.add_point((8,2))
+    conv.add_polygon([[(-1, 0), (0, 13.5), (1,0), (0,14), (-1,0)]])
+    skel = calc_skel(conv, output=True)
+    assert len(skel.segments()) == 8
+
+def test_pointy_star():
+    conv = ToPointsAndSegments()
+    #conv.add_point((8,2))
+    conv.add_polygon([[(-5,10), (-.1,0), (-5, -10), (0,-9), (5,-10), (.1,0), (5,10), (0,9), (-5,10)]])
+    skel = calc_skel(conv, pause=True, output=True)
+    assert len(skel.segments()) == 8
+
+def test_2triangle_1side_collapse():
+    conv = ToPointsAndSegments()
+    #conv.add_point((8,2))
+    conv.add_polygon([[(0.1,0), (10,0), (9, 10), (2,9.5),(0,0.1), (0.1, 0)]])
+    skel = calc_skel(conv, pause=True, output=True)
+    assert len(skel.segments()) == (7+5)
+
 def test_two_lines_par():
     conv = ToPointsAndSegments()
 
@@ -130,6 +167,71 @@ def test_two_lines_par():
     conv.add_segment((12,1), (22,1))
 
     calc_skel(conv)
+
+def test_circular():
+    # massive simultaneous amount of events!
+    from math import pi, cos, sin
+    ring = []
+    pi2 = 2 * pi
+    ct = 10
+    alpha = pi2 / ct 
+    for i in range(ct):
+        ring.append( (cos(i* alpha), sin(i* alpha)))
+    ring.append(ring[0])
+    print ring
+    conv = ToPointsAndSegments()
+    conv.add_polygon([ring])
+    calc_skel(conv, output=True, pause=True)
+
+
+def test_cross():
+    ring = [(0,0), (10, 0), (10,-10), (15, -10), (15,0), (25,0), (25,5), (15,5), (15,15), (10,15), (10,5), (0,5), (0,0)]
+    conv = ToPointsAndSegments()
+    conv.add_polygon([ring])
+    skel = calc_skel(conv, output=True, pause=True)
+
+
+def test_rocket():
+    """Contains zero triangle to flip ...
+    """
+    ring = [(0,0), (10, 0), (15,5), (10,9), (1,7), (6,4), (0,0)]
+    conv = ToPointsAndSegments()
+    conv.add_polygon([ring])
+    skel = calc_skel(conv, output=True, pause=True)
+    print "DONE"
+
+
+def test_bottom_circle():
+    # bottom circle
+    from math import pi, cos, sin, degrees
+    ring = []
+    pi2 = 2 * pi
+    ct = 8
+    alpha = pi / ct 
+    print degrees(alpha)
+    for i in range(ct+1):
+        ring.append( (cos(pi+i*alpha), sin(pi+i*alpha)))
+    ring.append(ring[0])
+    print ring
+    conv = ToPointsAndSegments()
+    conv.add_polygon([ring])
+    calc_skel(conv, output=True, pause=True)
+
+def test_bottom_circle_top_square():
+    # bottom circle
+    from math import pi, cos, sin, degrees
+    ring = []
+    pi2 = 2 * pi
+    ct = 6
+    alpha = pi / ct 
+    print degrees(alpha)
+    for i in range(ct+1):
+        ring.append( (cos(pi+i*alpha), sin(pi+i*alpha)))
+    ring.extend([(1, 10), (-1,10)])
+    ring.append(ring[0])
+    conv = ToPointsAndSegments()
+    conv.add_polygon([ring])
+    calc_skel(conv, pause=True, output=True)
 
 def test_polyline():
 
@@ -515,7 +617,7 @@ def test_split():
     #conv.add_segment((-2,-8), (8,2))
     conv.add_segment((0,20), (0,0))
 
-    skel = calc_skel(conv)
+    skel = calc_skel(conv, pause = True, output=True)
     assert len(skel.segments()) == 12
 
 def test_left_right_for_vertex():
@@ -634,22 +736,38 @@ def helper_make_test_collapse_time():
 if __name__ == "__main__":
     import logging
     import sys
-
+ 
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
-
+ 
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     ch.setFormatter(formatter)
     root.addHandler(ch)
-#     test_replace_kvertex()
-    helper_make_test_collapse_time()
+# #     test_replace_kvertex()
+#     helper_make_test_collapse_time()
 # working tests
 # -------------
 
 #     test_split()
+#     test_2triangle_1side_collapse()
 #     test_simple_poly()
+#     test_diamant()
+#     test_diamantlike()
+#     test_tri_intermediate_pt()
+#     test_tri_intermediate_pt_sharp()
+#     test_tri_2intermediate_pts()
+#     test_pointy_star()
+    
+#     test_2triangle_1side_collapse()
+
+    # many simultaneous
+#     test_circular()
+#     test_pointy_star()
+    test_bottom_circle()
+#     test_bottom_circle_top_square()
+#     test_cross()
 #     test_quad()
 #     test_triangle()
 #     try:
@@ -659,6 +777,7 @@ if __name__ == "__main__":
 
 # nearly working tests
 # -------------
+#     test_rocket()
 #     test_diamant() # RESULTS IN 5 lines, while this should be 4!!!
 
 

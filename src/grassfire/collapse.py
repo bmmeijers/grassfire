@@ -1,5 +1,6 @@
-from math import copysign, sqrt
+from math import copysign, sqrt, hypot
 import logging
+import numpy
 
 from operator import sub
 from tri.delaunay import cw, ccw
@@ -7,9 +8,12 @@ from tri.delaunay import orig, dest, apex
 
 from primitives import Event
 from grassfire.calc import rotate90ccw
-
+from grassfire.calc import is_close, all_close
 # ------------------------------------------------------------------------------
 # solve
+
+# def is_similar(a, b, eps=1e-12):
+#     return abs(b - a) <= eps
 
 def ignore_lte_and_sort(L, val=0):
     """
@@ -27,6 +31,45 @@ def ignore_lte_and_sort(L, val=0):
     L.sort(key=lambda x: x[0])
     return L
 
+def new_compute_collapse(t):
+    times = []
+    for side in range(3):
+        i, j = cw(side), ccw(side)
+        v1, v2 = t.vertices[i], t.vertices[j]
+        time = collapse_time_edge(v1, v2)
+        if time >= 0:
+            times.append(time)
+        else:
+            times.append(None)
+    return times
+
+def collapses_to_pt(tri, times):
+    a, b, c = tri.vertices
+    coeff = area_collapse_time_coeff(a, b, c)
+    print "[quadratic]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+    pts = []
+    dists = []
+    for i, t in enumerate(times):
+        if t is not None:
+            a, b, c  = tri.vertices[cw(i)], tri.vertices[ccw(i)], tri.vertices[i]
+            p0 = a.position_at(t)
+            p1 = b.position_at(t)
+            p2 = c.position_at(t)
+#             if is_close(p0[0], p1[0], abs_tol=1e-5, rel_tol=0) and is_close(p0[1], p1[1], abs_tol=1e-5, rel_tol=0):
+#                 pts.append( (p0, p1, p2) )
+#             else:
+#                 pts.append(None)
+            pts.append((p0, p1, p2))
+            dists.append( (
+                hypot(p1[1] - p0[1], p1[0] - p0[0]),
+                hypot(p2[1] - p1[1], p2[0] - p1[0]),
+                hypot(p0[1] - p2[1], p0[0] - p2[0]),
+            ) )
+        else:
+            pts.append(None)
+    return pts, dists
+
+
 def compute_collapse_time(t, now=0):
     #
     # FIXME:
@@ -39,34 +82,66 @@ def compute_collapse_time(t, now=0):
 #     if t.finite:
     # finite triangles
     tp = t.type
+    logging.debug("type: {0}".format(tp))
     if tp == 0:
+        # ``A triangle that is bounded only by spokes can either collapse
+        # due to a flip event, that is, a vertex can sweep across its oppos-
+        # ing spoke, or because one of its spokes collapses to zero length.
+        # For each edge of a triangle we compute its collapse time, if
+        # it exists. We also compute the time when the triangle's area
+        # becomes zero using the determinant approach.
+        # If the time obtained from the determinant approach is earlier
+        # than any edge collapses this triangle will cause a flip event at
+        # that time.
+        # In the other case two opposing vertices will crash into each
+        # other as a spoke collapses. Some authors, such as Huber in
+        # [Hub12], define this to be a split event because it involves at
+        # least one reflex wavefront vertex. For our purposes we will still
+        # call this an edge event since its handling is identical to the case
+        # where the vanishing spoke was indeed an edge of the wave-
+        # front.''
         a, b, c = t.vertices
         coeff = area_collapse_time_coeff(a, b, c)
         times = list(solve_quadratic(coeff[0], coeff[1], coeff[2]))
+        time_det = None
         if times:
+            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+            print "   roots found by numpy", numpy.roots(coeff)
+            print times
             time_det = min(times)
-        else:
+        if time_det != None and time_det < now:
             time_det = None
-#                 print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-#                 print "   roots found by numpy", numpy.roots(coeff)
-#                 print times
         times = []
         for side in range(3):
             i, j = cw(side), ccw(side)
             v1, v2 = t.vertices[i], t.vertices[j]
             times.append((collapse_time_edge(v1, v2), side))
         times = ignore_lte_and_sort(times, now)
+        print "all close?", all_close([_[0] for _ in times]), len(times) 
 #             print "te [edge collapse time]", times
         if times:
             time_edge = times[0][0]
-            if time_det < time_edge:
+            print "TIME DET", time_det
+            print "TIME EDG", time_edge
+            for v in t.vertices:
+                print v.position_at(time_edge)
+            if time_det is not None:
+                for v in t.vertices:
+                    print v.position_at(time_det)
+            if time_det is not None and time_det < time_edge:
 #                     print "flip event of zero triangle"
                 collapses_at = time_det
                 # -> side_at = longest of these edges should flip
+                dists = []
                 for side in range(3):
                     i, j = cw(side), ccw(side)
                     v1, v2 = t.vertices[i], t.vertices[j]
-#                         print "dist", side, v1.distance2(v2)
+                    dist = v1.distance2(v2)
+                    print "dist", dist 
+                    dists.append( (dist, side) )
+                dists.sort(key=lambda x: -x[0])
+                collapses_side = dists[0][1]
+                collapses_type = "flip"
             else:
                 collapses_at = time_edge
                 collapses_side = times[0][1]
@@ -115,6 +190,11 @@ def compute_collapse_time(t, now=0):
         if t_e < now and t_v < now:
             return None
 
+        for v in t.vertices:
+            print v.position_at(t_e)
+        for v in t.vertices:
+            print v.position_at(t_v)
+
         if t_e <= t_v:
             collapses_at = t_e
             collapses_side = t.neighbours.index(None)
@@ -142,13 +222,19 @@ def compute_collapse_time(t, now=0):
             collapses_at = t_v
             collapses_side = side # FIXME: is that correct?
     elif tp == 2: # FINISHED
+        # ``A triangle with exactly two wavefront edges can collapse in two
+        # distinct  ways. Either exactly one of the two wavefront edges
+        # collapses to zero length or all three of its sides collapse at the
+        # same time.''
+
         # compute with edge collapse time
         # use earliest of the two edge collapse times
         # ignore times in the past
         a, b, c = t.vertices
         coeff = area_collapse_time_coeff(a, b, c)
         logging.debug("td [area zero time] {0}".format(solve_quadratic(coeff[0], coeff[1], coeff[2])))
-#             print "   roots found by numpy", numpy.roots(coeff)
+        logging.debug("roots found by numpy")
+        logging.debug(numpy.roots(coeff))
         sides = []
         for i in range(3):
             if t.neighbours[i] is None:
@@ -157,25 +243,28 @@ def compute_collapse_time(t, now=0):
 #             print sides
         times = []
         for side in sides:
+#         for side in range(3):
             i, j = cw(side), ccw(side)
             v1, v2 = t.vertices[i], t.vertices[j]
             times.append((collapse_time_edge(v1, v2), side))
         # remove times in the past, same as None values
+        logging.debug(times)
         times = ignore_lte_and_sort(times, now)
+#         print all_close([_[0] for _ in times])
 #             print len(times), "->", len(set([xx for xx, _ in times])), "NUMBER OF TIMES"
+        logging.debug(times)
         if times:
             time, side = times[0]
             collapses_at = time
             collapses_side = side
             collapses_type = "edge"
 #                 print "SIDE", side
-
-        if len(times) == 2 and len(set([xx for xx, _ in times])) == 1:
-            for i, _ in enumerate(t.neighbours):
-                if _ is not None:
-                    collapses_side = i
-#                         print "MODIFY SIDE TO", collapses_side
-                    break
+            if all_close([_[0] for _ in times]):
+                for i, _ in enumerate(t.neighbours):
+                    if _ is not None:
+                        collapses_side = i
+                        print "MODIFY SIDE TO", collapses_side
+                        break
     elif tp == 3:
         # compute with edge collapse time of all three edges
         a, b, c = t.vertices
@@ -198,6 +287,17 @@ def compute_collapse_time(t, now=0):
 #         pass
 
     if collapses_at is not None:
+        assert collapses_side is not None
+        assert collapses_type is not None
+
+        # HACK
+        assert collapses_at >= now
+#         if collapses_at < now:
+#             collapses_at = now
+        # /HACK
+
+        if collapses_type == "flip" and t.type == 2:
+            assert False, "Problem: flipping 2 triangle not allowed" 
         e = Event(when=collapses_at, 
                      tri=t, 
                      side=collapses_side, 
@@ -306,9 +406,9 @@ def discriminant(a, b, c):
 
 def solve_quadratic(a, b, c):
     """Solve quadratic equation, defined by a, b and c
-    
+
     Solves  where y = 0.0 for y = a * x^2 + b * x + c, if a, b and c are given
-    
+
     Returns tuple with two elements
     The result is a:
     (None, None) if imaginary solution

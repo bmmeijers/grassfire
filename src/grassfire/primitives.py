@@ -17,7 +17,7 @@ class Event(object):
 #         return self.time > other.time
 
     def __str__(self):
-        return """<Event at {0:.5f}, triangle: {1}, side: {2}, {3}, type: {4}>""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type)
+        return """<Event at {0:.25f}, triangle: {1}, side: {2}, {3}, type: {4}>""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 
@@ -179,6 +179,27 @@ class KineticTriangle(object):
             v = self.vertices[idx]
             if v is not None:
                 vertices.append(str(v))
+#             else:
+#                 orig_idx, dest_idx = (idx - 1) % 3, (idx + 1) % 3
+#                 orig, dest = self.vertices[orig_idx], self.vertices[dest_idx]
+#                 halfway = (orig.x + dest.x) * .5, (orig.y + dest.y) * .5
+#                 d = orig.distance(dest)
+#                 dx = dest.x - orig.x
+#                 dx /= d
+#                 dy = dest.y - orig.y
+#                 dy /= d
+#                 O = halfway[0] + dy, halfway[1] - dx 
+#                 vertices.append("{0[0]} {0[1]}".format(O))
+        if vertices:
+            vertices.append(vertices[0])
+        return "POLYGON(({0}))".format(", ".join(vertices))
+
+    def str_at(self, t):
+        vertices = []
+        for idx in range(3):
+            v = self.vertices[idx]
+            if v is not None:
+                vertices.append("{0[0]} {0[1]}".format(v.position_at(t)))
 #             else:
 #                 orig_idx, dest_idx = (idx - 1) % 3, (idx + 1) % 3
 #                 orig, dest = self.vertices[orig_idx], self.vertices[dest_idx]
