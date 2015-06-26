@@ -10,7 +10,14 @@ from pprint import pprint
 from tri.delaunay import orient2d
 import cmath
 
-def all_close(iterator, rtol=1.e-5, atol=1.e-8):
+def near_zero(val):
+    """returns True if a is close to zero. False otherwise
+
+    :param val: the value to be tested
+    """
+    return is_close(val, 0.0, rel_tol=1e-9, abs_tol=1e-8, method="weak")
+
+def all_close(iterator, abs_tol=0., rel_tol=1.e-9):
     """
     """
     iterator = iter(iterator)
@@ -18,7 +25,7 @@ def all_close(iterator, rtol=1.e-5, atol=1.e-8):
         first = next(iterator)
     except StopIteration:
         return False
-    return all(is_close(first, other, rtol, atol, 'strong') for other in iterator)
+    return all(is_close(first, other, rel_tol, abs_tol, 'strong') for other in iterator)
 
 # def is_close(a,b, rtol=1.e-5, atol=1.e-8):
 #     """
@@ -37,7 +44,7 @@ def is_close(a,
     returns True if a is close in value to b. False otherwise
     :param a: one of the values to be tested
     :param b: the other value to be tested
-    :param rel_tol=1e-8: The relative tolerance -- the amount of error
+    :param rel_tol=1e-9: The relative tolerance -- the amount of error
                          allowed, relative to the magnitude of the input
                          values.
     :param abs_tol=0.0: The minimum absolute tolerance level -- useful for
@@ -59,6 +66,11 @@ def is_close(a,
     specified as Decimals::
       isclose(a, b, rel_tol=Decimal('1e-9'))
     See PEP-0485 for a detailed description
+    
+    See also: 
+    http://www.boost.org/doc/libs/1_34_0/libs/test/doc/components/test_tools/floating_point_comparison.html
+    http://floating-point-gui.de/errors/comparison/
+    http://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
     """
     if method not in ("asymmetric", "strong", "weak", "average"):
         raise ValueError('method must be one of: "asymmetric",'

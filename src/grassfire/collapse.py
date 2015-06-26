@@ -7,7 +7,7 @@ from tri.delaunay import cw, ccw
 from tri.delaunay import orig, dest, apex
 
 from primitives import Event
-from grassfire.calc import rotate90ccw
+from grassfire.calc import rotate90ccw, near_zero
 from grassfire.calc import is_close, all_close
 # ------------------------------------------------------------------------------
 # solve
@@ -31,6 +31,22 @@ def ignore_lte_and_sort(L, val=0):
     L.sort(key=lambda x: x[0])
     return L
 
+def ignore_lte_and_sort_list(L, val=0):
+    """
+    L = list of values
+
+    first filters L where the value should be positive
+    (note: this also filters None values)
+
+    then sorts L based value
+    """
+    # FIXME: not sure if filtering 0 values always out is what we want
+    # e.g. while doing length comparision, we probably want to keep a length
+    # of 0????
+    L = filter(lambda x: x>=val, L)
+    L.sort()
+    return L
+
 def new_compute_collapse(t):
     times = []
     for side in range(3):
@@ -46,7 +62,7 @@ def new_compute_collapse(t):
 def collapses_to_pt(tri, times):
     a, b, c = tri.vertices
     coeff = area_collapse_time_coeff(a, b, c)
-    print "[quadratic]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+#     print "[quadratic]", solve_quadratic(coeff[0], coeff[1], coeff[2])
     pts = []
     dists = []
     for i, t in enumerate(times):
@@ -69,6 +85,47 @@ def collapses_to_pt(tri, times):
             pts.append(None)
     return pts, dists
 
+
+def vertex_crash_time(org, dst, apx):
+    """Returns time when vertex crashes on edge
+    """
+    #print id(org), id(dst), id(apx)
+    Mv = tuple(map(sub, apx.origin, org.origin))
+    #print Mv
+    #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + Mv[0], org.origin[1] + Mv[1])
+    m =  map(sub, dst.origin, org.origin)
+    #print m
+    m = norm(m) # normalize m
+    #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + m[0], org.origin[1] + m[1])
+    #print m
+    n = rotate90ccw(m) # take perpendicular vector
+    #print n
+    #print "LINESTRING({0} {1}, {2} {3})".format(org.origin[0], org.origin[1], org.origin[0] + n[0], org.origin[1] + n[1])
+    dist_v_e = dot(Mv, n)
+    #print "dist", distance_v_e
+    s = apx.velocity
+    #print dot(s, n)
+    logging.debug("dist_v_e " + str(dist_v_e))
+    d_sn = dot(s, n)
+    logging.debug("dot(s,n) " + str(d_sn))
+    # Problem when d_sn == 1!
+    if not is_close(d_sn, 1.0, abs_tol=1e-12, rel_tol=0, method="strong"):
+        t_v = dist_v_e / (1.0 - d_sn)
+    else:
+        t_v = None
+    logging.debug("vertex crash time: " + str(t_v))
+    return t_v
+
+def area_collapse_times(o,d,a):
+    coeff = area_collapse_time_coeff(o, d, a)
+    logging.debug(coeff)
+    solution = solve_quadratic(coeff[0], coeff[1], coeff[2])
+    logging.debug(numpy.roots(coeff))
+    solution = filter(lambda x: x != None, solution)
+    solution.sort()
+    # http://stackoverflow.com/questions/28081247/print-real-roots-only-in-numpy
+    logging.debug("area collapse times: " + str(solution))
+    return solution
 
 def compute_collapse_time(t, now=0):
     #
@@ -99,14 +156,16 @@ def compute_collapse_time(t, now=0):
         # least one reflex wavefront vertex. For our purposes we will still
         # call this an edge event since its handling is identical to the case
         # where the vanishing spoke was indeed an edge of the wave-
-        # front.''
+        # front.'' p. 33
         a, b, c = t.vertices
         coeff = area_collapse_time_coeff(a, b, c)
-        times = list(solve_quadratic(coeff[0], coeff[1], coeff[2]))
+        times = ignore_lte_and_sort_list(solve_quadratic(coeff[0], coeff[1], coeff[2]))
+        roots = numpy.roots(coeff)
         time_det = None
+        print roots
         if times:
-            print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
-            print "   roots found by numpy", numpy.roots(coeff)
+#             print "td [area zero time]", solve_quadratic(coeff[0], coeff[1], coeff[2])
+#             print "   roots found by numpy", numpy.roots(coeff)
             print times
             time_det = min(times)
         if time_det != None and time_det < now:
@@ -115,20 +174,24 @@ def compute_collapse_time(t, now=0):
         for side in range(3):
             i, j = cw(side), ccw(side)
             v1, v2 = t.vertices[i], t.vertices[j]
-            times.append((collapse_time_edge(v1, v2), side))
+            time = collapse_time_edge(v1, v2)
+            if time != None:
+                times.append((time, side))
         times = ignore_lte_and_sort(times, now)
-        print "all close?", all_close([_[0] for _ in times]), len(times) 
+        print "all close?", all_close([_[0] for _ in times]), len(times)
 #             print "te [edge collapse time]", times
         if times:
             time_edge = times[0][0]
-            print "TIME DET", time_det
-            print "TIME EDG", time_edge
-            for v in t.vertices:
-                print v.position_at(time_edge)
-            if time_det is not None:
-                for v in t.vertices:
-                    print v.position_at(time_det)
-            if time_det is not None and time_det < time_edge:
+            side = times[0][1]
+            print time_edge
+#             for v in t.vertices:
+#                 print v.position_at(time_edge)
+#             if time_det is not None:
+#                 for v in t.vertices:
+#                     print v.position_at(time_det)
+            i, j = cw(side), ccw(side)
+            v1, v2 = t.vertices[i], t.vertices[j]
+            if (time_det is not None and time_det < time_edge):
 #                     print "flip event of zero triangle"
                 collapses_at = time_det
                 # -> side_at = longest of these edges should flip
@@ -136,8 +199,18 @@ def compute_collapse_time(t, now=0):
                 for side in range(3):
                     i, j = cw(side), ccw(side)
                     v1, v2 = t.vertices[i], t.vertices[j]
-                    dist = v1.distance2(v2)
-                    print "dist", dist 
+                    dist = v1.distance2_at(v2, time_det)
+                    dists.append( (dist, side) )
+                dists.sort(key=lambda x: -x[0])
+                collapses_side = dists[0][1]
+                collapses_type = "flip"
+            elif not near_zero(v1.distance2_at(v2, time_edge)):
+                collapses_at = time_edge
+                dists = []
+                for side in range(3):
+                    i, j = cw(side), ccw(side)
+                    v1, v2 = t.vertices[i], t.vertices[j]
+                    dist = v1.distance2_at(v2, time_edge)
                     dists.append( (dist, side) )
                 dists.sort(key=lambda x: -x[0])
                 collapses_side = dists[0][1]
@@ -178,24 +251,21 @@ def compute_collapse_time(t, now=0):
         #print "dist", distance_v_e
         s = apx.velocity
         #print dot(s, n)
-        t_v = distance_v_e / (1 - dot(s, n))
+        t_v = distance_v_e / (1.0 - dot(s, n))
         #print crash_time
 #             print "tv [vertex crash time]:", t_v 
-
         t_e = collapse_time_edge(org, dst)
 #             print "te [edge collapse time]", t_e
+
+        logging.debug("tv [vertex crash time]:" + str(t_v))
+        logging.debug("te [edge collapse time]:" + str(t_e))
 
         # given that we ignore negative times we return that there is no
         # event for this triangle...
         if t_e < now and t_v < now:
+            # FIXME: if both are None this would also return here...
             return None
-
-        for v in t.vertices:
-            print v.position_at(t_e)
-        for v in t.vertices:
-            print v.position_at(t_v)
-
-        if t_e <= t_v:
+        elif (t_v < now) or (t_e >= now and t_e <= t_v): # also true if t_e = None and t_v has a value!
             collapses_at = t_e
             collapses_side = t.neighbours.index(None)
             collapses_type = "edge"
@@ -221,6 +291,7 @@ def compute_collapse_time(t, now=0):
                 collapses_type = "flip"
             collapses_at = t_v
             collapses_side = side # FIXME: is that correct?
+        print collapses_at
     elif tp == 2: # FINISHED
         # ``A triangle with exactly two wavefront edges can collapse in two
         # distinct  ways. Either exactly one of the two wavefront edges
@@ -263,7 +334,7 @@ def compute_collapse_time(t, now=0):
                 for i, _ in enumerate(t.neighbours):
                     if _ is not None:
                         collapses_side = i
-                        print "MODIFY SIDE TO", collapses_side
+#                         print "MODIFY SIDE TO", collapses_side
                         break
     elif tp == 3:
         # compute with edge collapse time of all three edges
@@ -320,25 +391,53 @@ def norm(v):
     L = sqrt(sum( [x**2 for x in v] ) )
     return tuple([x/L for x in v])
 
+# def collapse_time_edge(tri, side):
+#     i, j = cw(side), ccw(side)
+#     v1, v2 = tri.vertices[i], tri.vertices[j]
+#     time = closest_time_of_approach(v1, v2)
+#     dist = v1.distance2_at(v2, time)
+#     if near_zero(dist):
+#         return time
+#     else:
+#         return None
+# 
+# def closest_time_of_approach(v1, v2):
+
 def collapse_time_edge(v1, v2):
-    """Given 2 kinetic vertices compute the time when they will collide
+    """Returns the time when the given 2 kinetic vertices are closest to each
+    other
+
+    If the 2 vertices belong to a wavefront edge there are 3 options:
+    - they cross each other in the past
+    - they cross each other in the future
+    - they run parallel, so they never meet
+    The distance between the two points is a linear function.
+
+    If the 2 vertices do not belong to a wavefront edge,
+    the distance between the two points can be a quadratic or linear function 
+    - they cross each other in the past
+    - they cross each other in the future
+    - they run in parallel, so they never cross
+    - they never cross, but there exists a point in time when they are closest
     """
     s1 = v1.velocity
     s2 = v2.velocity
     o2 = v2.origin
     o1 = v1.origin
-    denominator = dot(map(sub, s1, s2), map(sub, s1, s2))
-    if denominator != 0.:
-        nominator = dot(map(sub, s1, s2), map(sub, o2, o1))
+    dv = map(sub, s1, s2)
+    denominator = dot(dv, dv)
+    if not near_zero(denominator):
+        w0 = map(sub, o2, o1)
+        nominator = dot(dv, w0)
         collapse_time = nominator / denominator
+        logging.debug("edge collapse time: "+ str(collapse_time))
         return collapse_time
-        # when positive, this is a correct collapse time
-        # when negative, the vertices are now moving apart from each other
-        # when denominator is 0, they move in parallel
     else:
-        print "denominator 0"
-        print "these two vertices move in parallel:",
-        print v1, "|", v2
+        logging.debug("denominator (close to) 0")
+        logging.debug("these two vertices move in parallel:")
+        logging.debug(str(v1) + "|" + str(v2))
+        logging.debug("edge collapse time: None (near) parallel movement")
+        # any time will do
         return None
 
 def collapse_time_dot(tri):
@@ -384,7 +483,7 @@ def collapse_time_quadratic(ktri):
     c = \
        -o1y*o2x + o1x*o2y + o1y*o3x - \
         o2y*o3x - o1x*o3y + o2x*o3y
-    print "quadratic solved", solve_quadratic(a, b, c)
+    logging.info("quadratic solved" + str(solve_quadratic(a, b, c)))
 
 
 def sign(x):
@@ -427,14 +526,15 @@ def solve_quadratic(a, b, c):
     # if discriminant == 0 -> only 1 solution, instead of two
 
     if D < 0:
-        return (x1, x2)
+        return [x1, x2]
     else:
         q = -0.5 * (b + sign(b) * D**0.5)
         # print >> sys.stderr, "q =", q
         # prevent division by zero if a == 0 or q == 0
         if a != 0: x1 = q / a
         if q != 0: x2 = c / q
-        return list(sorted((x1, x2)))
+        return list(sorted((x1,x2)))
+        #return list(sorted(filter(lambda x: x is not None, (x1, x2))))
 
 
 def area_collapse_time_coeff(kva, kvb, kvc):

@@ -33,7 +33,7 @@ def calc_skel(conv, pause=False, output=False):
             output_triangles(skel.triangles, fh)
         with open("/tmp/kvertices.wkt", "w") as fh:
             output_kvertices(skel.vertices, fh)
-    tmp_events(skel)
+#     tmp_events(skel)
     el = init_event_list(skel)
     event_loop(el, skel, pause)
 

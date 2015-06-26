@@ -22,7 +22,7 @@ def test_poly():
 #     conv.add_polygon([[(0, 0), (10, 0), (11, -1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
     # FIXME: works but wrong:
     conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
-    calc_skel(conv, output=True, pause=True)
+    skel = calc_skel(conv, output=True, pause=True)
 
 # test_poly()
 
@@ -68,13 +68,16 @@ def test_parallellogram():
     conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
     calc_skel(conv)
 
-test_parallellogram()
+# test_parallellogram()
 
 def test_simple_poly():
     conv = ToPointsAndSegments()
     conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
     skel = calc_skel(conv, output=True, pause = True)
     assert len(skel.segments()) == 12
+
+# test_simple_poly()
+
 
 def test_single_line():
     conv = ToPointsAndSegments()
@@ -92,7 +95,9 @@ def test_three_lines():
     conv.add_segment((0, 0), (10,0))
     conv.add_segment((0, 0), (-2,8))
     conv.add_segment((0, 0), (-2,-8))
-    calc_skel(conv)
+    skel = calc_skel(conv, output=True, pause = True)
+
+# test_three_lines()
 
 def test_arrow_four_lines():
     conv = ToPointsAndSegments()
@@ -738,6 +743,20 @@ def helper_make_test_collapse_time():
 #     conv.add_segment((-2,8), (-2,-8))
 #     conv.add_segment((-2,-8), (10,0))
 
+    conv = ToPointsAndSegments()
+    ring = [(0,0), (3,0), (3.8,2), (4,0), (6,0), (6.3, 2), (7,0), (10,0), (10,5), (7,5), (6.5, 3), (6,5), (4,5), (3.5,3), (3,5), (0,5), (0,0)]
+    conv.add_polygon([ring])
+
+
+    
+
+    conv = ToPointsAndSegments()
+    ring = [(0,0), (3,0), (3.8,2), (4,0), (6,0), (6.3, 2), (7,0), (10,0), (10,5), (7,5), (6.5, 3), (6,5), (4,5), (3.5,3), (3,5), (0,5), (0,0)]
+    conv.add_polygon([ring])
+
+    conv = ToPointsAndSegments()
+    ring = [(0,0), (3,0), (1.5, sqrt(3)), (0,0)]
+    conv.add_polygon([ring])
     dt = triangulate(conv.points, None, conv.segments)
     skel = init_skeleton(dt)
     print "triangles = {}"
@@ -758,6 +777,20 @@ def helper_make_test_collapse_time():
     for t in skel.triangles:
         print "n = [", ", ".join(["triangles[{0}]".format(id(n)) if n is not None else "None" for n in t.neighbours]), "]"
         print "triangles[",id(t),"].neighbours = n"
+
+
+def test_flip_loop():
+    """
+    """
+    conv = ToPointsAndSegments()
+    ring = [ (0,0), (3,0), (3.8,2), (4,0), (6,0), (6.3, 2), (7,0), (10,0), (13,4), (10,5), (7,5), (6.5, 3), (6,5), (4,5), (3.5,3), (3,5), (0,5), (-2,2), (0,0)]
+    conv.add_polygon([ring])
+    skel = calc_skel(conv, pause=True, output=True)
+
+# test_poly()
+test_flip_loop()
+# helper_make_test_collapse_time()
+
 
 # #     test_replace_kvertex()
 #     helper_make_test_collapse_time()

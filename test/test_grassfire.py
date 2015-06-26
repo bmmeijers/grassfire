@@ -26,7 +26,7 @@ class TestGrassfire(unittest.TestCase):
         conv.add_segment((-2,-8), (10,0))
         skel = calc_skel(conv)
         assert len(skel.segments()) == 6
- 
+#  
     def test_quad(self):
         conv = ToPointsAndSegments()
         #conv.add_point((8,2))
@@ -42,7 +42,7 @@ class TestGrassfire(unittest.TestCase):
         conv.add_segment((-2,-8), (4,5))
         skel = calc_skel(conv)
         assert len(skel.segments()) == 9
-
+# 
     def test_split(self):
         conv = ToPointsAndSegments()
         #conv.add_point((8,2))
@@ -61,7 +61,7 @@ class TestGrassfire(unittest.TestCase):
         conv.add_segment((0,20), (0,0))
         skel = calc_skel(conv)
         assert len(skel.segments()) == 12
-
+# 
     def test_bottom_circle(self):
         # bottom circle
         from math import pi, cos, sin, degrees
@@ -76,13 +76,13 @@ class TestGrassfire(unittest.TestCase):
         conv.add_polygon([ring])
         skel = calc_skel(conv)
         assert len(skel.segments()) == (9+15)
-
+# 
     def test_poly(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
         skel = calc_skel(conv)
         assert len(skel.segments()) == (8+13)
-
+# 
     def test_cocircular1(self):
         ok = (3.8,0.8) # this works
         conv = ToPointsAndSegments()
