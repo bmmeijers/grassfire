@@ -9,7 +9,30 @@ import logging
 
 class TestCollapseTime1Triangle(unittest.TestCase):
     def setUp(self):
-        pass
+        k = KineticTriangle()
+
+        o = KineticVertex()
+        o.origin = (0., 0.)
+        o.velocity = (0., 1.)
+
+        d = KineticVertex()
+        d.origin = (10., 0.)
+        d.velocity = (0, 1.)
+
+        # vertex supposed to crash into base (the apex)
+        a = KineticVertex()
+        a.origin = (5, 5)
+        a.velocity = (0., -1.)
+
+        k.vertices = [o, d, a]
+        k.neighbours = [True, True, None]
+        
+        self.tri = k
+        
+    def test_1triangle(self):
+        evt = compute_event(self.tri, now=0.)
+        assert evt != None
+        print evt
 
 def _enable_logging():
     import logging

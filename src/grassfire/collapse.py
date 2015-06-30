@@ -153,6 +153,12 @@ class NewEventType(object):
             time_str = "{0:.12f}".format(self.time)
         return """<NewEvent at {0}, triangle: {1}, triangle type: {4}, sides: {2}, event type: {3}, how: {5}, where: {6}>""".format(time_str, id(self.triangle), self.sides, self.event_tp, self.triangle.type, self.how, self.where)
 
+####
+#### FIXME: when we have o, d, a vertices, the distances we calculate between them 
+#### are for a side, so we have to have a slightly different order
+####
+
+
 def compute_event_0triangle(tri, now):
     # a 0-triangle can:
     # - flip
@@ -175,7 +181,7 @@ def compute_event_0triangle(tri, now):
     times = get_unique_times(times)
     time = find_ge(times, now)
     if time != None:
-        dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
+        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
         zeros = [near_zero(dist) for dist in dists]
         sides_collapse = zeros.count(True)
         if sides_collapse == 3:
@@ -233,7 +239,59 @@ def compute_event_1triangle(tri, now):
     # - collapse to a segment
     # - flip
     # - be split
-    pass
+    assert tri.neighbours.count(None) == 1
+    o, d, a = tri.vertices
+    # edge collapse times
+    times = []
+    time = collapse_time_edge(o, d)
+    times.append(time)
+    time = collapse_time_edge(d, a)
+    times.append(time)
+    time = collapse_time_edge(a, o)
+    times.append(time)
+    # area collapse times
+    area = area_collapse_times(o, d, a)
+    times.extend(area)
+    # vertex crash time of the apex into the segment, orig -> dest
+    time = vertex_crash_time(o, d, a)
+    times.append(time)
+    times = get_unique_times(times)
+    print times
+    for time in times:
+        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
+        zeros = [near_zero(dist) for dist in dists]
+        sides_collapse = zeros.count(True)
+        print sides_collapse
+        if sides_collapse == 3:
+            pass
+        elif sides_collapse == 2:
+            # hopefully never happens -- 
+            # or some weird robustness error did occur
+            raise ValueError("This is not possible with a triangle") 
+        elif sides_collapse == 1:
+            pass
+        elif sides_collapse == 0:
+            # no side collapsing? then points get closest as they can
+            # should flip the triangle
+            print dists
+            largest_dist = max(dists)
+            side = dists.index(largest_dist)
+            if tri.neighbours[side] == None:
+                tp = "split"
+            else:
+                tp = "flip"
+            how = "--"
+            where = None
+            sides = (side,)
+    return NewEventType(
+                    when=time, 
+                    tri=tri, 
+                    sides=sides, 
+                    event_tp=tp, # collapse / flip / split 
+                    how=how, # if collapse: point | line
+                    where=where # if collapse: the geometry of point or segment
+                )
+
 
 def compute_event_2triangle(tri, now):
     # a 2-triangle can:
@@ -252,7 +310,7 @@ def compute_event_2triangle(tri, now):
     times = get_unique_times(times)
     time = find_ge(times, now)
     if time != None:
-        dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
+        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
         zeros = [near_zero(dist) for dist in dists]
         sides_collapse = zeros.count(True)
         if sides_collapse == 3:
@@ -325,7 +383,7 @@ def compute_event_3triangle(tri, now):
         pa = o.position_at(time)
         pb = d.position_at(time)
         pc = a.position_at(time)
-        dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
+        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
         assert all_close(dists, abs_tol=1e-8)
         avg = []
         for i in range(2):
@@ -400,7 +458,7 @@ def compute_event(tri, now=0):
         if tp == 0:
             event = compute_event_0triangle(tri, now)
         elif tp == 1:
-            pass
+            event = compute_event_1triangle(tri, now)
         elif tp == 2:
             event = compute_event_2triangle(tri, now)
         elif tp == 3:
