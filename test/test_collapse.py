@@ -2,10 +2,11 @@ import unittest
 from math import sqrt
 from grassfire.collapse import compute_collapse_time, all_close,\
     collapse_time_edge, vertex_crash_time, area_collapse_time_coeff,\
-    solve_quadratic, area_collapse_times
-from grassfire.primitives import KineticTriangle, KineticVertex
+    solve_quadratic, area_collapse_times, get_unique_times
+from grassfire.primitives import KineticTriangle, KineticVertex, InfiniteVertex
 from tri.delaunay import orient2d, cw, ccw
-from grassfire.calc import near_zero
+from grassfire.calc import near_zero, all_close_clusters
+import bisect
 
 class TestCollapseTime(unittest.TestCase):
     def setUp(self):
@@ -916,8 +917,9 @@ class EdgeCollapse(unittest.TestCase):
         v.origin = (10., 0.)
         v.velocity = (0., 1.)
         time = collapse_time_edge(u, v)
-        dist = u.distance2_at(v, time)
-        assert dist == 100.
+        assert time is None
+#         dist = u.distance2_at(v, time)
+#         assert dist == 100.
 
     def test_parallel_overlap(self):
         """2 vertices having the exact same track"""
@@ -928,8 +930,9 @@ class EdgeCollapse(unittest.TestCase):
         v.origin = (0., 0.)
         v.velocity = (0., 1.)
         time = collapse_time_edge(u, v)
-        dist = u.distance2_at(v, time)
-        assert dist == 0.
+        assert time is None
+#         dist = u.distance2_at(v, time)
+#         assert dist == 0.
 
     def test_parallel_follower(self):
         """one vertex follows the other vertex on its track"""
@@ -940,8 +943,9 @@ class EdgeCollapse(unittest.TestCase):
         v.origin = (0., -10.)
         v.velocity = (0., 1.)
         time = collapse_time_edge(u, v)
-        dist = u.distance2_at(v, time)
-        assert dist == 100.
+        assert time is None
+#         dist = u.distance2_at(v, time)
+#         assert dist == 100.
 
     def test_bump(self):
         """2 vertices that bump into each other half way"""
@@ -953,6 +957,7 @@ class EdgeCollapse(unittest.TestCase):
         v.origin = (10., 10.)
         v.velocity = (-1., -1.)
         time = collapse_time_edge(u, v)
+        assert time is not None
         dist = u.distance2_at(v, time)
         assert near_zero(dist)
 
@@ -972,17 +977,23 @@ class VertexCrash(unittest.TestCase):
         a = KineticVertex()
         a.origin = (5, 5)
         a.velocity = (0., -1.)
+        times = []
         # vertex crash time
         time = vertex_crash_time(o, d, a)
+        times.append(time)
         # edge collapse times
         time = collapse_time_edge(o, d)
+        times.append(time)
         time = collapse_time_edge(d, a)
+        times.append(time)
         time = collapse_time_edge(a, o)
+        times.append(time)
         # area collapse time
         coeff = area_collapse_time_coeff(o, d, a)
-        times = solve_quadratic(coeff[0], coeff[1], coeff[2])
-        for time in times:
-            print time
+        time = solve_quadratic(coeff[0], coeff[1], coeff[2])
+        times.extend(time)
+        times = get_unique_times(times)
+        show_all_times(times, o, d, a)
 
     def test_opposite_crash(self):
         # base of triangle (from orig to dest)
@@ -1006,10 +1017,9 @@ class VertexCrash(unittest.TestCase):
         # area collapse time
         coeff = area_collapse_time_coeff(o, d, a)
         times = solve_quadratic(coeff[0], coeff[1], coeff[2])
-        for time in times:
-            print time
-        # vertex crash time
-        time = vertex_crash_time(o, d, a)
+
+        times = get_unique_times(times)
+        show_all_times(times, o, d, a)
 
     def test_perpendicular_crash(self):
         # base of triangle (from orig to dest)
@@ -1041,14 +1051,8 @@ class VertexCrash(unittest.TestCase):
         # vertex crash time
         time = vertex_crash_time(o, d, a)
         times.append(time)
-        # filter None out of the times and see what is there...
-        for time in sorted(filter(lambda x: x != None, times)):
-            pa = o.position_at(time)
-            pb = d.position_at(time)
-            pc = a.position_at(time)
-            z = orient2d(pa, pb, pc)
-            print time, z
-
+        times = get_unique_times(times)
+        show_all_times(times, o, d, a)
 
     def test_perpendicular2_crash(self):
         # base of triangle2 (from orig to dest)
@@ -1078,20 +1082,9 @@ class VertexCrash(unittest.TestCase):
         # vertex crash time
         time = vertex_crash_time(o, d, a)
         times.append(time)
-        # filter None out of the times and see what is there...
-        for time in sorted(filter(lambda x: x != None, times)):
-            pa = o.position_at(time)
-            pb = d.position_at(time)
-            pc = a.position_at(time)
-            collapse = near_zero(orient2d(pa, pb, pc))
-            print time, collapse
-
-            if collapse:
-                dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
-                if all_close(dists, abs_tol=1e-8):
-                    print "point"
-                else:
-                    print "line"
+        #
+        times = get_unique_times(times)
+        show_all_times(times, o, d, a)
 
 
     def test_central_crash(self):
@@ -1123,18 +1116,8 @@ class VertexCrash(unittest.TestCase):
         time = vertex_crash_time(o, d, a)
         times.append(time)
         # filter None out of the times and see what is there...
-        for time in sorted(filter(lambda x: x != None, times)):
-            pa = o.position_at(time)
-            pb = d.position_at(time)
-            pc = a.position_at(time)
-            collapse = near_zero(orient2d(pa, pb, pc))
-            print time, collapse
-            if collapse:
-                dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
-                if all_close(dists, abs_tol=1e-8):
-                    print "point"
-                else:
-                    print "line"
+        times = get_unique_times(times)
+        show_all_times(times, o, d, a)
 
     def test_equilateral(self):
 #         k = KineticTriangle()
@@ -1169,22 +1152,9 @@ class VertexCrash(unittest.TestCase):
         # vertex crash time
         time = vertex_crash_time(o, d, a)
         times.append(time)
-        # filter None out of the times and see what is there...
-        for time in sorted(filter(lambda x: x != None, times)):
-            pa = o.position_at(time)
-            pb = d.position_at(time)
-            pc = a.position_at(time)
-            collapse = near_zero(orient2d(pa, pb, pc))
-            print ""
-            print time
-            print collapse
-            if collapse:
-                dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
-                if all_close(dists, abs_tol=1e-8):
-                    print "point"
-                else:
-                    print "line"
-
+        print times
+        times = get_unique_times(times)
+        show_all_times(times, o, d, a)
 
     def test_equilateral_outwards(self):
 #         k = KineticTriangle()
@@ -1213,33 +1183,122 @@ class VertexCrash(unittest.TestCase):
         times.append(time)
         time = collapse_time_edge(a, o)
         times.append(time)
-        # area collapse time
+        # area collapse times
         area = area_collapse_times(o, d, a)
         times.extend(area)
         # vertex crash time
         time = vertex_crash_time(o, d, a)
         times.append(time)
-        # filter None out of the times and see what is there...
-        for time in sorted(filter(lambda x: x != None, times)):
-            pa = o.position_at(time)
-            pb = d.position_at(time)
-            pc = a.position_at(time)
-            collapse = near_zero(orient2d(pa, pb, pc))
-            print ""
-            print time
-            print collapse
-            if collapse:
-                dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
-                if all_close(dists, abs_tol=1e-8):
-                    print "point"
-                else:
-                    print "line"
+        #
+        print times
+        times = get_unique_times(times)
+        show_all_times(times, o, d, a)
+        self.assertRaises(ValueError, find_ge, times, 0)
 
+def compute_all_collapse_times(o,d,a):
+    # edge collapse times
+    times = []
+    time = collapse_time_edge(o, d)
+    times.append(time)
+    time = collapse_time_edge(d, a)
+    times.append(time)
+    time = collapse_time_edge(a, o)
+    times.append(time)
+    # area collapse times
+    area = area_collapse_times(o, d, a)
+    times.extend(area)
+    # vertex crash time of the apex into the segment, orig -> dest
+    time = vertex_crash_time(o, d, a)
+    times.append(time)
+    return times
+
+def show_all_times(times, o, d, a):
+    print ""
+    print times
+    for time in times:
+        pa = o.position_at(time)
+        pb = d.position_at(time)
+        pc = a.position_at(time)
+        collapse = near_zero(orient2d(pa, pb, pc))
+        print time, collapse
+        if collapse:
+            dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
+            if all_close(dists, abs_tol=1e-8):
+                print "point", pa, pb, pc
+                avg = []
+                for i in range(2):
+                    avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
+                print " avg ", tuple(avg)
+            else:
+                print "line", pa, pb, pc
+                # to a segment, two separate points
+                # 1 distance is near_zero!
+                # pa+pb = pc
+                # pa+pc = pb
+                # pb+pc = pa
+                X = all_close_clusters([x for x, y in (pa, pb, pc)])
+                Y = all_close_clusters([y for x, y in (pa, pb, pc)])
+                print "     ", len(X)
+                print "     ", len(Y)
+                print "     ", X
+                print "     ", Y
+                # FIXME: by looking at the distances and knowledge on what
+                # side is what, we should be able to reliable decide what 
+                # is the event that happens to this triangle!
+                if len(X) == 3 or len(Y) == 3:
+                    print "flip/split", dists
+                else:
+                    assert len(X) == 2 or len(Y) == 2
+                    print "collapse", dists
+                #
+                # to a line, three separate points
+                # no distance is near_zero! 
+                # -> could be flip or split event
+    print ""
+
+# possible actions:
+
+# A triangle at time t
+# --------------------
+# - collapses to a point (all 3 sides collapse)
+# - collapses to a segment
+# - flips (to maintain correct orientation)
+# - is split (collapses to a segment, and that segment is split into 2)
+
+
+# a 3-triangle can:
+# - collapse to a point
+
+# a 2-triangle can:
+# - collapse to a point
+# - collapse to a segment
+
+# a 1-triangle can:
+# - collapse to a point
+# - flip
+# - be split
+
+# a 0-triangle can:
+# - flip
+# - collapse to a segment?
+# - collapse to a point? -- see circle
+
+# an infinite triangle can:
+# - flip
+# - collapse to a point
+
+def find_ge(a, x):
+    'Find leftmost item greater than or equal to x'
+    i = bisect.bisect_left(a, x)
+    if i != len(a):
+        return a[i]
+    raise ValueError("not there")
 
 def perform_one():
 #     tst = TestCollapseSameTime("test_equal_sides")
-    tst = TestEvent1Edge("test_0tri")
+#     tst = TestEvent1Edge("test_0tri")
 #     tst = VertexCrash("test_equilateral_outwards")
+    tst = VertexCrash("test_equilateral")
 #     tst = TestEvent1Edge("test_0tri")
 #     tst = EdgeCollapse("test_crossing")
 #     tst = EdgeCollapse("test_parallel_follower")
@@ -1261,5 +1320,5 @@ def _enable_logging():
 
 if __name__ == '__main__':
     _enable_logging()
-#     unittest.main()
-    perform_one()
+    unittest.main()
+#     perform_one()

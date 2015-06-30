@@ -10,6 +10,24 @@ from pprint import pprint
 from tri.delaunay import orient2d
 import cmath
 
+def get_unique_times(times):
+    """Filters out None values and then returns unique event times,
+    finding the set of values that are numerically close
+    """
+    return all_close_clusters(filter(lambda x: x != None, times))
+
+def all_close_clusters(L, abs_tol=1e-7, rel_tol=0.):
+    it = iter(sorted(L))
+    first = next(it)
+    out = [first]
+    for val in it:
+        if is_close(first, val, abs_tol, rel_tol, method='average'):
+            continue
+        else:
+            out.append(val)
+            first = val
+    return out
+
 def near_zero(val):
     """returns True if a is close to zero. False otherwise
 
@@ -82,11 +100,13 @@ def is_close(a,
     if a == b:  # short-circuit exact equality
         return True
     # use cmath so it will work with complex or float
-    if cmath.isinf(a) or cmath.isinf(b):
-        # This includes the case of two infinities of opposite sign, or
-        # one infinity and one finite number. Two infinities of opposite sign
-        # would otherwise have an infinite relative tolerance.
-        return False
+#     print a
+#     print b
+#     if cmath.isinf(a) or cmath.isinf(b):
+#         # This includes the case of two infinities of opposite sign, or
+#         # one infinity and one finite number. Two infinities of opposite sign
+#         # would otherwise have an infinite relative tolerance.
+#         return False
     diff = abs(b - a)
     if method == "asymmetric":
         return (diff <= abs(rel_tol * b)) or (diff <= abs_tol)

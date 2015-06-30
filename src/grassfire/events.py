@@ -12,8 +12,6 @@ from grassfire.collapse import compute_collapse_time, is_close
 from grassfire.io import output_kdt
 from grassfire.initialize import check_ktriangles
 from grassfire.calc import all_close
-from grassfire.collapse import new_compute_collapse, collapses_to_pt
-
 
 def compare_event_by_time(one, other):
     # compare by time
@@ -158,6 +156,9 @@ def replace_kvertex(t, v, newv, now, direction, queue):
         t = t.neighbours[direction(side)]
 
 def replace_in_queue(t, now, queue):
+    if t.event == None:
+        logging.debug("triangle without event not replaced in queue") 
+        return
     queue.discard(t.event)
     e = compute_collapse_time(t, now)
     if e is not None:
@@ -185,6 +186,9 @@ def handle_edge_event(evt, skel, queue):
 #     print evt
     
     t = evt.triangle
+    if not t.finite:
+        logging.debug("skipping handling of infinite triangle")
+        return
 #     print "TYPE", t.type
     e = evt.side
     now = evt.time
@@ -254,7 +258,8 @@ def handle_edge_event(evt, skel, queue):
             n.neighbours[n_idx] = None
 #             print "ALSO DEAL WITH ", id(n)
 #             print "SIMILAR COLLAPSE TIME", is_similar(n.event.time, now)
-            replace_in_queue(n, n.event.time, queue)
+            if n.event != None:
+                replace_in_queue(n, n.event.time, queue)
 #             assert side == n_idx
     #         tp = n.event.tp
             # FIXME: schedule immediately
@@ -531,8 +536,8 @@ def event_loop(queue, skel, pause=False):
         with open('/tmp/ktri_progress.wkt', 'w') as fh:
             fh.write("pos;wkt;evttype;tritype;id;n0;n1;n2\n")
             for i, triangle in enumerate(skel.triangles):
-                if not triangle.finite:
-                    continue
+#                 if not triangle.finite:
+#                     continue
                 if triangle.event is None:
                     continue
                 if triangle.event.tp is None:
@@ -575,7 +580,8 @@ def event_loop(queue, skel, pause=False):
                         fh0.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(kvertex.starts_at), id(kvertex)))
                     else:
                         fh1.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(NOW), id(kvertex)))
-
+    visualize(queue, skel, 0.)
+    print "visualize start"
     while queue:
 #         print queue
         peek = next(iter(queue))
@@ -650,7 +656,6 @@ def event_loop(queue, skel, pause=False):
 
 #         print "Number of skel nodes", len(skel.sk_nodes)
 
-        
 #         try:
         assert check_ktriangles(skel.triangles, NOW)
         if pause:

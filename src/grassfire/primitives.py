@@ -17,7 +17,7 @@ class Event(object):
 #         return self.time > other.time
 
     def __str__(self):
-        return """<Event at {0:.25f}, triangle: {1}, side: {2}, {3}, type: {4}>""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type)
+        return """<Event at {0:.12f}, triangle: {1}, side: {2}, {3}, type: {4}>""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 
@@ -141,31 +141,31 @@ class KineticVertex(object):
         return None
 
 class InfiniteVertex(object): # Stationary Vertex
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self):
+        self.origin = None
+        self.velocity = (0,0)
 
     def __str__(self):
-        return "{0} {1}".format(self.x, self.y)
+        return "{0[0]} {0[1]}".format(self.origin)
 
     def distance2_at(self, other, time):
         """Cartesian distance *squared* to other point """
-        (sx,sy) = (self.x, self.y)
+        (sx,sy) = self.origin
         (ox,oy) = other.position_at(time)
         # Used for distances in random triangle close to point
         return pow(sx - ox, 2) + pow(sy - oy, 2)
 
     def position_at(self, time):
         """ """
-        return (self.x, self.y)
+        return self.origin
 
-    @property
-    def origin(self):
-        return (self.x, self.y)
+#     @property
+#     def origin(self):
+#         return self.origin
 
-    @property
-    def velocity(self):
-        return (0,0)
+#     @property
+#     def velocity(self):
+#         return (0,0)
 
 class KineticTriangle(object):
     def __init__(self):

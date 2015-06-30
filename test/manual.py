@@ -787,8 +787,41 @@ def test_flip_loop():
     conv.add_polygon([ring])
     skel = calc_skel(conv, pause=True, output=True)
 
+def test_flip_loop2():
+    """This makes an infinite event loop with infinite triangles (because of flipping)!
+    """
+    conv = ToPointsAndSegments()
+    ring = [ (0,0), (3,0), (3.8,2), (5,0), (6.3, 2), (7,0), (10,0), (13,4), (10,5), (7,5), (6.5, 3), (5,5), (3.5,3), (3,5), (0,5), (-2,2), (0,0)]
+    conv.add_polygon([ring])
+    skel = calc_skel(conv, pause=True, output=True)
+
+def test_inf_quad():
+    conv = ToPointsAndSegments()
+    ring = [(0,0), (4.2,5.4), (6.9,0.05), (10,2), (5,10), (0,0)]
+    conv.add_polygon([ring])
+    skel = calc_skel(conv, pause=True, output=True)
+
+
+def test_inf_flat():
+    conv = ToPointsAndSegments()
+    ring = [(0,0), (10,0), (50,1), (90,0), (100,0), (49,2), (0,0)]
+    conv.add_polygon([ring])
+    skel = calc_skel(conv, pause=True, output=True)
+
+
+def test_inf_teeth():
+    conv = ToPointsAndSegments()
+    ring = [(0,7), (10,0), (8,8), (16,8), (17,0), (17.1,10.5), (0,10), (0,7)]
+    conv.add_polygon([ring])
+    skel = calc_skel(conv, pause=True, output=True)
+
+
+test_bottom_circle_top_square()
+
 # test_poly()
-test_flip_loop()
+# test_flip_loop()
+# test_inf_flat()
+# test_inf_teeth()
 # helper_make_test_collapse_time()
 
 

@@ -1,19 +1,29 @@
 from math import copysign, sqrt, hypot
 import logging
 import numpy
+import bisect
 
 from operator import sub
-from tri.delaunay import cw, ccw
+from tri.delaunay import cw, ccw, orient2d
 from tri.delaunay import orig, dest, apex
 
 from primitives import Event
-from grassfire.calc import rotate90ccw, near_zero
+from grassfire.calc import rotate90ccw, near_zero, get_unique_times
 from grassfire.calc import is_close, all_close
+from grassfire.primitives import InfiniteVertex
 # ------------------------------------------------------------------------------
 # solve
 
 # def is_similar(a, b, eps=1e-12):
 #     return abs(b - a) <= eps
+
+def find_ge(a, x):
+    """Find leftmost item greater than or equal to x"""
+    i = bisect.bisect_left(a, x)
+    if i != len(a):
+        return a[i]
+    else:
+        return None
 
 def ignore_lte_and_sort(L, val=0):
     """
@@ -47,17 +57,17 @@ def ignore_lte_and_sort_list(L, val=0):
     L.sort()
     return L
 
-def new_compute_collapse(t):
-    times = []
-    for side in range(3):
-        i, j = cw(side), ccw(side)
-        v1, v2 = t.vertices[i], t.vertices[j]
-        time = collapse_time_edge(v1, v2)
-        if time >= 0:
-            times.append(time)
-        else:
-            times.append(None)
-    return times
+# def new_compute_collapse(t):
+#     times = []
+#     for side in range(3):
+#         i, j = cw(side), ccw(side)
+#         v1, v2 = t.vertices[i], t.vertices[j]
+#         time = collapse_time_edge(v1, v2)
+#         if time >= 0:
+#             times.append(time)
+#         else:
+#             times.append(None)
+#     return times
 
 def collapses_to_pt(tri, times):
     a, b, c = tri.vertices
@@ -120,12 +130,286 @@ def area_collapse_times(o,d,a):
     coeff = area_collapse_time_coeff(o, d, a)
     logging.debug(coeff)
     solution = solve_quadratic(coeff[0], coeff[1], coeff[2])
-    logging.debug(numpy.roots(coeff))
-    solution = filter(lambda x: x != None, solution)
+    logging.debug("numpy solve: " + str(numpy.roots(coeff)))
+    # solution = filter(lambda x: x != None, solution)
     solution.sort()
     # http://stackoverflow.com/questions/28081247/print-real-roots-only-in-numpy
     logging.debug("area collapse times: " + str(solution))
     return solution
+
+
+class NewEventType(object):
+    def __init__(self, when, tri, sides=None, event_tp=None, how=None, where=None):
+        self.time = when
+        self.triangle = tri
+        self.sides = sides
+        self.event_tp = event_tp
+        self.how = how
+        self.where = where
+
+    def __str__(self):
+        time_str = "--"
+        if self.time is not None:
+            time_str = "{0:.12f}".format(self.time)
+        return """<NewEvent at {0}, triangle: {1}, triangle type: {4}, sides: {2}, event type: {3}, how: {5}, where: {6}>""".format(time_str, id(self.triangle), self.sides, self.event_tp, self.triangle.type, self.how, self.where)
+
+def compute_event_0triangle(tri, now):
+    # a 0-triangle can:
+    # - flip
+    # - collapse to a segment?
+    # - collapse to a point? -- see circle
+    assert tri.neighbours.count(None) == 0
+    o, d, a = tri.vertices
+    times = []
+    # edge collapse times
+    time = collapse_time_edge(o, d)
+    times.append(time)
+    time = collapse_time_edge(d, a)
+    times.append(time)
+    time = collapse_time_edge(a, o)
+    times.append(time)
+    # area collapse times
+    area = area_collapse_times(o, d, a)
+    times.extend(area)
+    # 
+    times = get_unique_times(times)
+    time = find_ge(times, now)
+    if time != None:
+        dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
+        zeros = [near_zero(dist) for dist in dists]
+        sides_collapse = zeros.count(True)
+        if sides_collapse == 3:
+            pa, pb, pc = (o.position_at(time), d.position_at(time), a.position_at(time))
+            avg = []
+            for i in range(2):
+                avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
+            tp = "collapse"
+            how = "point"
+            where = tuple(avg)
+            sides = tuple(range(3))
+        elif sides_collapse == 2:
+            # hopefully never happens -- 
+            # or some weird robustness error did occur
+            raise ValueError("This is not possible with a triangle") 
+        elif sides_collapse == 1:
+            smallest_dist = min(dists)
+            side = dists.index(smallest_dist)
+            tp = "collapse"
+            how = "line"
+            where = None
+            end = tri.vertices[side].position_at(time)
+            pts = tri.vertices[cw(side)].position_at(time), tri.vertices[ccw(side)].position_at(time)
+            start = []
+            for i in range(2):
+                start.append(sum(map(lambda x: x[i], pts)) * .5)
+            where = (tuple(start), end)
+            sides = (side,)
+        elif sides_collapse == 0:
+            # no side collapsing? then points get closest as they can
+            # should flip the triangle
+            largest_dist = max(dists)
+            side = dists.index(largest_dist)
+            tp = "flip"
+            how = "--"
+            where = None
+            sides = (side,)
+    else:
+        sides = tuple()
+        tp = "--"
+        how = "--"
+        where = None
+    return NewEventType(
+                    when=time, 
+                    tri=tri, 
+                    sides=sides, 
+                    event_tp=tp, # collapse / flip / split 
+                    how=how, # if collapse: point | line
+                    where=where # if collapse: the geometry of point or segment
+                )
+
+def compute_event_1triangle(tri, now):
+    # a 1-triangle can:
+    # - collapse to a point
+    # - collapse to a segment
+    # - flip
+    # - be split
+    pass
+
+def compute_event_2triangle(tri, now):
+    # a 2-triangle can:
+    # - collapse to a point
+    # - collapse to a segment
+    assert tri.neighbours.count(None) == 2
+    o, d, a = tri.vertices
+    times = []
+    # edge collapse times
+    time = collapse_time_edge(o, d)
+    times.append(time)
+    time = collapse_time_edge(d, a)
+    times.append(time)
+    time = collapse_time_edge(a, o)
+    times.append(time)
+    times = get_unique_times(times)
+    time = find_ge(times, now)
+    if time != None:
+        dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
+        zeros = [near_zero(dist) for dist in dists]
+        sides_collapse = zeros.count(True)
+        if sides_collapse == 3:
+            pa, pb, pc = (o.position_at(time), d.position_at(time), a.position_at(time))
+            avg = []
+            for i in range(2):
+                avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
+            tp = "collapse"
+            how = "point"
+            where = tuple(avg)
+            sides = tuple(range(3))
+        elif sides_collapse == 2:
+            # hopefully never happens -- 
+            # or some weird robustness error did occur
+            raise ValueError("This is not possible with this type of triangle") 
+        elif sides_collapse == 1:
+            smallest_dist = min(dists)
+            side = dists.index(smallest_dist)
+            tp = "collapse"
+            how = "line"
+            where = None
+            end = tri.vertices[side].position_at(time)
+            pts = tri.vertices[cw(side)].position_at(time), tri.vertices[ccw(side)].position_at(time)
+            start = []
+            for i in range(2):
+                start.append(sum(map(lambda x: x[i], pts)) * .5)
+            where = (tuple(start), end)
+            sides = (side,)
+        elif sides_collapse == 0:
+            raise ValueError("This is not possible with this type of triangle") 
+    else:
+        sides = tuple()
+        tp = "--"
+        how = "--"
+        where = None
+    return NewEventType(
+                    when=time, 
+                    tri=tri, 
+                    sides=sides, 
+                    event_tp=tp, # collapse / flip / split 
+                    how=how, # if collapse: point | line
+                    where=where # if collapse: the geometry of point or segment
+                )
+
+def compute_event_3triangle(tri, now):
+    # a 3-triangle can:
+    # - collapse to a point
+
+    # Calculate 3 edge collapse times
+    # These should all be similar
+    assert tri.neighbours.count(None) == 3
+    o, d, a = tri.vertices
+    times = []
+    time = collapse_time_edge(o, d)
+    times.append(time)
+    time = collapse_time_edge(d, a)
+    times.append(time)
+    time = collapse_time_edge(a, o)
+    times.append(time)
+    # 
+    times = get_unique_times(times)
+    # we should find at most 1 collapse time
+    assert len(times) <= 1
+    print times
+    # we take this event only when it is >= now (now or in the future)
+    if times and times[0] >= now:
+        #time = find_ge(times, now) # can raise ValueError if no value found
+        time = times[0]
+        sides = tuple(range(3))
+        pa = o.position_at(time)
+        pb = d.position_at(time)
+        pc = a.position_at(time)
+        dists = [o.distance2_at(d, time), d.distance2_at(a, time), a.distance2_at(o, time)]
+        assert all_close(dists, abs_tol=1e-8)
+        avg = []
+        for i in range(2):
+            avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
+        tp = "collapse"
+        how = "point"
+        where = tuple(avg)
+    else:
+        time = None
+        sides = tuple()
+        tp = "--"
+        how = "--"
+        where = None
+    return NewEventType(
+                    when=time, 
+                    tri=tri, 
+                    sides=sides, 
+                    event_tp=tp, # collapse / flip / split 
+                    how=how, # if collapse: point | line
+                    where=where # if collapse: the geometry of point or segment
+                )
+
+def compute_event_inftriangle(tri, now):
+    for inf_idx, v in enumerate(tri.vertices):
+        if isinstance(v, InfiniteVertex):
+            break
+    side = inf_idx
+    logging.debug(tri.str_at(0))
+    logging.debug("side " + str(side))
+    o, d = tri.vertices[cw(side)], tri.vertices[ccw(side)]
+    logging.debug(o)
+    logging.debug(d)
+    time = collapse_time_edge(o, d)
+    logging.debug(time)
+    if time >= now:
+        #time = find_ge(times, now) # can raise ValueError if no value found
+        sides = (side,)
+        pa = o.position_at(time)
+        pb = d.position_at(time)
+        dist = o.distance2_at(d, time)
+        if near_zero(dist):
+            avg = []
+            for i in range(2):
+                avg.append(sum(map(lambda x: x[i], (pa, pb))) * .5)
+            tp = "collapse"
+            how = "point"
+            where = tuple(avg)
+        else:
+            tp = "flip"
+            how = "--"
+            where = None
+    else:
+        time = None
+        sides = tuple()
+        tp = "--"
+        how = "--"
+        where = None
+    return NewEventType(
+            when=time, 
+            tri=tri, 
+            sides=sides, 
+            event_tp=tp, # collapse / flip / split 
+            how=how, # if collapse: point | line
+            where=where # if collapse: the geometry of point or segment
+        )
+
+def compute_event(tri, now=0):
+    event = None
+    if tri.finite:
+        # finite triangles
+        tp = tri.type
+        if tp == 0:
+            event = compute_event_0triangle(tri, now)
+        elif tp == 1:
+            pass
+        elif tp == 2:
+            event = compute_event_2triangle(tri, now)
+        elif tp == 3:
+            event = compute_event_3triangle(tri, now)
+    else:
+        # flip or collapse to point
+        logging.debug("infinite triangle")
+        event = compute_event_inftriangle(tri, now)
+    return event
 
 def compute_collapse_time(t, now=0):
     #
@@ -251,7 +535,11 @@ def compute_collapse_time(t, now=0):
         #print "dist", distance_v_e
         s = apx.velocity
         #print dot(s, n)
-        t_v = distance_v_e / (1.0 - dot(s, n))
+        dsn = dot(s, n)
+        if dsn != 1.:
+            t_v = distance_v_e / (1.0 - dsn)
+        else:
+            t_v = None
         #print crash_time
 #             print "tv [vertex crash time]:", t_v 
         t_e = collapse_time_edge(org, dst)
@@ -411,7 +699,7 @@ def collapse_time_edge(v1, v2):
     - they cross each other in the past
     - they cross each other in the future
     - they run parallel, so they never meet
-    The distance between the two points is a linear function.
+    Note, the distance between the two points is a linear function.
 
     If the 2 vertices do not belong to a wavefront edge,
     the distance between the two points can be a quadratic or linear function 
