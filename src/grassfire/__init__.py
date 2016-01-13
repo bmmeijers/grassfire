@@ -2,14 +2,13 @@ from tri import ToPointsAndSegments, triangulate
 from io import output_dt, output_offsets, output_skel
 from initialize import init_skeleton
 from events import init_event_list, event_loop
-from grassfire.events import tmp_events
 
 __all__ = ["calc_skel"]
 # ------------------------------------------------------------------------------
 # test cases
 
 def calc_skel(conv, pause=False, output=False):
-    """Perform the calulation of the skeleton, given 
+    """Perform the calculation of the skeleton, given 
     points, info and segments
     """
     from io import output_triangles, output_kvertices
@@ -33,10 +32,10 @@ def calc_skel(conv, pause=False, output=False):
             output_triangles(skel.triangles, fh)
         with open("/tmp/kvertices.wkt", "w") as fh:
             output_kvertices(skel.vertices, fh)
-#     tmp_events(skel)
+# #     tmp_events(skel)
     el = init_event_list(skel)
     event_loop(el, skel, pause)
-
+ 
     if output:
         output_offsets(skel)
         output_skel(skel)

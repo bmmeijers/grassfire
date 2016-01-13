@@ -17,16 +17,19 @@ def get_unique_times(times):
     return all_close_clusters(filter(lambda x: x != None, times))
 
 def all_close_clusters(L, abs_tol=1e-7, rel_tol=0.):
-    it = iter(sorted(L))
-    first = next(it)
-    out = [first]
-    for val in it:
-        if is_close(first, val, abs_tol, rel_tol, method='average'):
-            continue
-        else:
-            out.append(val)
-            first = val
-    return out
+    if L:
+        it = iter(sorted(L))
+        first = next(it)
+        out = [first]
+        for val in it:
+            if is_close(first, val, abs_tol, rel_tol, method='average'):
+                continue
+            else:
+                out.append(val)
+                first = val
+        return out
+    else:
+        return []
 
 def near_zero(val):
     """returns True if a is close to zero. False otherwise

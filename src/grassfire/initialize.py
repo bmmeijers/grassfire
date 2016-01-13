@@ -219,12 +219,10 @@ def init_skeleton(dt):
                 # go with kvA
                 for e in first:
                     ktriangle = triangle2ktriangle[e.triangle]
-#                         print ktriangle
                     ktriangle.vertices[e.side] = kvA
                 # go with kvB
                 for e in second:
                     ktriangle = triangle2ktriangle[e.triangle]
-#                         print ktriangle
                     ktriangle.vertices[e.side] = kvB
 
                 # for the mid triangle it depends where it should go
@@ -342,7 +340,7 @@ def init_skeleton(dt):
             ccwv = triangle2ktriangle[right[0]].vertices[right[1]]
             curv.right = ccwv, 0
 
-    # copy infinite vertices into the kinetic triangles
+    # -- copy infinite vertices into the kinetic triangles
     # make dico of infinite vertices (lookup by coordinate value)
     infinites = {}
     for t in triangle2ktriangle:
@@ -391,7 +389,7 @@ def init_skeleton(dt):
     # these triangles were already stored in the unwanted list
     remove = []
     for kt in ktriangles:
-        if [isinstance(v,InfiniteVertex) for v in kt.vertices].count(True) == 2:
+        if [isinstance(v, InfiniteVertex) for v in kt.vertices].count(True) == 2:
             remove.append(kt)
     assert len(remove) == 3
     assert len(unwanted) == 3
@@ -447,12 +445,12 @@ def check_ktriangles(L, now=0):
                     valid = False
         for i in range(3):
             v = ktri.vertices[i]
-            if ktri.finite:
+            if ktri.is_finite:
                 if not ((v.starts_at <= now and v.stops_at > now) or (v.starts_at <= now and v.stops_at == None)):
                     print "triangle",id(ktri)," with invalid kinetic vertex", id(v)," for this time"
                     valid = False
     # check if the sides of a triangle share the correct vertex at begin / end
-    if False:
+    if False: #FIXME: enable!!!
         for ktri in L:
             for i in range(3):
                 ngb = ktri.neighbours[i]
@@ -464,4 +462,6 @@ def check_ktriangles(L, now=0):
                     if not ngb.vertices[ccw(j)] is ktri.vertices[cw(i)]:
                         print "something wrong with vertices 2"
                         valid = False
+    # FIXME: check orientation of triangles ???? 
+    # -- could be little difficult with initial needle triangles at terminal vertices of PSLG
     return valid

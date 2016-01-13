@@ -2,7 +2,7 @@ import logging
 
 from operator import add
 
-from tri.delaunay import apex, orig, dest, cw, ccw
+from tri.delaunay import apex, orig, dest, cw, ccw, Edge
 from oseq import OrderedSequence
 
 # from grassfire
@@ -12,6 +12,21 @@ from grassfire.collapse import compute_collapse_time, is_close
 from grassfire.io import output_kdt
 from grassfire.initialize import check_ktriangles
 from grassfire.calc import all_close
+
+def output_edges_at_T(edges, T, fh):
+    fh.write("id;side;wkt\n")
+    for e in edges:
+        segment = e.segment
+        s = segment[0].position_at(T), segment[1].position_at(T)
+        fh.write("{0};{1};LINESTRING({2[0][0]} {2[0][1]}, {2[1][0]} {2[1][1]})\n".format(id(e.triangle), e.side, s))
+
+def output_triangles_at_T(tri, T, fh):
+    """Output list of triangles as WKT to text file (for QGIS)"""
+    fh.write("id;time;wkt;n0;n1;n2;v0;v1;v2;finite;info\n")
+    for t in tri:
+        if t is None:
+            continue
+        fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), t.str_at(T), [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.is_finite, t.info, T))
 
 def compare_event_by_time(one, other):
     # compare by time
@@ -34,21 +49,6 @@ def compare_event_by_time(one, other):
             else:
                 return 0
 
-def tmp_events(skel):
-    if False:
-        from pprint import pprint
-        for tri in skel.triangles:
-            times =  new_compute_collapse(tri)
-            pts, dists = collapses_to_pt(tri, times)
-            print "==="
-            print id(tri)
-            print "pts",
-            pprint(pts)
-            print "dists",
-            pprint(dists)
-            print times
-            print min(times)
-            print "==="
 
 def init_event_list(skel):
     """Compute for all kinetic triangles when they will collapse and 
@@ -68,6 +68,7 @@ def init_event_list(skel):
 # ------------------------------------------------------------------------------
 # Event handling
 
+# FIXME: unify by making v a list of vertices?
 def stop_kvertex(v, now):
     v.stops_at = now
     pos = v.position_at(now)
@@ -141,8 +142,7 @@ def compute_new_kvertex(v1, v2, now, sk_node):
 
 def replace_kvertex(t, v, newv, now, direction, queue):
     while t is not None:
-        msg = "UPDATING " + str( id(t)) + "" + str(v)
-        logging.debug(msg)
+        logging.debug("UPDATING " + str( id(t)) + " " + str(v))
         side = t.vertices.index(v)
         t.vertices[side] = newv
 #         print "updated", id(t), "at", side
@@ -156,17 +156,15 @@ def replace_kvertex(t, v, newv, now, direction, queue):
         t = t.neighbours[direction(side)]
 
 def replace_in_queue(t, now, queue):
-    if t.event == None:
-        logging.debug("triangle without event not replaced in queue") 
-        return
-    queue.discard(t.event)
+    if t.event != None:
+        queue.discard(t.event)
+    else:
+        logging.debug("triangle #{0} without event not removed from queue".format(id(t)))
     e = compute_collapse_time(t, now)
     if e is not None:
         queue.add(e)
     else:
         return
-#         raise NotImplementedError("not handled")
-
 
 def update_circ(kv, v1, v2, now):
     # update circular list:
@@ -186,11 +184,11 @@ def handle_edge_event(evt, skel, queue):
 #     print evt
     
     t = evt.triangle
-    if not t.finite:
-        logging.debug("skipping handling of infinite triangle")
-        return
+#     if not t.is_finite:
+#         logging.debug("skipping handling of infinite triangle")
+#         return
 #     print "TYPE", t.type
-    e = evt.side
+    e = evt.side[0] # pick first side
     now = evt.time
     v0 = t.vertices[(e) % 3]
     v1 = t.vertices[(e+1) % 3]
@@ -215,6 +213,9 @@ def handle_edge_event(evt, skel, queue):
         #kv.origin = sk_node.pos
         #kv.velocity = (0,0)
         #skel.vertices.append(kv)
+
+    elif len(evt.side) != 1:
+        raise NotImplementedError("Problem with multiple sides collapsing not there yet")
 
     elif t.type == 2 and t.neighbours[e] is not None:
         logging.debug("handle event for 2 triangle that collapses completely")
@@ -286,8 +287,17 @@ def handle_edge_event(evt, skel, queue):
         # always stationary from begin
         kv.origin = sk_node.pos
         kv.velocity = (0,0)
-    
+
     else:
+        # FIXME:
+        # This part now handles type 2, type 1 and type 0 triangles
+        #
+
+        # assert t.type == 1
+        # -- find out whether we have a wavefront edge that collapses
+        # or a spoke that collapses. A spoke collapsing means that
+        # we have to detach the neighbour and duplicate
+        # the kinetic vertices... (see Figure 8 / 9 on page 19)
 #         print "COMING HERE"
         sk_node = stop_kvertices2(v1, v2, now)
 #         print "v1      ", id(v1)
@@ -345,8 +355,10 @@ def handle_edge_event(evt, skel, queue):
 #             print "SIMILAR COLLAPSE TIME", is_similar(n.event.time, now)
             n_idx = n.neighbours.index(t)
 #             print "ALSO DEAL WITH ", id(n)
-            side = n.event.side
-            assert side == n_idx
+            print "SHOULD DO SOMETHING HERE (~ l.365)"
+            print "neighbour = ", id(n), n.event
+#             side = n.event.side
+#             assert side == n_idx
     #         tp = n.event.tp
             # FIXME: schedule immediately
             # means that we have to remove the triangle from the queue
@@ -357,8 +369,9 @@ def handle_edge_event(evt, skel, queue):
 #             handle_immediately(n, n_idx, queue)
     #         n.event = new
     #         queue.add(new)
-    #         n.neighbours[n_idx] = None
-            # schedule_immediately(n) --> find triangle in the event queue!
+            n.neighbours[n_idx] = None
+            schedule_immediately(n, now, queue)
+#             handle_immediately(triangle, side, queue)# --> find triangle in the event queue!
 #         print "updated neighbours"
 #         if a is not None:
 #             print "a.", a.neighbours[a_idx]
@@ -369,25 +382,39 @@ def handle_edge_event(evt, skel, queue):
     t.neighbours = [None, None, None]
     t.vertices = [None, None, None]
     skel.triangles.remove(t)
+#     raw_input("PAUSED (~l.391)")
 
 
-def handle_immediately(triangle, side, queue):
-    """Handle immediately the removal of this triangle as it collapses
+def schedule_immediately(triangle, now, queue):
+    """ Make sure that triangle is at top of event queue for next iteration"""
+    if triangle.event != None:
+        queue.remove(triangle.event)
+        event = triangle.event
+        event.time = now
+        queue.add(triangle.event)
+    else:
+        logging.debug("No event for triangle {0} to schedule immediately!!!".format(id(triangle)))
 
-    Link the two neighbours to each other
-    """
-#     print "handling immediately event", triangle.event
-    queue.remove(triangle.event)
-    e = side
-    t = triangle
-    a = t.neighbours[(e+1) % 3]
-    b = t.neighbours[(e+2) % 3]
-    if a is not None:
-        a_idx = a.neighbours.index(t)
-        a.neighbours[a_idx] = b
-    if b is not None:
-        b_idx = b.neighbours.index(t)
-        b.neighbours[b_idx] = a
+# def handle_immediately(triangle, now, queue):
+#     """Handle immediately the removal of this triangle as it collapses
+# 
+#     Link the two neighbours to each other
+#     """
+# #     print "handling immediately event", triangle.event
+#     queue.remove(triangle.event)
+#     event = triangle.event
+#     event.time = now
+#     queue.add(triangle.event)
+# #     e = side
+# #     t = triangle
+# #     a = t.neighbours[(e+1) % 3]
+# #     b = t.neighbours[(e+2) % 3]
+# #     if a is not None:
+# #         a_idx = a.neighbours.index(t)
+# #         a.neighbours[a_idx] = b
+# #     if b is not None:
+# #         b_idx = b.neighbours.index(t)
+# #         b.neighbours[b_idx] = a
 
 def handle_split_event(evt, skel, queue):
 #     print "=" * 20
@@ -395,7 +422,8 @@ def handle_split_event(evt, skel, queue):
 #     print "=" * 20
 #     print evt
     t = evt.triangle
-    e = evt.side
+    assert len(evt.side) == 1
+    e = evt.side[0]
     now = evt.time
     v = t.vertices[(e) % 3]
     v1 = t.vertices[(e+1) % 3]
@@ -457,7 +485,8 @@ def handle_flip_event(evt, skel, queue):
     their time in the event queue
     """
     now = evt.time
-    t, s = evt.triangle, evt.side
+    assert len(evt.side) == 1
+    t, s = evt.triangle, evt.side[0]
     n = t.neighbours[s]
     ns = n.neighbours.index(t)
     flip(t, s, n, ns)
@@ -520,9 +549,9 @@ def flip(t0, side0, t1, side1):
 def event_loop(queue, skel, pause=False):
     def visualize(queue, skel, NOW):
         with open('/tmp/queue.wkt', 'w') as fh:
-            fh.write("pos;wkt;evttype;tritype;id;n0;n1;n2\n")
+            fh.write("pos;wkt;evttype;tritype;id;n0;n1;n2;finite\n")
             for i, evt in enumerate(queue):
-                fh.write("{0};{1};{2};{3};{4};{5};{6};{7}\n".format(
+                fh.write("{0};{1};{2};{3};{4};{5};{6};{7};{8}\n".format(
                         i,
                         evt.triangle.str_at(NOW),
                         evt.tp,
@@ -531,28 +560,30 @@ def event_loop(queue, skel, pause=False):
                         id(evt.triangle.neighbours[0]),
                         id(evt.triangle.neighbours[1]),
                         id(evt.triangle.neighbours[2]),
+                        evt.triangle.is_finite
                     )
                 )
         with open('/tmp/ktri_progress.wkt', 'w') as fh:
-            fh.write("pos;wkt;evttype;tritype;id;n0;n1;n2\n")
-            for i, triangle in enumerate(skel.triangles):
-#                 if not triangle.finite:
+            output_triangles_at_T(skel.triangles, NOW, fh)
+#             fh.write("pos;wkt;evttype;tritype;id;n0;n1;n2\n")
+#             for i, triangle in enumerate(skel.triangles):
+# #                 if not triangle.finite:
+# #                     continue
+#                 if triangle.event is None:
 #                     continue
-                if triangle.event is None:
-                    continue
-                if triangle.event.tp is None:
-                    continue
-                fh.write("{0};{1};{2};{3};{4};{5};{6};{7}\n".format(
-                        i,
-                        triangle.str_at(NOW),
-                        triangle.event.tp,
-                        triangle.type,
-                        id(triangle),
-                        id(triangle.neighbours[0]),
-                        id(triangle.neighbours[1]),
-                        id(triangle.neighbours[2]),
-                    )
-                )
+#                 if triangle.event.tp is None:
+#                     continue
+#                 fh.write("{0};{1};{2};{3};{4};{5};{6};{7}\n".format(
+#                         i,
+#                         triangle.str_at(NOW),
+#                         triangle.event.tp,
+#                         triangle.type,
+#                         id(triangle),
+#                         id(triangle.neighbours[0]),
+#                         id(triangle.neighbours[1]),
+#                         id(triangle.neighbours[2]),
+#                     )
+#                 )
         with open("/tmp/sknodes_progress.wkt", 'w') as fh:
             fh.write("wkt\n")
             for node in skel.sk_nodes:
@@ -571,17 +602,29 @@ def event_loop(queue, skel, pause=False):
                 if kvertex.start_node is not None and kvertex.stop_node is not None:
                     start, end = kvertex.start_node.pos, kvertex.stop_node.pos
                     fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(start, end))
-        with open("/tmp/vertices0_progress.wkt", 'w') as fh0:
-            with open("/tmp/vertices1_progress.wkt", 'w') as fh1:
-                fh0.write("id;wkt\n")
-                fh1.write("id;wkt\n")
-                for kvertex in skel.vertices:
-                    if kvertex.start_node is not None and kvertex.stop_node is not None:
-                        fh0.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(kvertex.starts_at), id(kvertex)))
-                    else:
-                        fh1.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(NOW), id(kvertex)))
-    visualize(queue, skel, 0.)
+#         with open("/tmp/vertices0_progress.wkt", 'w') as fh0:
+        with open("/tmp/vertices1_progress.wkt", 'w') as fh1:
+#             fh0.write("id;wkt\n")
+            fh1.write("id;wkt\n")
+            for kvertex in skel.vertices:
+#                     if kvertex.start_node is not None and kvertex.stop_node is not None:
+#                         fh0.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(kvertex.starts_at), id(kvertex)))
+#                     else:
+                    fh1.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(NOW), id(kvertex)))
+        with open("/tmp/wavefront_edges_progress.wkt", "w") as fh:
+            edges = []
+            for tri in skel.triangles:
+                sides = []
+                for i, ngb in enumerate(tri.neighbours):
+                    if ngb is None:
+                        sides.append(i)
+                for side in sides:
+                    edges.append(Edge(tri, side))
+            output_edges_at_T(edges, NOW, fh)
+    visualize(queue, skel, 0.0005)
     print "visualize start"
+#     if pause:
+#         raw_input("paused at start")
     while queue:
 #         print queue
         peek = next(iter(queue))
@@ -593,20 +636,23 @@ def event_loop(queue, skel, pause=False):
                     "/tmp/sknodes_progress.wkt",
                     "/tmp/bisectors_progress.wkt",
                     "/tmp/segments_progress.wkt",
-                    '/tmp/queue.wkt',
+                    '/tmp/queue.wkt', # also contains next triangle to be visualised!
                     "/tmp/vertices0_progress.wkt",
                     "/tmp/vertices1_progress.wkt",
                     '/tmp/ktri_progress.wkt',
                 ]:
                 with open(file_nm, 'w') as fh:
                     pass
-        visualize(queue, skel, NOW)
+#         visualize(queue, skel, NOW-0.001)
         # log what is in the queue
+        visualize(queue, skel, NOW)
         logging.info("=" * 80)
         for i, e in enumerate(queue):
             logging.info("{0} {1}".format(i, e))
         logging.info("=" * 80)
-        print "before"
+
+#         if pause:
+#             raw_input('paused before handling event: ' + str(NOW))
 #         simultaneous = []
 #         for i, evt in enumerate(queue):
 #             positions = []
@@ -644,7 +690,7 @@ def event_loop(queue, skel, pause=False):
         evt = queue.popleft()
 #         output_kdt(skel, evt.time-0.05)
         # decide what to do based on event type
-        logging.debug("Handling event " +str(evt.tp) + " " + str(evt.triangle.type) + " " + str(id(evt.triangle)))
+        logging.debug("Handling event " +str(evt.tp) + " " + str(evt.triangle.type) + " " + str(id(evt.triangle)) + " at time " + str(evt.time))
         if evt.tp == "edge":
             handle_edge_event(evt, skel, queue)
         elif evt.tp == "flip":
@@ -657,13 +703,14 @@ def event_loop(queue, skel, pause=False):
 #         print "Number of skel nodes", len(skel.sk_nodes)
 
 #         try:
-        assert check_ktriangles(skel.triangles, NOW)
-        if pause:
-            visualize(queue, skel, NOW)
-            print "after"
+        check_ktriangles(skel.triangles, NOW)
+        visualize(queue, skel, NOW)
+        print "after"
+#             raw_input("paused")
         #         except AssertionError:
 #             print "PROBLEM"
 #         except ValueError:
 #             print "PROBLEM"
 # if __name__ == "__main__":
 #     test_replace_kvertex()
+    visualize(queue, skel, NOW+10)

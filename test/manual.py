@@ -1,6 +1,11 @@
 """Manual tests, for checking output manually in QGIS
 """
-from grassfire import ToPointsAndSegments, calc_skel
+from grassfire import ToPointsAndSegments, calc_skel, init_event_list, event_loop
+from grassfire.collapse import compute_collapse_time
+
+from tri.delaunay import Edge, output_edges
+import time
+from qgis._core import QGis
 
 
 if __name__ == "__main__":
@@ -816,7 +821,168 @@ def test_inf_teeth():
     skel = calc_skel(conv, pause=True, output=True)
 
 
-test_bottom_circle_top_square()
+def test_appendix_a4():
+    """Contains zero triangle to flip ...
+    """
+    ring = [(0,0), (1,1), (2,0), (6,0), (6.1,3), (2.5, 5.5), (-0.5, 3), (0,0) ]
+    conv = ToPointsAndSegments()
+    conv.add_polygon([ring])
+    skel = calc_skel(conv, output=True, pause=True)
+    print "DONE"
+
+
+#test_appendix_a4()
+
+def test_infinite():
+
+    conv = ToPointsAndSegments()
+
+    conv.add_point((0,0))
+    conv.add_point((1,0))
+
+    conv.add_segment((0,0), (1,0))
+
+    calc_skel(conv, pause=True, output=True)
+
+# test_infinite()
+
+def output_edges_at_T(edges, T, fh):
+    fh.write("id;side;wkt\n")
+    for e in edges:
+        segment = e.segment
+        s = segment[0].position_at(T), segment[1].position_at(T)
+        fh.write("{0};{1};LINESTRING({2[0][0]} {2[0][1]}, {2[1][0]} {2[1][1]})\n".format(id(e.triangle), e.side, s))
+
+def output_triangles_at_T(tri, T, fh):
+    """Output list of triangles as WKT to text file (for QGIS)"""
+    fh.write("id;time;wkt;n0;n1;n2;v0;v1;v2;finite;info\n")
+    for t in tri:
+        if t is None:
+            continue
+        fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), 
+                                                                                      t.str_at(T), 
+                                                                                      [id(n) for n in t.neighbours], 
+                                                                                      [id(v) for v in t.vertices], 
+                                                                                      t.is_finite, 
+                                                                                      t.info,
+                                                                                      T))
+
+
+def test_infinite2():
+    """3 segments with terminal vertices at convex hull
+    """
+    conv = ToPointsAndSegments()
+#     l0 = [(0.0, -1.0), (5.0, -1.0)]
+#     l1 = [(5.86602540378, 0.5), (3.36602540378, 4.83012701892)]
+#     l2 = [(1.63397459622, 4.83012701892), (-0.866025403784, 0.5)]
+    l0 = [ ( 0.032020441647887, 0.050549836508082), (0.556388841835153, 0.835771552524547) ]
+    l1 = [ ( 0.597646254032629, 0.835771552524547), (1.133992612599807, 0.029255688277127) ]
+    l2 = [ ( 1.118022001426591, -0.000023765540436), (0.065292548258754, -0.000023765540436) ]
+    for line in l0, l1, l2:
+        conv.add_point(line[0])
+        conv.add_point(line[1])
+        conv.add_segment(*line)
+    skel = calc_skel(conv, pause = True, output = True)
+    print skel.vertices
+    print skel.triangles
+    # #     tmp_events(skel)
+#     el = init_event_list(skel)
+#     event_loop(el, skel, pause=True)
+
+    return
+
+
+
+
+def test_infinite3():
+    """6 segments with terminal vertices at convex hull
+    """
+    from math import sqrt
+    conv = ToPointsAndSegments()
+    l0 = [(0.0, 1.0), (1.0, 1.0)]
+    l1 = [(1,1), (1,0)]
+    l2 = [(5,0), (5,1,)]
+    l3 = [(5,1), (6,1,)]
+    l4 = [(2,2 + sqrt(3)/2.*4), (3,1 + sqrt(3)/2.*4,)]
+    l5 = [(3,1 + sqrt(3)/2.*4), (4, 2 + sqrt(3)/2.*4)]
+#     l0 = [ ( 0.032020441647887, 0.050549836508082), (0.556388841835153, 0.835771552524547) ]
+#     l1 = [ ( 0.597646254032629, 0.835771552524547), (1.133992612599807, 0.029255688277127) ]
+#     l2 = [ ( 1.118022001426591, -0.000023765540436), (0.065292548258754, -0.000023765540436) ]
+    for line in l0, l1, l2, l3, l4, l5:
+        conv.add_point(line[0])
+        conv.add_point(line[1])
+        conv.add_segment(*line)
+    # FIXME: BUG here with respect to generating infinite triangles
+    # ==> Around (5,0) there should be infinite triangle!!
+    # it seems to be there, but inserted at the wrong location.
+    # (so it remains flat from the start... -- can have to do with the is_quad 
+    # part of the creation of initial triangulation)
+    skel = calc_skel(conv, pause = True, output = True)
+    print skel.vertices
+    print skel.triangles
+    # #     tmp_events(skel)
+    el = init_event_list(skel)
+    event_loop(el, skel, pause=True)
+
+    return
+
+
+#     events = []
+# #     with open("/tmp/ktri_at_T.wkt", "w") as fh:
+# #         fh.write("tid;wkt\n")
+# #         for tri in skel.triangles:
+# #             if not tri.is_finite:
+# #                 evt = compute_collapse_time(tri)
+# #                 print id(tri), "=>", evt
+# #                 events.append(evt)
+# #                 fh.write("{0};{1}\n".format(id(tri), tri.str_at(0.012)))
+# #     divided_in = 10
+# #     T = 0.0121
+# #     DT = T / divided_in
+# #     T = 0
+# #     for i in range(1, divided_in+1):
+# #         T += DT
+#     T = 0.013
+#     # -- output triangles at time T
+#     with open("/tmp/ktri_at_T.wkt", "w") as fh:
+#         for tri in skel.triangles:
+# #             if tri.is_finite:
+#             evt = compute_collapse_time(tri)
+#             print id(tri), "=>", evt
+#             events.append(evt)
+#         output_triangles_at_T(skel.triangles, T, fh)
+#     # -- convert triangles to wavefront edges and output them at time T
+#     with open("/tmp/wavefront_edges.wkt", "w") as fh:
+#         edges = []
+#         for tri in skel.triangles:
+#             sides = []
+#             for i, ngb in enumerate(tri.neighbours):
+#                 if ngb is None:
+#                     sides.append(i)
+#             for side in sides:
+#                 edges.append(Edge(tri, side))
+#         output_edges_at_T(edges, T, fh)
+#     #time.sleep(2)
+#     print "event list"
+#     print "=" * 25
+#     for e in events:
+#         print "*", e
+
+#
+# autoreload for QGIS
+# -------------------
+# within Python console:
+#
+# from PyQt4.QtCore import QFileSystemWatcher
+# 
+# watcher = QFileSystemWatcher()
+# watcher.addPath( '/tmp/wavefront_edges.wkt' )
+# watcher.fileChanged.connect( iface.mapCanvas().refresh )
+#
+
+test_infinite2()
+
+#test_bottom_circle_top_square()
 
 # test_poly()
 # test_flip_loop()

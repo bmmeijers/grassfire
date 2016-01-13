@@ -17,7 +17,10 @@ class Event(object):
 #         return self.time > other.time
 
     def __str__(self):
-        return """<Event at {0:.12f}, triangle: {1}, side: {2}, {3}, type: {4}>""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type)
+        finite_txt = "finite"
+        if not self.triangle.is_finite:
+            finite_txt = "infinite"
+        return """<Event ({3:5s}) at {0:.12f}, triangle: {1}, side: {2}, finite: {5}""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type, finite_txt)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 
@@ -79,7 +82,12 @@ class KineticVertex(object):
         # FIXXME: make other method (dependent on time as argument)
         time = 0
         # 4.281470022378475
-        return "{0[0]} {0[1]}".format(self.position_at(time))
+        return "{0[0]} {0[1]} ".format(self.position_at(time))
+    def __repr__(self):
+        # FIXXME: make other method (dependent on time as argument)
+        time = 0
+        # 4.281470022378475
+        return "#{1}# {0[0]} {0[1]} ".format(self.position_at(time), id(self))
 
     def distance2(self, other):
         """Cartesian distance *squared* to other point """
@@ -172,6 +180,7 @@ class KineticTriangle(object):
         self.vertices = [None, None, None]
         self.neighbours = [None, None, None]
         self.event = None # point back to event, note this might prevent garbage collection (strong cycle)
+        self.info = None
 
     def __str__(self):
         vertices = []
@@ -196,21 +205,49 @@ class KineticTriangle(object):
 
     def str_at(self, t):
         vertices = []
-        for idx in range(3):
-            v = self.vertices[idx]
-            if v is not None:
+        if self.is_finite:
+            for idx in range(3):
+                v = self.vertices[idx]
+    #                if v is not None:
                 vertices.append("{0[0]} {0[1]}".format(v.position_at(t)))
-#             else:
-#                 orig_idx, dest_idx = (idx - 1) % 3, (idx + 1) % 3
-#                 orig, dest = self.vertices[orig_idx], self.vertices[dest_idx]
-#                 halfway = (orig.x + dest.x) * .5, (orig.y + dest.y) * .5
-#                 d = orig.distance(dest)
-#                 dx = dest.x - orig.x
-#                 dx /= d
-#                 dy = dest.y - orig.y
-#                 dy /= d
-#                 O = halfway[0] + dy, halfway[1] - dx 
-#                 vertices.append("{0[0]} {0[1]}".format(O))
+        else:
+            # -- find infinite vertex
+            for infinite in range(3):
+                v = self.vertices[infinite]
+                if isinstance(v, InfiniteVertex):
+                    break
+            # -- finite
+            for idx in range(3):
+                if idx == infinite:
+                    # -- if infinite make halfway
+                    idx = infinite
+                    orig_idx, dest_idx = (idx - 1) % 3, (idx + 1) % 3
+                    orig, dest = self.vertices[orig_idx], self.vertices[dest_idx]
+                    ox, oy = orig.position_at(t) 
+                    dx, dy = dest.position_at(t)
+                    d2 = orig.distance2_at(dest, t)
+                    d = d2 ** 0.5
+                    halfway = (ox + dx) * .5, (oy + dy) * .5
+                    #d = orig.distance(dest)
+                    deltax = dx - ox
+                    deltay = dy - oy
+                    if d != 0: # prevent division by zero (resulting in triangles with undetermined direction)
+                        # normalize
+                        deltax /= d
+                        deltay /= d
+                        # multiply with distance multiplied with sqrt(3) / 2
+                        # (to get equilateral triangle)
+                        sqrt3div2 = 0.866025404
+                        deltax *= d * sqrt3div2
+                        deltay *= d * sqrt3div2
+                    print d
+                    O = halfway[0] + deltay, halfway[1] - deltax 
+                    vertices.append("{0[0]} {0[1]}".format(O))
+                else:
+                    # -- finite vertex
+                    v = self.vertices[idx]
+    #                if v is not None:
+                    vertices.append("{0[0]} {0[1]}".format(v.position_at(t)))
         if vertices:
             vertices.append(vertices[0])
         return "POLYGON(({0}))".format(", ".join(vertices))
@@ -222,10 +259,24 @@ class KineticTriangle(object):
         return self.neighbours.count(None)
 
     @property
-    def finite(self):
+    def is_finite(self):
         return all([isinstance(vertex, KineticVertex) for vertex in self.vertices])
 
 
+def test_perp():
+    kt = KineticTriangle()
+    kva, kvb, kvc = KineticVertex(), KineticVertex(), InfiniteVertex()
+    kva.origin = (0., 0.)
+    kvb.origin = (5., 0.)
+    kvc.origin = (2.5, 4.330127019)
+    kva.velocity = (0.,1.)
+    kvb.velocity = (0.,1.)
+    kvc.velocity = (0.,1.)
+    kt.vertices = [kva, kvb, kvc]
+
+    print kt.str_at(10)
+
+# test_perp()
 #     vec = tuple(map(sub, t.vertices[e], t.vertices[s]))
 #     vec = perp(perp(vec))
 #     opp_angle = atan2(vec[1], vec[0])
