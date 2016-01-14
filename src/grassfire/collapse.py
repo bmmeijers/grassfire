@@ -3,25 +3,39 @@ import logging
 import numpy
 import bisect
 
-from operator import sub
+from operator import sub, add
 from tri.delaunay import cw, ccw, orient2d
 from tri.delaunay import orig, dest, apex
 
 from primitives import Event
 from grassfire.calc import rotate90ccw, near_zero, get_unique_times
-from grassfire.calc import is_close, all_close
+from grassfire.calc import is_close, all_close, vector_mul_scalar
 from grassfire.primitives import InfiniteVertex
+from grassfire.inout import output_edges_at_T, output_triangles_at_T
+
 # ------------------------------------------------------------------------------
 # solve
 
 # def is_similar(a, b, eps=1e-12):
 #     return abs(b - a) <= eps
 
+def find_gt(a, x):
+    """Find leftmost value greater than x"""
+    # -- sort the list
+    L = sorted(a)
+    # -- find leftmost value greater than x, if it is there
+    i = bisect.bisect_right(L, x)
+    if i != len(a):
+        return L[i]
+    else:
+        return None
+
 def find_ge(a, x):
     """Find leftmost item greater than or equal to x"""
-    i = bisect.bisect_left(a, x)
+    L = sorted(a)
+    i = bisect.bisect_left(L, x)
     if i != len(a):
-        return a[i]
+        return L[i]
     else:
         return None
 
@@ -143,90 +157,140 @@ def area_collapse_times(o,d,a):
     return solution
 
 
-class NewEventType(object):
-    def __init__(self, when, tri, sides=None, event_tp=None, how=None, where=None):
-        self.time = when
-        self.triangle = tri
-        self.sides = sides
-        self.event_tp = event_tp
-        self.how = how
-        self.where = where
-
-    def __str__(self):
-        time_str = "--"
-        if self.time is not None:
-            time_str = "{0:.12f}".format(self.time)
-        return """<NewEvent at {0}, triangle: {1}, triangle type: {4}, sides: {2}, event type: {3}, how: {5}, where: {6}>""".format(time_str, id(self.triangle), self.sides, self.event_tp, self.triangle.type, self.how, self.where)
+# class NewEventType(object):
+#     def __init__(self, when, tri, sides=None, event_tp=None, how=None, where=None):
+#         self.time = when
+#         self.triangle = tri
+#         self.sides = sides
+#         self.event_tp = event_tp
+#         self.how = how
+#         self.where = where
+# 
+#     def __str__(self):
+#         time_str = "--"
+#         if self.time is not None:
+#             time_str = "{0:.12f}".format(self.time)
+#         return """<NewEvent at {0}, triangle: {1}, triangle type: {4}, sides: {2}, event type: {3}, how: {5}, where: {6}>""".format(time_str, id(self.triangle), self.sides, self.event_tp, self.triangle.type, self.how, self.where)
 
 def compute_event_0triangle(tri, now):
     # a 0-triangle can:
     # - flip
     # - collapse to a segment?
     # - collapse to a point? -- see circle
+
+    # A triangle that is bounded only by spokes can either collapse
+    # due to a flip event, that is, a vertex can sweep across its oppos-
+    # ing spoke, or because one of its spokes collapses to zero length.
+    # For each edge of a triangle we compute its collapse time, if
+    # it exists. We also compute the time when the triangle's area
+    # becomes zero using the determinant approach.
+    # If the time obtained from the determinant approach is earlier
+    # than any edge collapses this triangle will cause a flip event at
+    # that time.
+    # In the other case two opposing vertices will crash into each
+    # other as a spoke collapses. Some authors, such as Huber in
+    # [Hub12], define this to be a split event because it involves at
+    # least one reflex wavefront vertex. For our purposes we will still
+    # call this an edge event since its handling is identical to the case
+    # where the vanishing spoke was indeed an edge of the wave-
+    # front.
     assert tri.neighbours.count(None) == 0
     o, d, a = tri.vertices
-    times = []
-    # edge collapse times
-    time = collapse_time_edge(o, d)
-    times.append(time)
-    time = collapse_time_edge(d, a)
-    times.append(time)
-    time = collapse_time_edge(a, o)
-    times.append(time)
-    # area collapse times
-    area = area_collapse_times(o, d, a)
-    times.extend(area)
-    # 
-    times = get_unique_times(times)
-    time = find_ge(times, now)
-    if time != None:
+    times_edge_collapse = [
+        collapse_time_edge(o, d),
+        collapse_time_edge(d, a),
+        collapse_time_edge(a, o)
+        ]
+    print times_edge_collapse
+    time_edge_collapse = find_ge(times_edge_collapse, now)
+    print time_edge_collapse
+    time_area_collapse = find_ge(area_collapse_times(o, d, a), now)
+    if time_edge_collapse is None and \
+        time_area_collapse is None:
+        #
+        return None
+    elif time_area_collapse != None and \
+        time_edge_collapse != None and \
+        time_area_collapse < time_edge_collapse:
+        #
+        time = time_area_collapse
+        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
+        largest_dist = max(dists)
+        side = dists.index(largest_dist)
+        tp = "flip"
+        return Event(when=time, tri=tri, side=(side,), tp=tp)
+    elif time_edge_collapse != None:
+        time = time_edge_collapse
+        tp = "edge"
         dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
         zeros = [near_zero(dist) for dist in dists]
         sides_collapse = zeros.count(True)
         if sides_collapse == 3:
-            pa, pb, pc = (o.position_at(time), d.position_at(time), a.position_at(time))
-            avg = []
-            for i in range(2):
-                avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
-            tp = "collapse"
-            how = "point"
-            where = tuple(avg)
             sides = tuple(range(3))
-            return Event(when=time, tri=tri, side=sides, tp="edge")
+            return Event(when=time, tri=tri, side=sides, tp=tp)
         elif sides_collapse == 2:
             # hopefully never happens -- 
             # or some weird robustness error did occur
-            raise ValueError("This is not possible with a triangle") 
+            raise ValueError("This is not possible with a triangle")
         elif sides_collapse == 1:
             smallest_dist = min(dists)
-            side = dists.index(smallest_dist)
-            tp = "collapse"
-            how = "line"
-            where = None
-            end = tri.vertices[side].position_at(time)
-            pts = tri.vertices[cw(side)].position_at(time), tri.vertices[ccw(side)].position_at(time)
-            start = []
-            for i in range(2):
-                start.append(sum(map(lambda x: x[i], pts)) * .5)
-            where = (tuple(start), end)
-            sides = (side,)
-            return Event(when=time, tri=tri, side=sides, tp="edge")
+            sides = (dists.index(smallest_dist),)
+            return Event(when=time, tri=tri, side=sides, tp=tp)
         elif sides_collapse == 0:
-            # no side collapsing? then points get closest as they can
-            # should flip the triangle
-            largest_dist = max(dists)
-            side = dists.index(largest_dist)
-            tp = "flip"
-            how = "--"
-            where = None
-            sides = (side,)
-            return Event(when=time, tri=tri, side=sides, tp="flip")
+            print "now", now
+            print "t_e", time_edge_collapse
+            print "t_a", time_area_collapse
+            raise ValueError("This is not possible -- time_area_collapse should be smaller")
     else:
-        sides = tuple()
-        tp = "--"
-        how = "--"
-        where = None
         return None
+#     if time != None:
+#         dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
+#         zeros = [near_zero(dist) for dist in dists]
+#         sides_collapse = zeros.count(True)
+#         if sides_collapse == 3:
+#             pa, pb, pc = (o.position_at(time), d.position_at(time), a.position_at(time))
+#             avg = []
+#             for i in range(2):
+#                 avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
+#             tp = "collapse"
+#             how = "point"
+#             where = tuple(avg)
+#             sides = tuple(range(3))
+#             return Event(when=time, tri=tri, side=sides, tp="edge")
+#         elif sides_collapse == 2:
+#             # hopefully never happens -- 
+#             # or some weird robustness error did occur
+#             raise ValueError("This is not possible with a triangle") 
+#         elif sides_collapse == 1:
+#             smallest_dist = min(dists)
+#             side = dists.index(smallest_dist)
+#             tp = "collapse"
+#             how = "line"
+#             where = None
+#             end = tri.vertices[side].position_at(time)
+#             pts = tri.vertices[cw(side)].position_at(time), tri.vertices[ccw(side)].position_at(time)
+#             start = []
+#             for i in range(2):
+#                 start.append(sum(map(lambda x: x[i], pts)) * .5)
+#             where = (tuple(start), end)
+#             sides = (side,)
+#             return Event(when=time, tri=tri, side=sides, tp="edge")
+#         elif sides_collapse == 0:
+#             # no side collapsing? then points get closest as they can
+#             # should flip the triangle
+#             largest_dist = max(dists)
+#             side = dists.index(largest_dist)
+#             tp = "flip"
+#             how = "--"
+#             where = None
+#             sides = (side,)
+#             return Event(when=time, tri=tri, side=sides, tp="flip")
+#     else:
+#         sides = tuple()
+#         tp = "--"
+#         how = "--"
+#         where = None
+#         return None
 #     return NewEventType(
 #                     when=time, 
 #                     tri=tri, 
@@ -242,78 +306,127 @@ def compute_event_1triangle(tri, now):
     # - collapse to a segment
     # - flip
     # - be split
+
+    #
+    # The logic for this triangle type is not completely correct
+    
+    # Collapses for triangles with exactly one wavefront edge e appear
+    # in one of two forms:
+    # 1. The wavefront edge can collapse, causing a classic edge
+    # event.
+    # 2. Consider the vertex v which lies opposite the wavefront
+    # edge e. This vertex can crash into e or sweep across its
+    # supporting line.
+    #
+    # In order to determine which of these two cases happens, we
+    # compute both the edge collapse time te of e, as well as the ver-
+    # tex crash time tv of v, using two of the procedures previously
+    # discussed. As always, we ignore collapse times in the past.
+    # If te is earlier than tv or if te equals tv , then this event is an edge
+    # event, as e collapses at that time. If tv happens strictly earlier
+    # than te, then this event is either a split event or a flip event. In
+    # order to classify this event, we compute the length of all sides
+    # of the triangle at time tv . If the longest edge is the wavefront
+    # edge, it is a split event, otherwise it is a flip event.
     assert tri.neighbours.count(None) == 1
-    o, d, a = tri.vertices
+    wavefront_side = tri.neighbours.index(None)
+    o, d, a = tri.vertices[orig(wavefront_side)], tri.vertices[dest(wavefront_side)], tri.vertices[wavefront_side]
     # edge collapse times
-    times = []
-    time = collapse_time_edge(o, d)
-    times.append(time)
-    time = collapse_time_edge(d, a)
-    times.append(time)
-    time = collapse_time_edge(a, o)
-    times.append(time)
+#     times = []
+    time_edge_collapse = find_ge([collapse_time_edge(o, d)], now)
+#     times.append(time)
+#     time = collapse_time_edge(d, a)
+#     times.append(time)
+#     time = collapse_time_edge(a, o)
+#     times.append(time)
+#     times = get_unique_times(times)
+#     time_edge_collapse = find_ge(times, now)
     # area collapse times
-    area = area_collapse_times(o, d, a)
-    times.extend(area)
+#     area = area_collapse_times(o, d, a)
+#     times.extend(area)
     # vertex crash time of the apex into the segment, orig -> dest
-    time = vertex_crash_time(o, d, a)
-    times.append(time)
-    times = get_unique_times(times)
-    time = find_ge(times, now)
-    if time != None:
-        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
-        zeros = [near_zero(dist) for dist in dists]
-        sides_collapse = zeros.count(True)
-        print sides_collapse
-        if sides_collapse == 3:
-            pa, pb, pc = (o.position_at(time), d.position_at(time), a.position_at(time))
-            avg = []
-            for i in range(2):
-                avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
-            tp = "collapse"
-            how = "point"
-            where = tuple(avg)
-            sides = tuple(range(3))
-            return Event(when=time, tri=tri, side=sides, tp="edge")
-        elif sides_collapse == 2:
-            # hopefully never happens -- 
-            # or some weird robustness error did occur
-            raise ValueError("This is not possible with a triangle") 
-        elif sides_collapse == 1:
-            # apex runs into either origin or destination
-            smallest_dist = min(dists)
-            side = dists.index(smallest_dist)
-            tp = "collapse"
-            how = "line"
-            where = None
-            end = tri.vertices[side].position_at(time)
-            pts = tri.vertices[cw(side)].position_at(time), tri.vertices[ccw(side)].position_at(time)
-            start = []
-            for i in range(2):
-                start.append(sum(map(lambda x: x[i], pts)) * .5)
-            where = (tuple(start), end)
-            sides = (side,)
-            return Event(when=time, tri=tri, side=sides, tp="edge")
-        elif sides_collapse == 0:
-            # no side collapsing? then points get closest as they can
-            # should flip the triangle
-            print dists
-            largest_dist = max(dists)
-            side = dists.index(largest_dist)
-            if tri.neighbours[side] == None:
-                tp = "split"
-            else:
-                tp = "flip"
-            how = "--"
-            where = None
-            sides = (side,)
-            return Event(when=time, tri=tri, side=sides, tp=tp)
-    else:
-        sides = tuple()
-        tp = "--"
-        how = "--"
-        where = None
+    time_vertex_crash = find_ge([vertex_crash_time(o, d, a)], now)
+    logging.debug("time edge collapse " + str(time_edge_collapse))
+    logging.debug("time vertex crash " + str(time_vertex_crash))
+    if time_edge_collapse is None and time_vertex_crash is None:
         return None
+    elif time_edge_collapse is not None and (time_edge_collapse < time_vertex_crash or time_edge_collapse == time_vertex_crash):
+        time = time_edge_collapse
+        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
+        print dists
+        tp = "edge"
+        zeros = [near_zero(dist) for dist in dists]
+        sides = [zeros.index(True)]
+    elif time_vertex_crash is not None and time_vertex_crash < time_edge_collapse:
+        # can be either split or flip
+        # take longest side, if that side is wavefront -> split
+        time = time_vertex_crash
+        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
+        max_dist = max(dists)
+        side = dists.index(max_dist)
+        if tri.neighbours[side] == None:
+            tp = "split"
+        else:
+            tp = "flip"
+        sides = [side]
+        return Event(when=time, tri=tri, side=sides, tp=tp)
+    else:
+        return None
+#     if time != None:
+#         dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
+#         zeros = [near_zero(dist) for dist in dists]
+#         sides_collapse = zeros.count(True)
+#         print sides_collapse
+#         if sides_collapse == 3:
+#             pa, pb, pc = (o.position_at(time), d.position_at(time), a.position_at(time))
+#             avg = []
+#             for i in range(2):
+#                 avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
+#             tp = "collapse"
+#             how = "point"
+#             where = tuple(avg)
+#             sides = tuple(range(3))
+#             return Event(when=time, tri=tri, side=sides, tp="edge")
+#         elif sides_collapse == 2:
+#             # hopefully never happens -- 
+#             # or some weird robustness error did occur
+#             raise ValueError("This is not possible with a triangle") 
+#         elif sides_collapse == 1:
+#             # apex runs into either origin or destination
+#             smallest_dist = min(dists)
+#             side = dists.index(smallest_dist)
+#             tp = "collapse"
+#             how = "line"
+#             where = None
+#             end = tri.vertices[side].position_at(time)
+#             pts = tri.vertices[cw(side)].position_at(time), tri.vertices[ccw(side)].position_at(time)
+#             start = []
+#             for i in range(2):
+#                 start.append(sum(map(lambda x: x[i], pts)) * .5)
+#             where = (tuple(start), end)
+#             sides = (side,)
+#             return Event(when=time, tri=tri, side=sides, tp="edge")
+#         elif sides_collapse == 0:
+#             # no side collapsing? then points get closest as they can
+#             # should flip the triangle or vertex runs over side
+#             print dists
+#             largest_dist = max(dists)
+#             side = dists.index(largest_dist)
+#             if tri.neighbours[side] == None:
+#                 time = time_vertex_crash
+#                 tp = "split"
+#             else:
+#                 tp = "flip"
+#             how = "--"
+#             where = None
+#             sides = (side,)
+#             return Event(when=time, tri=tri, side=sides, tp=tp)
+#     else:
+#         sides = tuple()
+#         tp = "--"
+#         how = "--"
+#         where = None
+#         return None
 #     return NewEventType(
 #                     when=time, 
 #                     tri=tri, 
@@ -450,6 +563,8 @@ def compute_event_3triangle(tri, now):
 #                 )
 
 def compute_event_inftriangle(tri, now):
+    # FIXME: negative collapse times are probably the times we are after 
+    # here as the orientation of the triangle is in reverse as well
     for inf_idx, v in enumerate(tri.vertices):
         if isinstance(v, InfiniteVertex):
             break
@@ -511,6 +626,8 @@ def compute_event_inftriangle(tri, now):
 
 def compute_collapse_time(tri, now=0):
     event = None
+    print repr(tri)
+    print now
     if tri.is_finite:
         # finite triangles
         tp = tri.type
@@ -790,7 +907,7 @@ def compute_collapse_time_old(t, now=0):
             assert False, "Problem: flipping 2 triangle not allowed" 
         e = Event(when=collapses_at, 
                      tri=t, 
-                     side=collapses_side, 
+                     side=[collapses_side], 
                      tp=collapses_type)
         t.event = e # weakref.ref(e)
         return e
@@ -1011,3 +1128,65 @@ def area_collapse_time_coeff(kva, kvb, kvc):
         xaorig * ycorig
 #    print "coefficients", A, B, C
     return tuple(map(lambda x: x*0.5, [A, B, C]))
+
+def visualize_collapse(tri, T=0):
+    # write bisectors to file
+    with open("/tmp/bisectors.wkt", "w") as bisector_fh:
+        bisector_fh.write("wkt\n")
+        for kvertex in tri.vertices:
+            p1 = kvertex.origin
+            bi = kvertex.velocity
+            bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(p1, map(add, p1, bi)))
+
+    with open("/tmp/ktris.wkt", "w") as fh:
+        output_triangles_at_T([tri], T, fh)
+
+    with open("/tmp/rays.wkt", "w") as bisector_fh:
+        bisector_fh.write("wkt\n")
+        for kvertex in tri.vertices:
+            p1 = kvertex.origin
+            bi = kvertex.velocity
+            print bi
+            bineg = vector_mul_scalar(bi, -10000.0)
+            bipos = vector_mul_scalar(bi, 10000.0)
+            bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(map(add, p1, bipos), 
+                                                                                  map(add, p1, bineg)))
+
+
+def test_one():
+    from grassfire.primitives import KineticTriangle, KineticVertex
+    from tri.delaunay import orient2d
+    now = 0.
+    #now = 0.633974596216\
+#     now = -0.028312163512768152
+    tri = KineticTriangle(InfiniteVertex((2.4999999999993334, 1.4433756729733331)), KineticVertex((5.86602540378, 0.5), (-0.366025403784139, -1.3660254037845188)), KineticVertex((5.0, -1.0), (1.0, 1.0)), True, True, True)
+
+#     tri = KineticTriangle(
+#         KineticVertex((0.0, -1.0), (-1.0, -1.0)), 
+#         InfiniteVertex((2.4999999999993334, 1.4433756729733331)), 
+#         KineticVertex((5.0, -1.0), (1.0, -1.0)), 
+#         True, None, True)
+
+    # tri = KineticTriangle(KineticVertex((-0.866025403784, 0.5), (0.3660254037831927, -1.3660254037847726)), KineticVertex((0.0, -1.0), (-1.0, 1.0)), KineticVertex((5.86602540378, 0.5), (-0.366025403784139, -1.3660254037845188)), True, True, True)
+    evt = compute_collapse_time(tri, now)
+#     import matplotlib.pyplot as plt
+#     areas = []
+#     times = range(-10, 20)
+#     for t in times:
+#         area = orient2d(tri.vertices[0].position_at(t),
+#                         tri.vertices[1].position_at(t), 
+#                         tri.vertices[2].position_at(t)
+#                     )
+#         areas.append(area)
+#     plt.plot(times, areas)
+#     plt.grid(True)
+#     plt.show()
+
+    if evt != None:
+        t = evt.time
+    else:
+        t = now
+    visualize_collapse(tri, t)
+
+if __name__ == "__main__":
+    test_one()

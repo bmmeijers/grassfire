@@ -1,17 +1,17 @@
 from tri import ToPointsAndSegments, triangulate
-from io import output_dt, output_offsets, output_skel
-from initialize import init_skeleton
-from events import init_event_list, event_loop
+from grassfire.inout import output_dt, output_offsets, output_skel
+from grassfire.initialize import init_skeleton
+from grassfire.events import init_event_list, event_loop
 
 __all__ = ["calc_skel"]
 # ------------------------------------------------------------------------------
 # test cases
 
-def calc_skel(conv, pause=False, output=False):
+def calc_skel(conv, pause=False, output=True):
     """Perform the calculation of the skeleton, given 
     points, info and segments
     """
-    from io import output_triangles, output_kvertices
+    from grassfire.inout import output_triangles, output_kvertices
     from operator import add
 
     dt = triangulate(conv.points, None, conv.segments)
@@ -36,7 +36,7 @@ def calc_skel(conv, pause=False, output=False):
     el = init_event_list(skel)
     event_loop(el, skel, pause)
  
-    if output:
-        output_offsets(skel)
-        output_skel(skel)
+#     if output:
+    output_offsets(skel)
+    output_skel(skel)
     return skel

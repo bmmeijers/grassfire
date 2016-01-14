@@ -1,6 +1,7 @@
 import logging
 
 from operator import add
+from time import sleep
 
 from tri.delaunay import apex, orig, dest, cw, ccw, Edge
 from oseq import OrderedSequence
@@ -9,24 +10,10 @@ from oseq import OrderedSequence
 from grassfire.primitives import SkeletonNode, KineticVertex
 from grassfire.calc import perp, bisector, rotate180, vector_mul_scalar
 from grassfire.collapse import compute_collapse_time, is_close
-from grassfire.io import output_kdt
+from grassfire.inout import output_kdt, output_edges_at_T, output_triangles_at_T
 from grassfire.initialize import check_ktriangles
 from grassfire.calc import all_close
 
-def output_edges_at_T(edges, T, fh):
-    fh.write("id;side;wkt\n")
-    for e in edges:
-        segment = e.segment
-        s = segment[0].position_at(T), segment[1].position_at(T)
-        fh.write("{0};{1};LINESTRING({2[0][0]} {2[0][1]}, {2[1][0]} {2[1][1]})\n".format(id(e.triangle), e.side, s))
-
-def output_triangles_at_T(tri, T, fh):
-    """Output list of triangles as WKT to text file (for QGIS)"""
-    fh.write("id;time;wkt;n0;n1;n2;v0;v1;v2;finite;info\n")
-    for t in tri:
-        if t is None:
-            continue
-        fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), t.str_at(T), [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.is_finite, t.info, T))
 
 def compare_event_by_time(one, other):
     # compare by time
@@ -621,7 +608,8 @@ def event_loop(queue, skel, pause=False):
                 for side in sides:
                     edges.append(Edge(tri, side))
             output_edges_at_T(edges, NOW, fh)
-    visualize(queue, skel, 0.0005)
+    prev_time = 0.0000001
+    visualize(queue, skel, prev_time)
     print "visualize start"
 #     if pause:
 #         raw_input("paused at start")
@@ -645,7 +633,17 @@ def event_loop(queue, skel, pause=False):
                     pass
 #         visualize(queue, skel, NOW-0.001)
         # log what is in the queue
+        if False:
+            # -- use this for getting progress visualization
+            delta = NOW - prev_time
+            ct = 10
+            step_time = delta / ct
+            for i in range(ct -1):
+                prev_time += step_time
+                visualize(queue, skel, prev_time + step_time)
+                sleep(1.)
         visualize(queue, skel, NOW)
+        prev_time = NOW
         logging.info("=" * 80)
         for i, e in enumerate(queue):
             logging.info("{0} {1}".format(i, e))

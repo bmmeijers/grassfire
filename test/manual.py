@@ -785,12 +785,14 @@ def helper_make_test_collapse_time():
 
 
 def test_flip_loop():
-    """
+    """This has an infinite sequence in there...
     """
     conv = ToPointsAndSegments()
     ring = [ (0,0), (3,0), (3.8,2), (4,0), (6,0), (6.3, 2), (7,0), (10,0), (13,4), (10,5), (7,5), (6.5, 3), (6,5), (4,5), (3.5,3), (3,5), (0,5), (-2,2), (0,0)]
     conv.add_polygon([ring])
     skel = calc_skel(conv, pause=True, output=True)
+
+# test_flip_loop()
 
 def test_flip_loop2():
     """This makes an infinite event loop with infinite triangles (because of flipping)!
@@ -800,12 +802,15 @@ def test_flip_loop2():
     conv.add_polygon([ring])
     skel = calc_skel(conv, pause=True, output=True)
 
+# test_flip_loop2()
+
 def test_inf_quad():
     conv = ToPointsAndSegments()
     ring = [(0,0), (4.2,5.4), (6.9,0.05), (10,2), (5,10), (0,0)]
     conv.add_polygon([ring])
     skel = calc_skel(conv, pause=True, output=True)
 
+test_inf_quad()
 
 def test_inf_flat():
     conv = ToPointsAndSegments()
@@ -974,13 +979,13 @@ def test_infinite3():
 # within Python console:
 #
 # from PyQt4.QtCore import QFileSystemWatcher
-# 
+#  
 # watcher = QFileSystemWatcher()
-# watcher.addPath( '/tmp/wavefront_edges.wkt' )
+# watcher.addPath( '/tmp/wavefront_edges_progress.wkt' )
 # watcher.fileChanged.connect( iface.mapCanvas().refresh )
-#
 
-test_infinite2()
+
+# test_infinite2()
 
 #test_bottom_circle_top_square()
 

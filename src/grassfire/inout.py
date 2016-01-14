@@ -3,6 +3,22 @@ from tri.delaunay import TriangleIterator, FiniteEdgeIterator
 # ------------------------------------------------------------------------------
 # output
 
+def output_edges_at_T(edges, T, fh):
+    fh.write("id;side;wkt\n")
+    for e in edges:
+        segment = e.segment
+        s = segment[0].position_at(T), segment[1].position_at(T)
+        fh.write("{0};{1};LINESTRING({2[0][0]} {2[0][1]}, {2[1][0]} {2[1][1]})\n".format(id(e.triangle), e.side, s))
+
+def output_triangles_at_T(tri, T, fh):
+    """Output list of triangles as WKT to text file (for QGIS)"""
+    fh.write("id;time;wkt;n0;n1;n2;v0;v1;v2;finite;info\n")
+    for t in tri:
+        if t is None:
+            continue
+        fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), t.str_at(T), [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.is_finite, t.info, T))
+
+
 def output_kdt(skel, time):
 #     time = 0
     with open("/tmp/ktris.wkt", "w") as fh:
