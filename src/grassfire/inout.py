@@ -47,12 +47,12 @@ def output_kdt(skel, time):
             if (v.starts_at <= time and v.stops_at >= time) or v.stops_at is None:
                 fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.position_at(time), id(v.left), id(v.right)))
 
-def output_kvertices(V, fh):
+def output_vertices_at_T(V, T, fh):
     """Output list of vertices as WKT to text file (for QGIS)"""
     fh.write("id;wkt;left cw;right ccw\n")
     for v in V:
 #         if v.stops_at is not None:
-            fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.position_at(2.3), id(v.left), id(v.right)))
+        fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.position_at(T), id(v.left), id(v.right)))
 
 def output_dt(dt):
     with open("/tmp/vertices.wkt", "w") as fh:
@@ -83,10 +83,12 @@ def output_offsets(skel):
 
     with open("/tmp/offsetsr.wkt", "w") as fh:
         fh.write("wkt\n")
-        for t in range(0, 100):
+        for t in range(0, 1000):
             t *= .2
             for v in skel.vertices:
-                if v.starts_at <= t and v.stops_at > t: # finite ranges only (not None is filtered out)
+                if v.starts_at <= t and v.stops_at > t or \
+                    (v.starts_at <= t and v.stops_at is None):
+                # finite ranges only (not None is filtered out)
                     try:
                         s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(t), 
                                                                               v.right_at(t).position_at(t))

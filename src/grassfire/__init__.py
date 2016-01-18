@@ -11,7 +11,8 @@ def calc_skel(conv, pause=False, output=True):
     """Perform the calculation of the skeleton, given 
     points, info and segments
     """
-    from grassfire.inout import output_triangles, output_kvertices
+    from tri.delaunay import Edge
+    from grassfire.inout import output_triangles, output_vertices_at_T, output_edges_at_T
     from operator import add
 
     dt = triangulate(conv.points, None, conv.segments)
@@ -19,7 +20,6 @@ def calc_skel(conv, pause=False, output=True):
     if output:
         output_dt(dt)
     skel = init_skeleton(dt)
-
     if output:
         # write bisectors to file
         with open("/tmp/bisectors.wkt", "w") as bisector_fh:
@@ -31,7 +31,14 @@ def calc_skel(conv, pause=False, output=True):
         with open("/tmp/ktris.wkt", "w") as fh:
             output_triangles(skel.triangles, fh)
         with open("/tmp/kvertices.wkt", "w") as fh:
-            output_kvertices(skel.vertices, fh)
+            output_vertices_at_T(skel.vertices, 0,fh)
+        with open("/tmp/initial_edges.wkt", "w") as fh:
+            edges = []
+            for t in skel.triangles:
+                for side, n in enumerate(t.neighbours):
+                    if n is None:
+                        edges.append(Edge(t, side))
+            output_edges_at_T(edges, 0, fh)
 # #     tmp_events(skel)
     el = init_event_list(skel)
     event_loop(el, skel, pause)

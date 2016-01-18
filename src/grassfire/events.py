@@ -536,18 +536,19 @@ def flip(t0, side0, t1, side1):
 def event_loop(queue, skel, pause=False):
     def visualize(queue, skel, NOW):
         with open('/tmp/queue.wkt', 'w') as fh:
-            fh.write("pos;wkt;evttype;tritype;id;n0;n1;n2;finite\n")
+            fh.write("pos;wkt;evttype;evttime;tritype;id;n0;n1;n2;finite\n")
             for i, evt in enumerate(queue):
-                fh.write("{0};{1};{2};{3};{4};{5};{6};{7};{8}\n".format(
+                fh.write("{0};{1};{2};{3};{4};{5};{6};{7};{8};{9}\n".format(
                         i,
                         evt.triangle.str_at(NOW),
                         evt.tp,
+                        evt.time,
                         evt.triangle.type,
                         id(evt.triangle),
                         id(evt.triangle.neighbours[0]),
                         id(evt.triangle.neighbours[1]),
                         id(evt.triangle.neighbours[2]),
-                        evt.triangle.is_finite
+                        evt.triangle.is_finite,
                     )
                 )
         with open('/tmp/ktri_progress.wkt', 'w') as fh:
@@ -597,6 +598,7 @@ def event_loop(queue, skel, pause=False):
 #                     if kvertex.start_node is not None and kvertex.stop_node is not None:
 #                         fh0.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(kvertex.starts_at), id(kvertex)))
 #                     else:
+                if kvertex.stop_node is None:
                     fh1.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(NOW), id(kvertex)))
         with open("/tmp/wavefront_edges_progress.wkt", "w") as fh:
             edges = []
@@ -608,7 +610,7 @@ def event_loop(queue, skel, pause=False):
                 for side in sides:
                     edges.append(Edge(tri, side))
             output_edges_at_T(edges, NOW, fh)
-    prev_time = 0.0000001
+    NOW = prev_time = 0.0000001
     visualize(queue, skel, prev_time)
     print "visualize start"
 #     if pause:
@@ -703,6 +705,7 @@ def event_loop(queue, skel, pause=False):
 #         try:
         check_ktriangles(skel.triangles, NOW)
         visualize(queue, skel, NOW)
+        print NOW
         print "after"
 #             raw_input("paused")
         #         except AssertionError:

@@ -20,7 +20,7 @@ class Event(object):
         finite_txt = "finite"
         if not self.triangle.is_finite:
             finite_txt = "infinite"
-        return """<Event ({3:5s}) at {0:.12f}, {4}-triangle: {1}, side: {2}, finite: {5}""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type, finite_txt)
+        return """<Event ({3:5s}) at {0:.12f}, {4}-triangle: {1}, side: {2}, finite: {5}>""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type, finite_txt)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 
@@ -180,10 +180,13 @@ class InfiniteVertex(object): # Stationary Vertex
 #         return (0,0)
 
 class KineticTriangle(object):
-    def __init__(self, v0=None, v1=None, v2=None, n0=None, n1=None, n2=None):
+    def __init__(self, v0=None, v1=None, v2=None, 
+                       n0=None, n1=None, n2=None):
         self.vertices = [v0, v1, v2]
         self.neighbours = [n0, n1, n2]
-        self.event = None # point back to event, note this might prevent garbage collection (strong cycle)
+        self.event = None # point back to event, 
+                            # note this might prevent 
+                            # garbage collection (strong cycle)
         self.info = None
 
     def __repr__(self):
