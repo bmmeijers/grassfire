@@ -126,25 +126,29 @@ def vertex_crash_time(org, dst, apx):
 #     # if the two vertices are the same, the vector is undetermined!!!
 #     # for terminal vertices this may be a problem! -> 
 #     # the vector is known though (it is perpendicular to the original segment in this case!)
-#     n = rotate90ccw(norm(map(sub, dst.origin, org.origin)))
-
     logging.debug("Vector Mv: " + str(Mv))
-    
-    
-#     n = map(add, norm(org.velocity), norm(dst.velocity))
-#     n = vector_mul_scalar(map(add, norm(org.velocity), norm(dst.velocity)), 0.5)
-    
-    m = map(sub, dst.origin, org.origin)
-    m = norm(m) # normalize m
-    n = rotate90ccw(m) # take perpendicular vector
-#     print n
-    endpt = map(add, org.origin, n)
-    print "origin", org.origin
-    print "endpt", endpt
-    
+    if org.origin == dst.origin:
+        # wavefront does not have length:
+        # we assume the two velocity vectors are perpendicular
+        # as this then should be a 1-terminal vertex
+        assert dot(org.velocity, dst.velocity) == 0
+        # we add them and we normalize to get a unit vector
+        n = norm(map(add, org.velocity, dst.velocity))
+    else:
+        # get vector m from begin to end of wavefront
+        m = map(sub, dst.origin, org.origin)
+        # normalize m
+        m = norm(m)
+        # take perpendicular vector to get normal to wavefront
+        # that points in direction where wavefront is moving to
+        n = rotate90ccw(m)
+
+    # output wavefront normal for visualization
+    halfpt = vector_mul_scalar(map(add, org.origin, dst.origin), 0.5)
+    endpt = map(add, halfpt, n)
     with open("/tmp/wavefront_normal.wkt", "w") as fh:
         fh.write("wkt\n")
-        l = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(org.origin, endpt)
+        l = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(halfpt, endpt)
         fh.write(l + "\n")
 
     logging.debug("Vector n: " + str(n))
@@ -153,12 +157,12 @@ def vertex_crash_time(org, dst, apx):
 #     logging.debug("Vector nn (normalized n): " + str(nn))
     # project Mv onto normalized unit vector pointing outwards of wavefront edge
     # this gives distance from vertex to wavefront edge
-    dist_v_e = dot(Mv, n)
+    dist_v_e = dot(Mv, norm(n))
     logging.debug("Distance wavefront -- vertex: " + str(dist_v_e))
     # Speed vector of vertex v: s
     s = apx.velocity
     # Unit vector of wavefront edge in opposite direction
-    n_ = vector_mul_scalar(n, -1.0)
+    n_ = vector_mul_scalar(norm(n), -1.0)
     # Length of projection of s onto nn
     s_proj = dot(s, n_)
     logging.debug("Per time unit v travels " + str(s_proj))
@@ -1219,14 +1223,14 @@ def test_compute_collapse_times():
 
     cases = [
     # infinite 0-triangle
-    (0, 
+    (0,
     KineticTriangle(InfiniteVertex((2., 4.)), 
                     KineticVertex((2., 0.), (-0.5, -0.5)), 
                     KineticVertex((1., 1.), (0.5, 0.)), True, True, True),
     (1.211102550928, "flip")),
 
     # infinite 0-triangle
-    (0, 
+    (0,
     KineticTriangle(InfiniteVertex((1., 4.)), 
                     KineticVertex((2., 0.), (-0.5, -0.5)), 
                     KineticVertex((0., 0.), (0.5, -0.5)), True, True, True),
@@ -1249,42 +1253,26 @@ def test_compute_collapse_times():
     # finite 1-triangle
     # miss edge
     (0, 
-    KineticTriangle(KineticVertex((2., 4.), (0., -0.5)), 
-                    KineticVertex((2., 0.), (0., +.5)), 
-                    KineticVertex((0., 0.), (0., +.5)), None, True, True),
+    KineticTriangle(KineticVertex((2., 4.), (0., -0.5)),
+                    KineticVertex((0., 0.), (0., +.5)), 
+                    KineticVertex((2., 0.), (0., +.5)),  None, True, True),
     None),
 
 
     # finite 1-triangle
     (0, 
-    KineticTriangle(KineticVertex((1., 4.), (0., -0.5)), 
-                    KineticVertex((2., 0.), (0., .5)), 
-                    KineticVertex((0., 0.), (0., .5)), None, True, True),
-    (4.0, "split")),
+    KineticTriangle(KineticVertex((1., 4.), (0., -0.5)),  
+                    KineticVertex((0., 0.), (0., 1.)), 
+                    KineticVertex((2., 0.), (0., 1.)),None, True, True),
+    ( 2.666666666667, "split")),
 
     # finite 1-triangle
     # rot-0
     (0, 
     KineticTriangle(KineticVertex((1., 4.), (0., -0.5)), 
-                    KineticVertex((2., 0.), (0., +1.0)), 
                     KineticVertex((0., 0.), (0., +1.0)), 
+                    KineticVertex((2., 0.), (0., +1.0)), 
                     None, True, True),
-    (2.666666666666666666, "split")),
-    # finite 1-triangle
-    # rot-1
-    (0, 
-    KineticTriangle(KineticVertex((0., 0.), (0., +1.0)),
-                    KineticVertex((1., 4.), (0., -0.5)), 
-                    KineticVertex((2., 0.), (0., +1.0)),
-                    True, None, True),
-    (2.666666666666666666, "split")),
-     # finite 1-triangle
-    # rot-2
-    (0, 
-    KineticTriangle(KineticVertex((0., 0.), (0., +1.0)),
-                    KineticVertex((2., 0.), (0., +1.0)),
-                    KineticVertex((1., 4.), (0., -0.5)), 
-                    True, True, None),
     (2.666666666666666666, "split")),
 
     # finite 1-triangle -- wavefront edge collapses
@@ -1308,6 +1296,7 @@ def test_compute_collapse_times():
     (0,
      KineticTriangle(KineticVertex((11.1, 0.0), (-0.41421356237309614, 1.0)), KineticVertex((14.0, 10.0), (-0.41434397951188867, -1.0828510849683515)), KineticVertex((-33.307692307692705, 2.115384615384554), (9.300198345114286, 0.536239302469343)), None, True, True),
      (4.569105324086005, "split")),
+
     # 3-triangle
     (0, 
     KineticTriangle(KineticVertex((0., 0.), (0.5, 0.5)), 
@@ -1316,12 +1305,13 @@ def test_compute_collapse_times():
                     None, None, None), 
     (1.2, "edge")),
 
+    # 2-triangle collapse to point    
     (0,
      KineticTriangle(KineticVertex((11.1, 0.0), (-0.41421356237309614, 1.0)), KineticVertex((9.0, 0.0), (0.024984394500786274, 1.0)), KineticVertex((11.0, -0.1), (-0.39329937395053033, 1.0209141884225659)), None, None, True),
-     (0, "what"))
+     (4.781443007949, "edge"))
 
     ]
-    do_test = False
+    do_test = True
     if do_test:
         for i, (now, tri, expected) in enumerate(cases, start = 0):
             print
@@ -1337,7 +1327,7 @@ def test_compute_collapse_times():
                 assert evt is expected
 
     now = 0.0
-#     now = 4.781443007949
+    now = 4.781443007949
     tri = cases[11][1]
  
     try:
@@ -1388,8 +1378,8 @@ def test_solve():
     print solve_quadratic(A, B, C) == [-2.0, -1.0]
 
 def main():
-#     test_compute_collapse_times()
-    test_one_collapse()
+    test_compute_collapse_times()
+#     test_one_collapse()
 
 def test_one_collapse():
     
