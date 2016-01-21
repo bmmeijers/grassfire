@@ -38,7 +38,8 @@ def find_gt(a, x):
 
 def find_gte(a, x):
     """Find leftmost item greater than or equal to x"""
-    L = sorted(a)
+    # -- filter None values and sort
+    L = sorted(filter(lambda x: x is not None, a))
     i = bisect.bisect_left(L, x)
     if i != len(a):
         return L[i]
@@ -408,10 +409,10 @@ def compute_event_1triangle(tri, now):
     # what are the times the triangle collapses
     print "area_collapse at " + str(solve_quadratic(*area_collapse_time_coeff(*tri.vertices)))
     # edge collapse times
-    time_edge_collapse = find_gt([collapse_time_edge(ow, dw)], now)
+    time_edge_collapse = find_gte([collapse_time_edge(ow, dw)], now)
     logging.debug([collapse_time_edge(ow, dw), collapse_time_edge(dw, aw), collapse_time_edge(aw, ow)])
     # vertex crash time of the opposite vertex into the wavefront edge
-    time_vertex_crash = find_gt([vertex_crash_time(ow, dw, aw)], now)
+    time_vertex_crash = find_gte([vertex_crash_time(ow, dw, aw)], now)
     logging.debug("time edge collapse " + str(time_edge_collapse))
     logging.debug("time vertex crash " + str(time_vertex_crash))
     if time_edge_collapse is None and time_vertex_crash is None:
@@ -527,7 +528,7 @@ def compute_event_2triangle(tri, now):
         time = collapse_time_edge(a, o)
         times.append(time)
     times = get_unique_times(times)
-    time = find_gt(times, now)
+    time = find_gte(times, now)
     if time != None:
         dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
         logging.debug("distances at time = {1}: {0}".format(dists, time))
@@ -537,7 +538,7 @@ def compute_event_2triangle(tri, now):
             for side, _ in enumerate(tri.neighbours):
                 if _ is not None:
                     break
-            sides = (side,) # take the side that is 
+            sides = (side,) # take the side that is not None (has a neighbour)
             return Event(when=time, tri=tri, side=sides, tp="edge")
         elif sides_collapse == 2:
             # hopefully never happens -- 
@@ -635,7 +636,7 @@ def compute_event_inftriangle(tri, now):
                 return None
 #                 tp = "edge"
 #                 return Event(when=time, tri=tri, side=(side,), tp=tp)
-    time = find_gt(area_collapse_times(o, d, a), now)
+    time = find_gte(area_collapse_times(o, d, a), now)
     # if time != None and not near_zero(time - now):
     if time:
         dist = o.distance2_at(d, time)
@@ -1156,7 +1157,8 @@ def solve_quadratic(A, B, C):
         return [-C/B]
     elif near_zero(A) and near_zero(B):
         # No solution, line parallel to the x-axis, not crossing the x-axis
-        raise NotImplementedError("Not done yet")
+        # raise NotImplementedError("Not done yet")
+        return []
     T = -B / A  # a + d
     D = C / A   # a*d - b*c
     centre = T * 0.5

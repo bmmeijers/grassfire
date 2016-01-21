@@ -173,6 +173,7 @@ def handle_edge_event(evt, skel, queue):
 #         logging.debug("skipping handling of infinite triangle")
 #         return
 #     print "TYPE", t.type
+    logging.debug(evt.side)
     e = evt.side[0] # pick first side
     now = evt.time
     v0 = t.vertices[(e) % 3]
@@ -206,9 +207,14 @@ def handle_edge_event(evt, skel, queue):
         logging.debug("handle event for 2 triangle that collapses completely")
         # all 3 sides collapse at the same time
 #         raise NotImplementedError("problem")
+        print "v0", id(v0)
+        print "v1", id(v1)
+        print "v2", id(v2)
+        print "v1.right", id(v1.right)
+        print "v2.left", id(v2.left)
         sk_node = stop_kvertices3(v0, v1, v2, now)
         kv = compute_new_kvertex(v2.left, v1.right, now, sk_node)
-        update_circ(kv, v1.right, v2.left, now)
+        update_circ(kv, v2.left, v1.right, now)
         # add to skeleton structure
         skel.sk_nodes.append(sk_node)
         skel.vertices.append(kv)
@@ -222,30 +228,47 @@ def handle_edge_event(evt, skel, queue):
         a = t.neighbours[(e+1) % 3]
         b = t.neighbours[(e+2) % 3]
         n = t.neighbours[e]
-#         print "a.", id(a)
-#         print "b.", id(b)
-#         print "n.", id(n)
+        assert a is None
+        assert b is None
+        assert n is not None
+        print "a.", id(a)
+        print "b.", id(b)
+        print "n.", id(n)
 #         print "-" * 20
-        if a is not None:
-            a_idx = a.neighbours.index(t)
-#             print "changing neighbour a"
-#             print "SIMILAR COLLAPSE TIME", is_similar(a.event.time, now)
-            a.neighbours[a_idx] = b
-            replace_kvertex(a, v2, kv, now, cw, queue)
-        if b is not None:
-#             print "changing neighbour b"
-#             print "SIMILAR COLLAPSE TIME", is_similar(b.event.time, now)
-            b_idx = b.neighbours.index(t)
-            b.neighbours[b_idx] = a
-            replace_kvertex(b, v1, kv, now, ccw, queue)
-        if n is not None:
-            # blank out our neighbour
-            n_idx = n.neighbours.index(t)
+#         if a is not None:
+#             a_idx = a.neighbours.index(t)
+# #             print "changing neighbour a"
+# #             print "SIMILAR COLLAPSE TIME", is_similar(a.event.time, now)
+#             a.neighbours[a_idx] = b
+#             replace_kvertex(a, v2, kv, now, cw, queue)
+#         if b is not None:
+# #             print "changing neighbour b"
+# #             print "SIMILAR COLLAPSE TIME", is_similar(b.event.time, now)
+#             b_idx = b.neighbours.index(t)
+#             b.neighbours[b_idx] = a
+#             replace_kvertex(b, v1, kv, now, ccw, queue)
+        # blank out our neighbour
+        n_idx = n.neighbours.index(t)
 #             n.neighbours[n_idx] = None
-#             print "ALSO DEAL WITH ", id(n)
-#             print "SIMILAR COLLAPSE TIME", is_similar(n.event.time, now)
-            if n.event != None:
-                replace_in_queue(n, n.event.time, queue)
+        print "ALSO DEAL WITH ",  n.type, "-triangle", id(n)
+        if n.type == 0 and n.event is None:
+            replace_kvertex(n, v1, kv, now, cw, queue)
+            replace_kvertex(n, v2, kv, now, ccw, queue)
+            # we have a neighbouring 0 triangle
+            # that collapses at side `n_idx`
+            n0 = n.neighbours[(n_idx) % 3]
+            n1 = n.neighbours[(n_idx+1) % 3]
+            n2 = n.neighbours[(n_idx+2) % 3]
+            assert n0 is t
+            n1_side = n1.neighbours.index(n)
+            n2_side = n2.neighbours.index(n)
+            n1.neighbours[n1_side] = n2
+            n2.neighbours[n2_side] = n1
+            n.neighbours = [None, None, None]
+            n.vertices = [None, None, None]
+            skel.triangles.remove(n)
+        elif n.event != None:
+            replace_in_queue(n, n.event.time, queue)
 #             assert side == n_idx
     #         tp = n.event.tp
             # FIXME: schedule immediately
@@ -614,12 +637,12 @@ def event_loop(queue, skel, pause=False):
             output_edges_at_T(edges, NOW, fh)
     NOW = prev_time = 0.01
     visualize(queue, skel, prev_time)
+    for e in queue:
+            print e.time.as_integer_ratio(), e
     print "visualize start"
 #     if pause:
 #         raw_input("paused at start")
     while queue:
-        for e in queue:
-            print e.time.as_integer_ratio(), e
 #         print queue
         peek = next(iter(queue))
 #         print peek.time
@@ -642,7 +665,7 @@ def event_loop(queue, skel, pause=False):
         if False:
             # -- use this for getting progress visualization
             delta = NOW - prev_time
-            ct = 20
+            ct = 10
             step_time = delta / ct
             for i in range(ct -1):
                 prev_time += step_time
@@ -710,6 +733,8 @@ def event_loop(queue, skel, pause=False):
         check_ktriangles(skel.triangles, NOW)
         visualize(queue, skel, NOW)
         print NOW
+        for e in queue:
+            print e.time.as_integer_ratio(), e
         print "after"
 #             raw_input("paused")
         #         except AssertionError:

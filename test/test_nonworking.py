@@ -24,21 +24,6 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         skel = calc_skel(conv)
 #         return
 
-
-    def test_sharp_v(self):
-        """sharp v polyline
-        """
-        conv = ToPointsAndSegments()
-#         l0 = [(0.0, -1.0), (5.0, -1.0)]
-        l1 = [(0, 0.5), (1,1)]
-        l2 = [(1,1), (0.5, 0)]
-        for line in l1, l2:
-            conv.add_point(line[0])
-            conv.add_point(line[1])
-            conv.add_segment(*line)
-        skel = calc_skel(conv)
-        return
-
 #     def test_cocirculair_2(self):
 #         """2 segments with terminal vertices at convex hull
 #         """
@@ -145,6 +130,13 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         conv.add_polygon(polygon)
 #         skel = calc_skel(conv)
 
+
+
+#     def test_quad(self):
+#         ring = [(1,0), (0, 5), (1,10), (2, 5), (1,0)]
+#         conv = ToPointsAndSegments()
+#         conv.add_polygon([ring])
+#         skel = calc_skel(conv)
 #     def test_diamant(self):
 #         conv = ToPointsAndSegments()
 #         conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
@@ -174,6 +166,9 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         skel = calc_skel(conv)
 #         assert len(skel.segments()) == (7+6)
 # 
+
+
+
 #     def test_cross(self):
 #         ring = [(0,0), (10, 0), (10,-10), (15, -10), (15,0), (25,0), (25,5), (15,5), (15,15), (10,15), (10,5), (0,5), (0,0)]
 #         conv = ToPointsAndSegments()
