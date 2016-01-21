@@ -20,7 +20,7 @@ class Event(object):
         finite_txt = "finite"
         if not self.triangle.is_finite:
             finite_txt = "infinite"
-        return """<Event ({3:5s}) at {0:.12f}, {4}-triangle: {1}, side: {2}, finite: {5}>""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type, finite_txt)
+        return """<Event ({3:5s}) at {0:.52g}, {4}-triangle: {1}, side: {2}, finite: {5}>""".format(self.time, id(self.triangle), self.side, self.tp, self.triangle.type, finite_txt)
 
 class Skeleton(object):
     """Represents a Straight Skeleton 

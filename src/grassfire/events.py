@@ -46,7 +46,6 @@ def init_event_list(skel):
     logging.debug("Calculate events")
     for tri in skel.triangles:
         res = compute_collapse_time(tri)
-        logging.debug("{0} {1}".format(id(tri), res))
         if res is not None:
             q.add(res)
     return q
@@ -169,7 +168,6 @@ def handle_edge_event(evt, skel, queue):
 #     print "Processing edge event"
 #     print "=" * 20
 #     print evt
-    
     t = evt.triangle
 #     if not t.is_finite:
 #         logging.debug("skipping handling of infinite triangle")
@@ -243,7 +241,7 @@ def handle_edge_event(evt, skel, queue):
         if n is not None:
             # blank out our neighbour
             n_idx = n.neighbours.index(t)
-            n.neighbours[n_idx] = None
+#             n.neighbours[n_idx] = None
 #             print "ALSO DEAL WITH ", id(n)
 #             print "SIMILAR COLLAPSE TIME", is_similar(n.event.time, now)
             if n.event != None:
@@ -342,7 +340,7 @@ def handle_edge_event(evt, skel, queue):
 #             print "SIMILAR COLLAPSE TIME", is_similar(n.event.time, now)
             n_idx = n.neighbours.index(t)
 #             print "ALSO DEAL WITH ", id(n)
-            print "SHOULD DO SOMETHING HERE (~ l.365)"
+            print "SHOULD DO SOMETHING HERE (~ l.345)"
             print "neighbour = ", id(n), n.event
 #             side = n.event.side
 #             assert side == n_idx
@@ -356,7 +354,7 @@ def handle_edge_event(evt, skel, queue):
 #             handle_immediately(n, n_idx, queue)
     #         n.event = new
     #         queue.add(new)
-            n.neighbours[n_idx] = None
+#             n.neighbours[n_idx] = None
             schedule_immediately(n, now, queue)
 #             handle_immediately(triangle, side, queue)# --> find triangle in the event queue!
 #         print "updated neighbours"
@@ -366,8 +364,8 @@ def handle_edge_event(evt, skel, queue):
 #             print "b.", b.neighbours[b_idx]
 #         if n is not None:
 #             print "n.", n.neighbours[n_idx]
-    t.neighbours = [None, None, None]
-    t.vertices = [None, None, None]
+#     t.neighbours = [None, None, None]
+#     t.vertices = [None, None, None]
     skel.triangles.remove(t)
 #     raw_input("PAUSED (~l.391)")
 
@@ -585,11 +583,15 @@ def event_loop(queue, skel, pause=False):
                     bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(p1, map(add, p1, vector_mul_scalar
                                                                                                   (bi, 0.1))))
         with open("/tmp/segments_progress.wkt", "w") as fh:
-            fh.write("wkt\n")
+            fh.write("wkt;finished\n")
             for kvertex in skel.vertices:
                 if kvertex.start_node is not None and kvertex.stop_node is not None:
                     start, end = kvertex.start_node.pos, kvertex.stop_node.pos
-                    fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(start, end))
+                    fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2}\n".format(start, end, True))
+                elif kvertex.start_node is not None and kvertex.stop_node is None:
+                    start, end = kvertex.start_node.pos, kvertex.position_at(NOW)
+                    fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2}\n".format(start, end, False))
+                    
 #         with open("/tmp/vertices0_progress.wkt", 'w') as fh0:
         with open("/tmp/vertices1_progress.wkt", 'w') as fh1:
 #             fh0.write("id;wkt\n")
@@ -610,12 +612,14 @@ def event_loop(queue, skel, pause=False):
                 for side in sides:
                     edges.append(Edge(tri, side))
             output_edges_at_T(edges, NOW, fh)
-    NOW = prev_time = 0.0000001
+    NOW = prev_time = 0.01
     visualize(queue, skel, prev_time)
     print "visualize start"
 #     if pause:
 #         raw_input("paused at start")
     while queue:
+        for e in queue:
+            print e.time.as_integer_ratio(), e
 #         print queue
         peek = next(iter(queue))
 #         print peek.time
@@ -638,7 +642,7 @@ def event_loop(queue, skel, pause=False):
         if False:
             # -- use this for getting progress visualization
             delta = NOW - prev_time
-            ct = 10
+            ct = 20
             step_time = delta / ct
             for i in range(ct -1):
                 prev_time += step_time
@@ -648,7 +652,7 @@ def event_loop(queue, skel, pause=False):
         prev_time = NOW
         logging.info("=" * 80)
         for i, e in enumerate(queue):
-            logging.info("{0} {1}".format(i, e))
+            logging.info("{0:5d} {1}".format(i, e))
         logging.info("=" * 80)
 
 #         if pause:
@@ -690,7 +694,7 @@ def event_loop(queue, skel, pause=False):
         evt = queue.popleft()
 #         output_kdt(skel, evt.time-0.05)
         # decide what to do based on event type
-        logging.debug("Handling event " +str(evt.tp) + " " + str(evt.triangle.type) + " " + str(id(evt.triangle)) + " at time " + str(evt.time))
+        logging.debug("Handling event " +str(evt.tp) + " " + str(evt.triangle.type) + " " + str(id(evt.triangle)) + " at time " + "{0:.28g}".format(evt.time))
         if evt.tp == "edge":
             handle_edge_event(evt, skel, queue)
         elif evt.tp == "flip":
