@@ -695,7 +695,7 @@ def event_loop(queue, skel, pause=False):
                     pass
 #         visualize(queue, skel, NOW-0.001)
         # log what is in the queue
-        if True:
+        if False:
             # -- use this for getting progress visualization
             delta = NOW - prev_time
             ct = 5

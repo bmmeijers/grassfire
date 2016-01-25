@@ -578,13 +578,12 @@ def compute_event_3triangle(tri, now, sieve):
     time = collapse_time_edge(a, o)
     times.append(time)
     # 
-    times = sieve(get_unique_times(times))
+    time = sieve(get_unique_times(times), now)
     # we should find at most 1 collapse time
 #     assert len(times) <= 1, times
     # we take this event only when it is >= now (now or in the future)
-    if times:
+    if time:
         #time = find_gte(times, now) # can raise ValueError if no value found
-        time = times[0]
         sides = tuple(range(3))
         pa = o.position_at(time)
         pb = d.position_at(time)

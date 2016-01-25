@@ -166,7 +166,7 @@ class TestSimultaneousEvents(unittest.TestCase):
 #             conv.add_segment(*line)
 #         skel = calc_skel(conv)
 
-
+# 
 #     def test_3tris(self):
 #         conv = ToPointsAndSegments()
 #         polygons = [
@@ -181,19 +181,19 @@ class TestSimultaneousEvents(unittest.TestCase):
 
 
 
-#     def test_3tris_infinte_flips(self):
-#         """This configuration seems to lead to infinite flip events
-#         """
-#         conv = ToPointsAndSegments()
-#         polygons = [
-#                     [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
-#                     [[(1,3), (2,3), (1.5,3.5), (1,3)]],
-#                     [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
-#                     ]
-# #         polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.), (1., 0.), (-.1,3), (0.,10.)]]
-#         for polygon in polygons:
-#             conv.add_polygon(polygon)
-#         skel = calc_skel(conv)
+    def test_3tris_infinte_flips(self):
+        """This configuration seems to lead to infinite flip events
+        """
+        conv = ToPointsAndSegments()
+        polygons = [
+                    [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
+                    [[(1,3), (2,3), (1.5,3.5), (1,3)]],
+                    [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
+                    ]
+#         polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.), (1., 0.), (-.1,3), (0.,10.)]]
+        for polygon in polygons:
+            conv.add_polygon(polygon)
+        skel = calc_skel(conv)
 
 
 
