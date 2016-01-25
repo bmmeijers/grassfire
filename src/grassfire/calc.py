@@ -226,6 +226,9 @@ def outward_unit_p1(p0, p1, p2):
     
     Precondition: point p0 != p1 != p2
     """
+    # pre-condition, the 3 points do not lie at same location
+    assert p0 != p1 != p2
+    print p0, p1, p2
     u = map(sub, p0, p1)
     v = map(sub, p2, p1)
     # print "u", u

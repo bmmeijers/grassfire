@@ -88,7 +88,7 @@ class TestSimultaneousEvents(unittest.TestCase):
 
 #     def test_star_cocircular(self):
 #         from math import cos, sin, pi
-# 
+#  
 #         N = 20
 #         inc = 2*pi / N
 #         pts = []
@@ -131,23 +131,72 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         skel = calc_skel(conv)
 
 
+#     def test_cshape(self):
+#         """Parallel c-shape wavefront"""
+#         conv = ToPointsAndSegments()
+#         l0 = [(0.0, 0.0), (0.0, 3)]
+#         l1 = [(0, 3), (5,3)]
+#         l2 = [(0,0), (5,0)]
+#         for line in l0, l1, l2:
+#             conv.add_point(line[0])
+#             conv.add_point(line[1])
+#             conv.add_segment(*line)
+#         skel = calc_skel(conv)
 
-#     def test_quad(self):
-#         ring = [(1,0), (0, 5), (1,10), (2, 5), (1,0)]
+
+#     def test_2parallel_eq(self):
+#         """2 parallel wavefront having same size"""
 #         conv = ToPointsAndSegments()
-#         conv.add_polygon([ring])
+#         l0 = [(0, 0), (3,0)]
+#         l1 = [(0, 1), (3,1)]
+#         for line in l0, l1:
+#             conv.add_point(line[0])
+#             conv.add_point(line[1])
+#             conv.add_segment(*line)
 #         skel = calc_skel(conv)
-#     def test_diamant(self):
+
+#     def test_2parallel_not_eq(self):
+#         """2 parallel wavefront having different size"""
 #         conv = ToPointsAndSegments()
-#         conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
+#         l0 = [(0, 0), (3,0)]
+#         l1 = [(1, 1), (2,1)]
+#         for line in l0, l1:
+#             conv.add_point(line[0])
+#             conv.add_point(line[1])
+#             conv.add_segment(*line)
 #         skel = calc_skel(conv)
-#         assert len(skel.segments()) == 8
- 
-#     def test_diamantlike(self):
+
+
+#     def test_3tris(self):
 #         conv = ToPointsAndSegments()
-#         conv.add_polygon([[(-15,0), (-1,0), (0,-1), (1,0), (15,0), (0,15), (-15,0)]])
+#         polygons = [
+#                     [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
+#                     [[(1,0.5), (2,0.5), (1.5,1), (1,0.5)]],
+#                     [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
+#                     ]
+# #         polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.), (1., 0.), (-.1,3), (0.,10.)]]
+#         for polygon in polygons:
+#             conv.add_polygon(polygon)
 #         skel = calc_skel(conv)
-#         assert len(skel.segments()) == (7+6)
+
+
+
+#     def test_3tris_infinte_flips(self):
+#         """This configuration seems to lead to infinite flip events
+#         """
+#         conv = ToPointsAndSegments()
+#         polygons = [
+#                     [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
+#                     [[(1,3), (2,3), (1.5,3.5), (1,3)]],
+#                     [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
+#                     ]
+# #         polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.), (1., 0.), (-.1,3), (0.,10.)]]
+#         for polygon in polygons:
+#             conv.add_polygon(polygon)
+#         skel = calc_skel(conv)
+
+
+
 # 
 #     def test_bottom_circle_top_square(self):
 #         # bottom circle

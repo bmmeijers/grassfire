@@ -9,7 +9,26 @@ from grassfire import calc_skel
 class TestGrassfire(unittest.TestCase):
     def setUp(self):
         pass
+
+    def test_quad(self):
+        """Quad that works"""
+        ring = [(1,0), (0, 5), (1,10), (2, 5), (1,0)]
+        conv = ToPointsAndSegments()
+        conv.add_polygon([ring])
+        skel = calc_skel(conv)
+
+    def test_diamant(self):
+        conv = ToPointsAndSegments()
+        conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
+        skel = calc_skel(conv)
+        assert len(skel.segments()) == 8, len(skel.segments())
  
+    def test_diamantlike(self):
+        conv = ToPointsAndSegments()
+        conv.add_polygon([[(-15,0), (-1,0), (0,-1), (1,0), (15,0), (0,15), (-15,0)]])
+        skel = calc_skel(conv)
+        assert len(skel.segments()) == (7+6)
+
 #     def test_simple_poly(self):
 #         conv = ToPointsAndSegments()
 #         conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
@@ -27,7 +46,7 @@ class TestGrassfire(unittest.TestCase):
 #             conv.add_segment(*line)
 #         skel = calc_skel(conv)
 #         return
-# 
+# # 
 #     def test_teeth(self):
 #         # init skeleton structure
 #         conv = ToPointsAndSegments()
@@ -85,20 +104,20 @@ class TestGrassfire(unittest.TestCase):
 #         skel = calc_skel(conv)
 #         assert len(skel.segments()) == 12
 # # 
-    def test_bottom_circle(self):
-        # bottom circle
-        from math import pi, cos, sin, degrees
-        ring = []
-        pi2 = 2 * pi
-        ct = 8
-        alpha = pi / ct 
-        for i in range(ct+1):
-            ring.append( (cos(pi+i*alpha), sin(pi+i*alpha)))
-        ring.append(ring[0])
-        conv = ToPointsAndSegments()
-        conv.add_polygon([ring])
-        skel = calc_skel(conv)
-        assert len(skel.segments()) == (9+15)
+#     def test_bottom_circle(self):
+#         # bottom circle
+#         from math import pi, cos, sin, degrees
+#         ring = []
+#         pi2 = 2 * pi
+#         ct = 8
+#         alpha = pi / ct 
+#         for i in range(ct+1):
+#             ring.append( (cos(pi+i*alpha), sin(pi+i*alpha)))
+#         ring.append(ring[0])
+#         conv = ToPointsAndSegments()
+#         conv.add_polygon([ring])
+#         skel = calc_skel(conv)
+#         assert len(skel.segments()) == (9+15)
 #   
 #     def test_poly(self):
 #         conv = ToPointsAndSegments()
@@ -112,23 +131,23 @@ class TestGrassfire(unittest.TestCase):
 #         conv.add_polygon([[(0,1), (1,0), (3,0), ok, (4,3), (3,4), (1,4), (0,3), (0,1)]])
 #         skel = calc_skel(conv)
 
-    def test_sharp_v(self):
-        """Sharp V-shaped polyline
-        
-        Tests collapse of 2 triangle and handling of
-        collapse of spoke
-        """
-        conv = ToPointsAndSegments()
-#         l0 = [(0.0, -1.0), (5.0, -1.0)]
-        l1 = [(0, 0.5), (1,1)]
-        l2 = [(1,1), (0.5, 0)]
-        for line in l1, l2:
-            conv.add_point(line[0])
-            conv.add_point(line[1])
-            conv.add_segment(*line)
-        skel = calc_skel(conv)
-        assert len(skel.segments()) == (3+4)
-        return
+#     def test_sharp_v(self):
+#         """Sharp V-shaped polyline
+#          
+#         Tests collapse of 2 triangle and handling of
+#         collapse of spoke
+#         """
+#         conv = ToPointsAndSegments()
+# #         l0 = [(0.0, -1.0), (5.0, -1.0)]
+#         l1 = [(0, 0.5), (1,1)]
+#         l2 = [(1,1), (0.5, 0)]
+#         for line in l1, l2:
+#             conv.add_point(line[0])
+#             conv.add_point(line[1])
+#             conv.add_segment(*line)
+#         skel = calc_skel(conv)
+#         assert len(skel.segments()) == (3+4)
+#         return
 
 if __name__ == "__main__":
     import logging

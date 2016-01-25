@@ -8,8 +8,9 @@ from oseq import OrderedSequence
 
 # from grassfire
 from grassfire.primitives import SkeletonNode, KineticVertex
-from grassfire.calc import perp, bisector, rotate180, vector_mul_scalar
-from grassfire.collapse import compute_collapse_time, is_close
+from grassfire.calc import perp, bisector, rotate180, vector_mul_scalar,\
+    near_zero
+from grassfire.collapse import compute_collapse_time, is_close, find_gt
 from grassfire.inout import output_kdt, output_edges_at_T, output_triangles_at_T
 from grassfire.initialize import check_ktriangles
 from grassfire.calc import all_close
@@ -45,7 +46,7 @@ def init_event_list(skel):
     q = OrderedSequence(cmp=compare_event_by_time)
     logging.debug("Calculate events")
     for tri in skel.triangles:
-        res = compute_collapse_time(tri)
+        res = compute_collapse_time(tri, 0, find_gt)
         if res is not None:
             q.add(res)
     return q
@@ -55,6 +56,12 @@ def init_event_list(skel):
 # Event handling
 
 # FIXME: unify by making v a list of vertices?
+
+def stop_kvertex_at_sk_node(v, now, sk_node):
+    v.stops_at = now
+    v.stop_node = sk_node
+    return sk_node
+
 def stop_kvertex(v, now):
     v.stops_at = now
     pos = v.position_at(now)
@@ -116,12 +123,24 @@ def compute_new_kvertex(v1, v2, now, sk_node):
     # as well and set the old two vertices their start / stop range here
     p1 = v1.position_at(now)
     p2 = v2.position_at(now)
-    velo = bisector(p1, sk_node.pos, p2)
-    # compute position at t=0, rotate bisector 180 degrees
-    # and get the position 
-    negvelo = rotate180(velo)
-    pos_at_t0 = (sk_node.pos[0] + negvelo[0] * now,
-                 sk_node.pos[1] + negvelo[1] * now)
+    print "distance", v1.distance2_at(v2, now)
+    
+    degenerate1 = near_zero(p1[0] - sk_node.pos[0]) and \
+                    near_zero(p1[1] - sk_node.pos[1])
+    
+    degenerate2 = near_zero(p2[0] - sk_node.pos[0]) and \
+                    near_zero(p2[1] - sk_node.pos[1])
+    
+    if degenerate1 or degenerate2:
+        pos_at_t0 = sk_node.pos
+        velo = (0, 0)
+    else:
+        velo = bisector(p1, sk_node.pos, p2)
+        # compute position at t=0, rotate bisector 180 degrees
+        # and get the position 
+        negvelo = rotate180(velo)
+        pos_at_t0 = (sk_node.pos[0] + negvelo[0] * now,
+                     sk_node.pos[1] + negvelo[1] * now)
     kv.origin = pos_at_t0
     kv.velocity = velo
     return kv
@@ -213,11 +232,18 @@ def handle_edge_event(evt, skel, queue):
         print "v1.right", id(v1.right)
         print "v2.left", id(v2.left)
         sk_node = stop_kvertices3(v0, v1, v2, now)
+        print "POSITION", sk_node.pos
         kv = compute_new_kvertex(v2.left, v1.right, now, sk_node)
         update_circ(kv, v2.left, v1.right, now)
         # add to skeleton structure
         skel.sk_nodes.append(sk_node)
-        skel.vertices.append(kv)
+
+        # FIXME: No new vertex here that continues??? 
+        # -> depends on type of the neighbour!
+        # -> this should happen when neighbour is 0 or 1 triangle
+        # but not when it is 2 triangle
+        # skel.vertices.append(kv)
+
 #         print kv.origin
 #         print kv.velocity
 #         print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(kv.origin, kv.position_at(now))
@@ -234,24 +260,10 @@ def handle_edge_event(evt, skel, queue):
         print "a.", id(a)
         print "b.", id(b)
         print "n.", id(n)
-#         print "-" * 20
-#         if a is not None:
-#             a_idx = a.neighbours.index(t)
-# #             print "changing neighbour a"
-# #             print "SIMILAR COLLAPSE TIME", is_similar(a.event.time, now)
-#             a.neighbours[a_idx] = b
-#             replace_kvertex(a, v2, kv, now, cw, queue)
-#         if b is not None:
-# #             print "changing neighbour b"
-# #             print "SIMILAR COLLAPSE TIME", is_similar(b.event.time, now)
-#             b_idx = b.neighbours.index(t)
-#             b.neighbours[b_idx] = a
-#             replace_kvertex(b, v1, kv, now, ccw, queue)
-        # blank out our neighbour
         n_idx = n.neighbours.index(t)
-#             n.neighbours[n_idx] = None
-        print "ALSO DEAL WITH ",  n.type, "-triangle", id(n)
-        if n.type == 0 and n.event is None:
+        if (n.type == 0 and n.event == None):
+            logging.debug("2-triangle, also dealing with 0-triangle neighbour")
+            skel.vertices.append(kv)
             replace_kvertex(n, v1, kv, now, cw, queue)
             replace_kvertex(n, v2, kv, now, ccw, queue)
             # we have a neighbouring 0 triangle
@@ -267,6 +279,27 @@ def handle_edge_event(evt, skel, queue):
             n.neighbours = [None, None, None]
             n.vertices = [None, None, None]
             skel.triangles.remove(n)
+
+        elif n.type == 2:
+            # handle adjacent 2 triangle
+            # as this is a 2 triangle, 
+            # the neighbour 2-triangle also should collapse to point
+            logging.debug("2-triangle, also dealing with 2-triangle neighbour")
+            assert n.event != None
+            queue.discard(n.event)
+            # we have a neighbouring 2 triangle
+            # that collapses at side `n_idx`
+            n0 = n.neighbours[(n_idx) % 3]
+            n1 = n.neighbours[(n_idx+1) % 3]
+            n2 = n.neighbours[(n_idx+2) % 3]
+            assert n0 is t
+            assert n1 is None
+            assert n2 is None
+            # the vertex opposite of collapsed edge in neighbour
+            still_moving = n.vertices[n_idx]
+            stop_kvertex_at_sk_node(still_moving, now, sk_node)
+            skel.triangles.remove(n)
+
         elif n.event != None:
             replace_in_queue(n, n.event.time, queue)
 #             assert side == n_idx
@@ -662,10 +695,10 @@ def event_loop(queue, skel, pause=False):
                     pass
 #         visualize(queue, skel, NOW-0.001)
         # log what is in the queue
-        if False:
+        if True:
             # -- use this for getting progress visualization
             delta = NOW - prev_time
-            ct = 10
+            ct = 5
             step_time = delta / ct
             for i in range(ct -1):
                 prev_time += step_time

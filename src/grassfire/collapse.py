@@ -195,7 +195,7 @@ def vertex_crash_time(org, dst, apx):
 #     logging.debug("vertex crash time: " + str(t_v))
 #     return t_v
 
-def area_collapse_times(o,d,a):
+def area_collapse_times(o, d, a):
     coeff = area_collapse_time_coeff(o, d, a)
     logging.debug(coeff)
     solution = solve_quadratic(coeff[0], coeff[1], coeff[2])
@@ -222,7 +222,7 @@ def area_collapse_times(o,d,a):
 #             time_str = "{0:.12f}".format(self.time)
 #         return """<NewEvent at {0}, triangle: {1}, triangle type: {4}, sides: {2}, event type: {3}, how: {5}, where: {6}>""".format(time_str, id(self.triangle), self.sides, self.event_tp, self.triangle.type, self.how, self.where)
 
-def compute_event_0triangle(tri, now):
+def compute_event_0triangle(tri, now, sieve):
     # a 0-triangle can:
     # - flip
     # - collapse to a segment?
@@ -252,9 +252,9 @@ def compute_event_0triangle(tri, now):
         collapse_time_edge(a, o)
         ]
     print times_edge_collapse
-    time_edge_collapse = find_gte(times_edge_collapse, now)
+    time_edge_collapse = sieve(times_edge_collapse, now)
     print time_edge_collapse
-    time_area_collapse = find_gte(area_collapse_times(o, d, a), now)
+    time_area_collapse = sieve(area_collapse_times(o, d, a), now)
     if time_edge_collapse is None and time_area_collapse is None:
         # if we do not have a time for either, no collapse will happen
         return None
@@ -262,7 +262,9 @@ def compute_event_0triangle(tri, now):
         if time_area_collapse < time_edge_collapse:
             #
             time = time_area_collapse
-            dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
+            dists = [d.distance2_at(a, time), 
+                     a.distance2_at(o, time), 
+                     o.distance2_at(d, time)]
             largest_dist = max(dists)
             side = dists.index(largest_dist)
             tp = "flip"
@@ -373,7 +375,7 @@ def compute_event_0triangle(tri, now):
 #                     where=where # if collapse: the geometry of point or segment
 #                 )
 
-def compute_event_1triangle(tri, now):
+def compute_event_1triangle(tri, now, sieve):
     # a 1-triangle can:
     # - collapse to a point
     # - collapse to a segment
@@ -409,10 +411,12 @@ def compute_event_1triangle(tri, now):
     # what are the times the triangle collapses
     print "area_collapse at " + str(solve_quadratic(*area_collapse_time_coeff(*tri.vertices)))
     # edge collapse times
-    time_edge_collapse = find_gte([collapse_time_edge(ow, dw)], now)
-    logging.debug([collapse_time_edge(ow, dw), collapse_time_edge(dw, aw), collapse_time_edge(aw, ow)])
+    time_edge_collapse = sieve([collapse_time_edge(ow, dw)], now)
+    logging.debug([collapse_time_edge(ow, dw), 
+                   collapse_time_edge(dw, aw), 
+                   collapse_time_edge(aw, ow)])
     # vertex crash time of the opposite vertex into the wavefront edge
-    time_vertex_crash = find_gte([vertex_crash_time(ow, dw, aw)], now)
+    time_vertex_crash = sieve([vertex_crash_time(ow, dw, aw)], now)
     logging.debug("time edge collapse " + str(time_edge_collapse))
     logging.debug("time vertex crash " + str(time_vertex_crash))
     if time_edge_collapse is None and time_vertex_crash is None:
@@ -501,7 +505,7 @@ def compute_event_1triangle(tri, now):
     raise NotImplementedError("Problem, unforeseen configuration")
 
 
-def compute_event_2triangle(tri, now):
+def compute_event_2triangle(tri, now, sieve):
     # a 2-triangle can:
     # - collapse to a point
     # - collapse to a segment
@@ -528,9 +532,11 @@ def compute_event_2triangle(tri, now):
         time = collapse_time_edge(a, o)
         times.append(time)
     times = get_unique_times(times)
-    time = find_gte(times, now)
+    time = sieve(times, now)
     if time != None:
-        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
+        dists = [d.distance2_at(a, time), 
+                 a.distance2_at(o, time), 
+                 o.distance2_at(d, time)]
         logging.debug("distances at time = {1}: {0}".format(dists, time))
         zeros = [near_zero(dist) for dist in dists]
         sides_collapse = zeros.count(True)
@@ -556,7 +562,7 @@ def compute_event_2triangle(tri, now):
         return None
 
 
-def compute_event_3triangle(tri, now):
+def compute_event_3triangle(tri, now, sieve):
     # a 3-triangle can:
     # - collapse to a point
 
@@ -572,18 +578,20 @@ def compute_event_3triangle(tri, now):
     time = collapse_time_edge(a, o)
     times.append(time)
     # 
-    times = get_unique_times(times)
+    times = sieve(get_unique_times(times))
     # we should find at most 1 collapse time
 #     assert len(times) <= 1, times
     # we take this event only when it is >= now (now or in the future)
-    if times and times[0] >= now:
+    if times:
         #time = find_gte(times, now) # can raise ValueError if no value found
         time = times[0]
         sides = tuple(range(3))
         pa = o.position_at(time)
         pb = d.position_at(time)
         pc = a.position_at(time)
-        dists = [d.distance2_at(a, time), a.distance2_at(o, time), o.distance2_at(d, time)]
+        dists = [d.distance2_at(a, time), 
+                 a.distance2_at(o, time), 
+                 o.distance2_at(d, time)]
         print dists
 #         assert all_close(dists, abs_tol=1e-8)
         avg = []
@@ -609,7 +617,7 @@ def compute_event_3triangle(tri, now):
 #                     where=where # if collapse: the geometry of point or segment
 #                 )
 
-def compute_event_inftriangle(tri, now):
+def compute_event_inftriangle(tri, now, sieve):
     # FIXME: negative collapse times are probably the times we are after 
     # here as the orientation of the triangle is in reverse as well
     for inf_idx, v in enumerate(tri.vertices):
@@ -636,7 +644,7 @@ def compute_event_inftriangle(tri, now):
                 return None
 #                 tp = "edge"
 #                 return Event(when=time, tri=tri, side=(side,), tp=tp)
-    time = find_gte(area_collapse_times(o, d, a), now)
+    time = sieve(area_collapse_times(o, d, a), now)
     # if time != None and not near_zero(time - now):
     if time:
         dist = o.distance2_at(d, time)
@@ -671,7 +679,7 @@ def compute_event_inftriangle(tri, now):
 #             where=where # if collapse: the geometry of point or segment
 #         )
 
-def compute_collapse_time(tri, now=0):
+def compute_collapse_time(tri, now=0, sieve=find_gte):
     event = None
     if tri.is_finite:
         logging.debug("=-=-= finite triangle {} =-=-= ".format(id(tri)))
@@ -679,21 +687,20 @@ def compute_collapse_time(tri, now=0):
         # finite triangles
         tp = tri.type
         if tp == 0:
-            event = compute_event_0triangle(tri, now)
+            event = compute_event_0triangle(tri, now, sieve)
         elif tp == 1:
-            event = compute_event_1triangle(tri, now)
+            event = compute_event_1triangle(tri, now, sieve)
         elif tp == 2:
-            event = compute_event_2triangle(tri, now)
+            event = compute_event_2triangle(tri, now, sieve)
         elif tp == 3:
-            event = compute_event_3triangle(tri, now)
+            event = compute_event_3triangle(tri, now, sieve)
     else:
         # flip or collapse to point
         logging.debug("=-=-= infinite triangle {} =-=-=".format(id(tri)))
-        event = compute_event_inftriangle(tri, now)
+        event = compute_event_inftriangle(tri, now, sieve)
     if event is not None:
         tri.event = event
     logging.debug("{} --- {}\n".format(id(tri), event))
-    
     return event
 
 def compute_collapse_time_old(t, now=0):

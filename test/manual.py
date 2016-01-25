@@ -978,11 +978,11 @@ def test_infinite3():
 # -------------------
 # within Python console:
 #
-# from PyQt4.QtCore import QFileSystemWatcher
-#  
-# watcher = QFileSystemWatcher()
-# watcher.addPath( '/tmp/wavefront_edges_progress.wkt' )
-# watcher.fileChanged.connect( iface.mapCanvas().refresh )
+from PyQt4.QtCore import QFileSystemWatcher
+  
+watcher = QFileSystemWatcher()
+watcher.addPath( '/tmp/wavefront_edges_progress.wkt' )
+watcher.fileChanged.connect( iface.mapCanvas().refresh )
 
 
 # test_infinite2()
