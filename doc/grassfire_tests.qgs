@@ -6,7 +6,7 @@
     <layer-tree-layer expanded="1" checked="Qt::Checked" id="bisectors_progress20150622113032918" name="bisectors_progress">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="vertices1_progress20150622110949900" name="vertices1_progress">
+    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="vertices1_progress20150622110949900" name="vertices1_progress">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Checked" id="queue20160120113747672" name="queue (infinite tri)">
@@ -41,10 +41,10 @@
   <mapcanvas>
     <units>meters</units>
     <extent>
-      <xmin>-22.79932571276926012</xmin>
-      <ymin>-20.23472407936766615</ymin>
-      <xmax>73.07460316917955367</xmax>
-      <ymax>-4.25573593214336654</ymax>
+      <xmin>-1.75528349975097453</xmin>
+      <ymin>-1.05347944950590566</ymin>
+      <xmax>1.2407767778099259</xmax>
+      <ymax>2.03138158370411226</ymax>
     </extent>
     <rotation>0</rotation>
     <projections>0</projections>
@@ -84,9 +84,9 @@
         <legendlayerfile isInOverview="0" layerid="bisectors_progress20150622113032918" visible="1"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="vertices1_progress" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="vertices1_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="vertices1_progress20150622110949900" visible="1"/>
+        <legendlayerfile isInOverview="0" layerid="vertices1_progress20150622110949900" visible="0"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="queue (infinite tri)" showFeatureCount="0">
@@ -1429,7 +1429,7 @@
       <attributeactions/>
       <edittypes/>
     </maplayer>
-    <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Polygon" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+    <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Polygon" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
       <id>queue20160118154518058</id>
       <datasource>file:///tmp/queue.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes&amp;subset=%22finite%22%20%3D%20'True'</datasource>
       <title></title>
@@ -1538,7 +1538,7 @@
         <property key="labeling/distMapUnitMaxScale" value="0"/>
         <property key="labeling/distMapUnitMinScale" value="0"/>
         <property key="labeling/enabled" value="true"/>
-        <property key="labeling/fieldName" value=" concat(&quot;evttime&quot;, ' ',  &quot;evttype&quot; ,  '\n(',  &quot;tritype&quot; , '-triangle)')"/>
+        <property key="labeling/fieldName" value=" concat(&quot;evttime&quot;, ' ',  &quot;evttype&quot; ,  '\n(',  &quot;tritype&quot; , '-triangle, ',  &quot;id&quot;,  ')')"/>
         <property key="labeling/fontBold" value="false"/>
         <property key="labeling/fontCapitals" value="0"/>
         <property key="labeling/fontFamily" value="Cantarell"/>
@@ -1717,7 +1717,7 @@
         </edittype>
       </edittypes>
     </maplayer>
-    <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Polygon" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+    <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Polygon" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
       <id>queue20160120113747672</id>
       <datasource>file:///tmp/queue.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes&amp;subset=%22finite%22%20%3D%20'False'</datasource>
       <title></title>
@@ -1825,8 +1825,8 @@
         <property key="labeling/distInMapUnits" value="false"/>
         <property key="labeling/distMapUnitMaxScale" value="0"/>
         <property key="labeling/distMapUnitMinScale" value="0"/>
-        <property key="labeling/enabled" value="false"/>
-        <property key="labeling/fieldName" value=""/>
+        <property key="labeling/enabled" value="true"/>
+        <property key="labeling/fieldName" value=" concat(&quot;evttime&quot;, ' ',  &quot;evttype&quot; ,  '\n(',  &quot;tritype&quot; , '-triangle, ',  &quot;id&quot;,  ')')&#x9;"/>
         <property key="labeling/fontBold" value="false"/>
         <property key="labeling/fontCapitals" value="0"/>
         <property key="labeling/fontFamily" value="Cantarell"/>
@@ -2005,7 +2005,7 @@
         </edittype>
       </edittypes>
     </maplayer>
-    <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Line" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+    <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Line" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
       <id>segments_progress20160121093942800</id>
       <datasource>file:///tmp/segments_progress.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes</datasource>
       <title></title>
@@ -2027,7 +2027,7 @@
         </spatialrefsys>
       </srs>
       <provider encoding="System">delimitedtext</provider>
-      <previewExpression></previewExpression>
+      <previewExpression>COALESCE( "finished", '&lt;NULL>' )</previewExpression>
       <vectorjoins/>
       <expressionfields/>
       <map-layer-style-manager current="">
@@ -2081,6 +2081,40 @@
               <prop k="use_custom_dash" v="0"/>
               <prop k="width_map_unit_scale" v="0,0"/>
             </layer>
+            <layer pass="0" class="MarkerLine" locked="0">
+              <prop k="interval" v="3"/>
+              <prop k="interval_map_unit_scale" v="0,0"/>
+              <prop k="interval_unit" v="MM"/>
+              <prop k="offset" v="0"/>
+              <prop k="offset_along_line" v="0"/>
+              <prop k="offset_along_line_map_unit_scale" v="0,0"/>
+              <prop k="offset_along_line_unit" v="MM"/>
+              <prop k="offset_map_unit_scale" v="0,0"/>
+              <prop k="offset_unit" v="MM"/>
+              <prop k="placement" v="centralpoint"/>
+              <prop k="rotate" v="1"/>
+              <symbol alpha="1" type="marker" name="@1@1">
+                <layer pass="0" class="SimpleMarker" locked="0">
+                  <prop k="angle" v="0"/>
+                  <prop k="color" v="0,0,0,255"/>
+                  <prop k="horizontal_anchor_point" v="1"/>
+                  <prop k="name" v="filled_arrowhead"/>
+                  <prop k="offset" v="0,0"/>
+                  <prop k="offset_map_unit_scale" v="0,0"/>
+                  <prop k="offset_unit" v="MM"/>
+                  <prop k="outline_color" v="0,0,0,255"/>
+                  <prop k="outline_style" v="no"/>
+                  <prop k="outline_width" v="0"/>
+                  <prop k="outline_width_map_unit_scale" v="0,0"/>
+                  <prop k="outline_width_unit" v="MM"/>
+                  <prop k="scale_method" v="area"/>
+                  <prop k="size" v="2"/>
+                  <prop k="size_map_unit_scale" v="0,0"/>
+                  <prop k="size_unit" v="MM"/>
+                  <prop k="vertical_anchor_point" v="1"/>
+                </layer>
+              </symbol>
+            </layer>
           </symbol>
         </symbols>
         <source-symbol>
@@ -2104,8 +2138,6 @@
             </layer>
           </symbol>
         </source-symbol>
-        <colorramp type="randomcolors" name="[source]"/>
-        <invertedcolorramp value="0"/>
         <rotation/>
         <sizescale scalemethod="area"/>
       </renderer-v2>
@@ -2277,10 +2309,10 @@
         <multilineenabled fieldname="" on=""/>
         <selectedonly on=""/>
       </labelattributes>
-      <editform></editform>
+      <editform>.</editform>
       <editforminit/>
       <featformsuppress>0</featformsuppress>
-      <annotationform></annotationform>
+      <annotationform>.</annotationform>
       <editorlayout>generatedlayout</editorlayout>
       <excludeAttributesWMS/>
       <excludeAttributesWFS/>
@@ -2519,7 +2551,7 @@
       <attributeactions/>
       <edittypes/>
     </maplayer>
-    <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="0" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Point" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+    <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="0" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Point" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
       <id>vertices1_progress20150622110949900</id>
       <datasource>file:///tmp/vertices1_progress.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes</datasource>
       <title></title>
@@ -2605,7 +2637,7 @@
         <property key="labeling/distInMapUnits" value="false"/>
         <property key="labeling/distMapUnitMaxScale" value="0"/>
         <property key="labeling/distMapUnitMinScale" value="0"/>
-        <property key="labeling/enabled" value="true"/>
+        <property key="labeling/enabled" value="false"/>
         <property key="labeling/fieldName" value="id"/>
         <property key="labeling/fontBold" value="false"/>
         <property key="labeling/fontCapitals" value="0"/>
