@@ -1,11 +1,13 @@
 from collections import namedtuple
 
 class Event(object):
-    def __init__(self, when, tri, side = None, tp = None):
+    def __init__(self, when, tri, side = None, tp = None, tri_tp=-1):
         self.time = when
         self.triangle = tri
         self.side = side
         self.tp = tp
+        assert tri_tp != -1
+        self.triangle_tp = tri_tp
 
 #     def __eq__(self, other):
 #         return self.time == other.time

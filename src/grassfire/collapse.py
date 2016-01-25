@@ -268,7 +268,7 @@ def compute_event_0triangle(tri, now, sieve):
             largest_dist = max(dists)
             side = dists.index(largest_dist)
             tp = "flip"
-            return Event(when=time, tri=tri, side=(side,), tp=tp)
+            return Event(when=time, tri=tri, side=(side,), tp=tp, tri_tp=tri.type)
         elif time_edge_collapse != None:
             return None
 #             time = time_edge_collapse
@@ -451,16 +451,17 @@ def compute_event_1triangle(tri, now, sieve):
             return Event(when=time_vertex_crash,
                          tri=tri,
                          side=(wavefront_side,),
-                         tp="split")
+                         tp="split",
+                         tri_tp=tri.type)
         else:
             zeros = [near_zero(_) for _ in dists]
             sides_collapse = zeros.count(True)
             if sides_collapse == 1:
                 sides = (dists.index(min(dists)),) # shortest side
-                return Event(when=time, tri=tri, side=sides, tp="edge")
+                return Event(when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
             else:
                 sides = (dists.index(max(dists)),) # longest side
-                return Event(when=time, tri=tri, side=sides, tp="flip")
+                return Event(when=time, tri=tri, side=sides, tp="flip", tri_tp=tri.type)
     elif time_edge_collapse is not None and time_vertex_crash is None:
         # -- Only edge collapse time
         return Event(when=time_edge_collapse,
@@ -482,7 +483,7 @@ def compute_event_1triangle(tri, now, sieve):
             zeros = [near_zero(dist) for dist in dists]
             sides = [zeros.index(True)]
             assert len(sides) == 1
-            return Event(when=time, tri=tri, side=sides, tp=tp)
+            return Event(when=time, tri=tri, side=sides, tp=tp, tri_tp=tri.type)
         elif time_vertex_crash < time_edge_collapse:
             # wavefront edge is split
             logging.debug("vertex crash time earlier than time edge collapse")
@@ -499,7 +500,7 @@ def compute_event_1triangle(tri, now, sieve):
             else:
                 tp = "flip"
             sides = [max_dist_side]
-            return Event(when=time, tri=tri, side=sides, tp=tp)
+            return Event(when=time, tri=tri, side=sides, tp=tp, tri_tp=tri.type)
         else:
             raise NotImplementedError("Problem, unforeseen configuration")
     raise NotImplementedError("Problem, unforeseen configuration")
@@ -545,7 +546,7 @@ def compute_event_2triangle(tri, now, sieve):
                 if _ is not None:
                     break
             sides = (side,) # take the side that is not None (has a neighbour)
-            return Event(when=time, tri=tri, side=sides, tp="edge")
+            return Event(when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
         elif sides_collapse == 2:
             # hopefully never happens -- 
             # or some weird robustness error did occur
@@ -554,7 +555,7 @@ def compute_event_2triangle(tri, now, sieve):
             smallest_dist = min(dists)
             side = dists.index(smallest_dist)
             sides = (side,)
-            return Event(when=time, tri=tri, side=sides, tp="edge")
+            return Event(when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
         elif sides_collapse == 0:
             raise ValueError("This is not possible with this type of triangle") 
     else:
@@ -599,7 +600,7 @@ def compute_event_3triangle(tri, now, sieve):
         tp = "collapse"
         how = "point"
         where = tuple(avg)
-        return Event(when=time, tri=tri, side=sides, tp="edge")
+        return Event(when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
     else:
         time = None
         sides = tuple()
@@ -666,7 +667,7 @@ def compute_event_inftriangle(tri, now, sieve):
 
             # I think you need to flip away the shortest side of the two edges
             # that both are connected to the infinite vertex
-            return Event(when=time, tri=tri, side=(None,), tp=tp)
+            return Event(when=time, tri=tri, side=(None,), tp=tp, tri_tp=tri.type)
 
     return None
 #     return NewEventType(

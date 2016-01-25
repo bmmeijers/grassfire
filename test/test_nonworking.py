@@ -143,6 +143,21 @@ class TestSimultaneousEvents(unittest.TestCase):
 #             conv.add_segment(*line)
 #         skel = calc_skel(conv)
 
+#     def test_rect_extra_pt(self):
+#         """" """
+#         conv = ToPointsAndSegments()
+#         polygon = [[(0, 0), (0., 10), (15,10), (15,0.), (2., 0.), (0,0)]]
+#         conv.add_polygon(polygon)
+#         skel = calc_skel(conv)
+
+
+    def test_tiny_v(self):
+        """Tiny V at bottom of square"""
+        conv = ToPointsAndSegments()
+        polygon = [[(-10, 0), (-10., 100.), (100.,100.), (100.,0.), (2., 0.), (1,-1), (0,0), (-10,0)]]
+        conv.add_polygon(polygon)
+        skel = calc_skel(conv)
+        
 
 #     def test_2parallel_eq(self):
 #         """2 parallel wavefront having same size"""
@@ -224,20 +239,10 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         conv.add_polygon([ring])
 #         skel = calc_skel(conv)
  
-    def test_cocircular_square(self):
-        conv = ToPointsAndSegments()
-        conv.add_polygon([[(0,1), (1,0), (2,0), (3,1), (3,2), (2,3), (1,3), (0,2), (0,1)]])
-        skel = calc_skel(conv)
-        assert len(skel.segments()) == (12 + 8)
-        # 
-#     def test_cocircular1(self):
-#         fail = (4,1) # substitute with this and we get a lot of simultaneous events!
-#         conv = ToPointsAndSegments()
-#         conv.add_polygon([[(0,1), (1,0), (3,0), fail, (4,3), (3,4), (1,4), (0,3), (0,1)]])
-#         # FIXME: works but wrong:
-#         # conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
-#         skel = calc_skel(conv)
-# 
+
+# class TestGrassfire3(unittest.TestCase):
+
+
 #     def test_parallellogram(self):
 #         conv = ToPointsAndSegments()
 #         conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])

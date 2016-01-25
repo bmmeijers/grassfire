@@ -25,9 +25,9 @@ def compare_event_by_time(one, other):
     # in case times are equal, compare by id of triangle
     # to be able to find the correct triangle back
     else: # eq
-        if -one.triangle.type < -other.triangle.type:
+        if -one.triangle_tp < -other.triangle_tp:
             return -1
-        elif -one.triangle.type > -other.triangle.type:
+        elif -one.triangle_tp > -other.triangle_tp:
             return 1
         else:
             if id(one.triangle) < id(other.triangle):
@@ -125,13 +125,25 @@ def compute_new_kvertex(v1, v2, now, sk_node):
     p2 = v2.position_at(now)
     print "distance", v1.distance2_at(v2, now)
     
-    degenerate1 = near_zero(p1[0] - sk_node.pos[0]) and \
-                    near_zero(p1[1] - sk_node.pos[1])
+    degenerate1 = near_zero(abs(p1[0] - sk_node.pos[0])) and \
+                    near_zero(abs(p1[1] - sk_node.pos[1]))
     
-    degenerate2 = near_zero(p2[0] - sk_node.pos[0]) and \
-                    near_zero(p2[1] - sk_node.pos[1])
+    degenerate2 = near_zero(abs(p2[0] - sk_node.pos[0])) and \
+                    near_zero(abs(p2[1] - sk_node.pos[1]))
+
+    degenerate3 = near_zero(abs(p1[0] - p2[0])) and \
+                    near_zero(abs(p1[1] - p2[1]))
+
+    print ">>>", p1, sk_node.pos, p2
+
+    print p1[0] - sk_node.pos[0]
+    print p1[1] - sk_node.pos[1]
+    print p2[0] - sk_node.pos[0]
+    print p2[1] - sk_node.pos[1]
+
+    print degenerate1, degenerate2, degenerate3
     
-    if degenerate1 or degenerate2:
+    if degenerate1 or degenerate2 or degenerate3:
         pos_at_t0 = sk_node.pos
         velo = (0, 0)
     else:
@@ -261,7 +273,9 @@ def handle_edge_event(evt, skel, queue):
         print "b.", id(b)
         print "n.", id(n)
         n_idx = n.neighbours.index(t)
-        if (n.type == 0 and n.event == None):
+        if n.type == 0:
+            if n.event != None:
+                queue.discard(n.event)
             logging.debug("2-triangle, also dealing with 0-triangle neighbour")
             skel.vertices.append(kv)
             replace_kvertex(n, v1, kv, now, cw, queue)
@@ -381,7 +395,7 @@ def handle_edge_event(evt, skel, queue):
 #         print "-" * 20
         if a is not None:
             a_idx = a.neighbours.index(t)
-#             print "changing neighbour a"
+            print "changing neighbour a to", b
 #             print "SIMILAR COLLAPSE TIME", is_similar(a.event.time, now)
             a.neighbours[a_idx] = b
             replace_kvertex(a, v2, kv, now, cw, queue)
@@ -389,6 +403,7 @@ def handle_edge_event(evt, skel, queue):
 #             print "changing neighbour b"
 #             print "SIMILAR COLLAPSE TIME", is_similar(b.event.time, now)
             b_idx = b.neighbours.index(t)
+            print "changing neighbour b to", a
             b.neighbours[b_idx] = a
             replace_kvertex(b, v1, kv, now, ccw, queue)
         if n is not None:
@@ -679,7 +694,7 @@ def event_loop(queue, skel, pause=False):
 #         print queue
         peek = next(iter(queue))
 #         print peek.time
-        NOW = peek.time 
+        NOW = peek.time
 
         if pause:
             for file_nm in [
@@ -695,10 +710,16 @@ def event_loop(queue, skel, pause=False):
                     pass
 #         visualize(queue, skel, NOW-0.001)
         # log what is in the queue
+        
         if False:
+            if peek.tp == "flip":
+                ct = 1
+            else:
+                ct = 20
             # -- use this for getting progress visualization
             delta = NOW - prev_time
-            ct = 5
+            if near_zero(delta):
+                ct = 1
             step_time = delta / ct
             for i in range(ct -1):
                 prev_time += step_time
