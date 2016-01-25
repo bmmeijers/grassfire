@@ -41,7 +41,7 @@ def find_gte(a, x):
     # -- filter None values and sort
     L = sorted(filter(lambda x: x is not None, a))
     i = bisect.bisect_left(L, x)
-    if i != len(a):
+    if i != len(L):
         return L[i]
     else:
         return None
