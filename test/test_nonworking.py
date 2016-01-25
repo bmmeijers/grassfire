@@ -181,19 +181,19 @@ class TestSimultaneousEvents(unittest.TestCase):
 
 
 
-    def test_3tris_infinte_flips(self):
-        """This configuration seems to lead to infinite flip events
-        """
-        conv = ToPointsAndSegments()
-        polygons = [
-                    [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
-                    [[(1,3), (2,3), (1.5,3.5), (1,3)]],
-                    [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
-                    ]
-#         polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.), (1., 0.), (-.1,3), (0.,10.)]]
-        for polygon in polygons:
-            conv.add_polygon(polygon)
-        skel = calc_skel(conv)
+#     def test_3tris_infinte_flips(self):
+#         """This configuration seems to lead to infinite flip events
+#         """
+#         conv = ToPointsAndSegments()
+#         polygons = [
+#                     [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
+#                     [[(1,3), (2,3), (1.5,3.5), (1,3)]],
+#                     [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
+#                     ]
+# #         polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.), (1., 0.), (-.1,3), (0.,10.)]]
+#         for polygon in polygons:
+#             conv.add_polygon(polygon)
+#         skel = calc_skel(conv)
 
 
 
@@ -223,17 +223,13 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         conv = ToPointsAndSegments()
 #         conv.add_polygon([ring])
 #         skel = calc_skel(conv)
-# 
-#     def test_poly(self):
-#         conv = ToPointsAndSegments()
-#         conv.add_polygon([[(0, 0), (10, 0), (11, -1), (12,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
-#         skel = calc_skel(conv)
-# 
-#     def test_cocircular(self):
-#         conv = ToPointsAndSegments()
-#         conv.add_polygon([[(0,1), (1,0), (2,0), (3,1), (3,2), (2,3), (1,3), (0,2), (0,1)]])
-#         skel = calc_skel(conv)
-# 
+ 
+    def test_cocircular_square(self):
+        conv = ToPointsAndSegments()
+        conv.add_polygon([[(0,1), (1,0), (2,0), (3,1), (3,2), (2,3), (1,3), (0,2), (0,1)]])
+        skel = calc_skel(conv)
+        assert len(skel.segments()) == (12 + 8)
+        # 
 #     def test_cocircular1(self):
 #         fail = (4,1) # substitute with this and we get a lot of simultaneous events!
 #         conv = ToPointsAndSegments()

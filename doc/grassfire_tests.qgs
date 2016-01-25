@@ -15,19 +15,19 @@
     <layer-tree-layer expanded="1" checked="Qt::Checked" id="queue20160118154518058" name="queue (finite tri)">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="segments_progress20160121093942800" name="segments_progress">
-      <customproperties/>
-    </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Checked" id="sknodes_progress20150622112720415" name="sknodes_progress">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Checked" id="wavefront_edges_progress20160120113619595" name="wavefront_edges_progress">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="ktri_progress20150622114729829" name="ktri_progress">
+    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="ktri_progress20150622114729829" name="ktri_progress">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Checked" id="initial_edges20160118144633952" name="initial_edges">
+      <customproperties/>
+    </layer-tree-layer>
+    <layer-tree-layer expanded="1" checked="Qt::Checked" id="segments_progress20160121093942800" name="segments_progress">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="offsetsr20160118143938236" name="offsetsr">
@@ -41,10 +41,10 @@
   <mapcanvas>
     <units>meters</units>
     <extent>
-      <xmin>-1.75528349975097453</xmin>
-      <ymin>-1.05347944950590566</ymin>
-      <xmax>1.2407767778099259</xmax>
-      <ymax>2.03138158370411226</ymax>
+      <xmin>-0.51086638865388645</xmin>
+      <ymin>-1.34111667976128524</ymin>
+      <xmax>5.48125416646791486</xmax>
+      <ymax>4.82860538665875083</ymax>
     </extent>
     <rotation>0</rotation>
     <projections>0</projections>
@@ -99,11 +99,6 @@
         <legendlayerfile isInOverview="0" layerid="queue20160118154518058" visible="1"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="segments_progress" showFeatureCount="0">
-      <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="segments_progress20160121093942800" visible="1"/>
-      </filegroup>
-    </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="sknodes_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
         <legendlayerfile isInOverview="0" layerid="sknodes_progress20150622112720415" visible="1"/>
@@ -114,14 +109,19 @@
         <legendlayerfile isInOverview="0" layerid="wavefront_edges_progress20160120113619595" visible="1"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="ktri_progress" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="ktri_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="ktri_progress20150622114729829" visible="1"/>
+        <legendlayerfile isInOverview="0" layerid="ktri_progress20150622114729829" visible="0"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="initial_edges" showFeatureCount="0">
       <filegroup open="true" hidden="false">
         <legendlayerfile isInOverview="0" layerid="initial_edges20160118144633952" visible="1"/>
+      </filegroup>
+    </legendlayer>
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="segments_progress" showFeatureCount="0">
+      <filegroup open="true" hidden="false">
+        <legendlayerfile isInOverview="0" layerid="segments_progress20160121093942800" visible="1"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="offsetsr" showFeatureCount="0">
@@ -158,7 +158,7 @@
         </spatialrefsys>
       </srs>
       <provider encoding="System">delimitedtext</provider>
-      <previewExpression></previewExpression>
+      <previewExpression>'[Please define preview text]'</previewExpression>
       <vectorjoins/>
       <expressionfields/>
       <map-layer-style-manager current="">
@@ -3068,11 +3068,13 @@
         <value>offsetsr20160118143938236</value>
         <value>queue20160118154518058</value>
         <value>queue20160120113747672</value>
+        <value>segments_progress20160121093942800</value>
         <value>sknodes_progress20150622112720415</value>
         <value>vertices1_progress20150622110949900</value>
         <value>wavefront_edges_progress20160120113619595</value>
       </LayerSnappingList>
       <LayerSnappingEnabledList type="QStringList">
+        <value>disabled</value>
         <value>disabled</value>
         <value>disabled</value>
         <value>disabled</value>
@@ -3097,8 +3099,10 @@
         <value>0</value>
         <value>0</value>
         <value>0</value>
+        <value>0</value>
       </LayerSnappingToleranceUnitList>
       <LayerSnapToList type="QStringList">
+        <value>to_vertex_and_segment</value>
         <value>to_vertex_and_segment</value>
         <value>to_vertex_and_segment</value>
         <value>to_vertex_and_segment</value>
@@ -3113,6 +3117,7 @@
       <DefaultSnapType type="QString">off</DefaultSnapType>
       <DefaultSnapTolerance type="double">0</DefaultSnapTolerance>
       <LayerSnappingToleranceList type="QStringList">
+        <value>0.000000</value>
         <value>0.000000</value>
         <value>0.000000</value>
         <value>0.000000</value>
