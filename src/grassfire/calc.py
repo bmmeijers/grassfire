@@ -193,19 +193,19 @@ def normalize(v):
     assert lengthv != 0, "Vector without length cannot be normalized: {0}".format(v)
     return tuple([i/lengthv for i in v])
 
-def perp(v):
-    # FIXME: 
-    # rename to: rotate90ccw(v)
-    # and make: rotate90cw(v)
-    # Rotating a vector 90 degrees is particularily simple.
-    # (x, y) rotated 90 degrees around (0, 0) is (-y, x).
-    # If you want to rotate clockwise, 
-    # you simply do it the other way around, getting (y, -x).
-    """Rotate 2d vector 90 degrees counter clockwise
-    """
-    import warnings
-    warnings.warn("deprecated")
-    return rotate90ccw(v)
+# def perp(v):
+#     # FIXME: 
+#     # rename to: rotate90ccw(v)
+#     # and make: rotate90cw(v)
+#     # Rotating a vector 90 degrees is particularily simple.
+#     # (x, y) rotated 90 degrees around (0, 0) is (-y, x).
+#     # If you want to rotate clockwise, 
+#     # you simply do it the other way around, getting (y, -x).
+#     """Rotate 2d vector 90 degrees counter clockwise
+#     """
+#     import warnings
+#     warnings.warn("perp is deprecated, use rotate90ccw directly")
+#     return rotate90ccw(v)
 
 def rotate90ccw(v):
     """Rotate 2d vector 90 degrees counter clockwise
@@ -228,12 +228,8 @@ def outward_unit_p1(p0, p1, p2):
     """
     # pre-condition, the 3 points do not lie at same location
     assert p0 != p1 != p2
-    print p0, p1, p2
     u = map(sub, p0, p1)
     v = map(sub, p2, p1)
-    # print "u", u
-    # print "v", v
-    # FIXME: division by zero
     u = normalize(u)
     v = normalize(v)
     return u, v

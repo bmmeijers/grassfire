@@ -31,7 +31,7 @@ class TestSimultaneousEvents(unittest.TestCase):
 # #         l0 = [(0.0, -1.0), (5.0, -1.0)]
 #         l1 = [(0, 0.5), (1,1)]
 #         l2 = [(1,1), (0.5, 0)]
-#           
+#            
 #         l3 = [(2.5, 3), (2,2)]
 #         l4 = [(2, 2), (3,2.5)]
 #         for line in l1, l2, l3, l4:#, l2:
@@ -86,9 +86,10 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         skel = calc_skel(conv)
 #         return
 
-#     def test_star_cocircular(self):
+
+#     def test_2_vshape(self):
 #         from math import cos, sin, pi
-#  
+#         # misses event
 #         N = 20
 #         inc = 2*pi / N
 #         pts = []
@@ -99,8 +100,7 @@ class TestSimultaneousEvents(unittest.TestCase):
 #                 pt = 2*cos(i * inc), 2*sin(i *inc)
 #             pts.append(pt)
 #         l = []
-#         for n in range(len(pts)):
-#             #print n, n+1
+#         for n in (0,1, 4,5):
 #             l.append((pts[n], pts[(n+1)%len(pts)]))
 #         conv = ToPointsAndSegments()
 #         for line in l:
@@ -108,6 +108,39 @@ class TestSimultaneousEvents(unittest.TestCase):
 #             conv.add_point(line[1])
 #             conv.add_segment(*line)
 #         skel = calc_skel(conv)
+
+
+
+#     def test_star_cocircular(self):
+#         """4 v-shape lines pointing towards center
+#         """
+#         from math import cos, sin, pi
+#         N = 20
+#         inc = 2*pi / N
+#         pts = []
+#         for i in range(N):
+#             if i %2:
+#                 pt = cos(i * inc), sin(i *inc)
+#             else:
+#                 pt = 2*cos(i * inc), 2*sin(i *inc)
+#             pts.append(pt)
+#         l = []
+#         for n in (0,1, 4,5, 8,9, 12,13, 16,17):
+#             l.append((pts[n], pts[(n+1)%len(pts)]))
+#         conv = ToPointsAndSegments()
+#         for line in l:
+#             conv.add_point(line[0])
+#             conv.add_point(line[1])
+#             conv.add_segment(*line)
+#         skel = calc_skel(conv)
+#         assert len(skel.segments()) == 45
+#         # FIXME: The central skeleton node is generated twice -> 
+#         # this is because opposite 1 triangle collapses
+#         # which does not share any vertex with earlier collapsed triangles
+#         assert len(skel.sk_nodes) == 26, len(skel.sk_nodes)
+
+
+
 
 #     def test_infinite3(self):
 #         """3 segments with terminal vertices at convex hull
@@ -143,6 +176,9 @@ class TestSimultaneousEvents(unittest.TestCase):
 #             conv.add_segment(*line)
 #         skel = calc_skel(conv)
 
+
+############## FIXME:
+## Last event is now 3-triangle, this leads to wrong skeleton!
 #     def test_rect_extra_pt(self):
 #         """" """
 #         conv = ToPointsAndSegments()
@@ -150,14 +186,18 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         conv.add_polygon(polygon)
 #         skel = calc_skel(conv)
 
-
-    def test_tiny_v(self):
-        """Tiny V at bottom of square"""
-        conv = ToPointsAndSegments()
-        polygon = [[(-10, 0), (-10., 100.), (100.,100.), (100.,0.), (2., 0.), (1,-1), (0,0), (-10,0)]]
-        conv.add_polygon(polygon)
-        skel = calc_skel(conv)
-        
+#     def test_tiny_v(self):
+#         """Tiny V at bottom of square"""
+#         conv = ToPointsAndSegments()
+#         polygon = [[(-10, 0), (-10., 100.), (100.,100.), (100.,0.), (2., 0.), (1,-1), (0,0), (-10,0)]]
+#         conv.add_polygon(polygon)
+#         skel = calc_skel(conv)
+#         assert len(skel.segments()) == (10+7)
+#         positions = [n.pos for n in skel.sk_nodes]
+#         # additional: 
+#         # check if last node geerated internally is at (50,50)
+#         assert (50,50) in positions
+############## :FIXME
 
 #     def test_2parallel_eq(self):
 #         """2 parallel wavefront having same size"""
@@ -243,25 +283,23 @@ class TestSimultaneousEvents(unittest.TestCase):
 # class TestGrassfire3(unittest.TestCase):
 
 
-#     def test_parallellogram(self):
-#         conv = ToPointsAndSegments()
-#         conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
-#         skel = calc_skel(conv)
+    def test_parallellogram(self):
+        conv = ToPointsAndSegments()
+        conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
+        skel = calc_skel(conv)
 # 
-
 
 if __name__ == "__main__":
 
-    import logging
-    import sys
- 
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
- 
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    ch.setFormatter(formatter)
-    root.addHandler(ch)
+    if False:
+        import logging
+        import sys
+        root = logging.getLogger()
+        root.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        root.addHandler(ch)
 
     unittest.main()

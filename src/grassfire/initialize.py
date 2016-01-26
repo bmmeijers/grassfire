@@ -4,7 +4,7 @@ from operator import add
 from tri.delaunay import TriangleIterator, StarEdgeIterator
 from tri.delaunay import cw, ccw, orient2d
 
-from grassfire.calc import bisector, normalize, perp
+from grassfire.calc import bisector, normalize, rotate90ccw
 from primitives import Skeleton, SkeletonNode
 from primitives import InfiniteVertex, KineticTriangle, KineticVertex
 
@@ -38,6 +38,7 @@ def find_overlapping_triangle(E):
     return idx
 
 def is_quad(L):
+    """ """
     assert len(L) == 5
     # check 3 orientations
     s = [orient2d(a, b, c) for a,b,c in zip(L[:-2], L[1:-1], L[2:])]
@@ -47,6 +48,7 @@ def is_quad(L):
     return result
 
 def rotate_until_not_in_candidates(t, v, direction, candidates):
+    """ """
     seen = set()
     while t is not None and t not in seen:
         seen.add(t)
@@ -129,7 +131,6 @@ def init_skeleton(dt):
         for i, e in enumerate(around):
             if e.triangle.constrained[cw(e.side)]:
                 constraints.append(i)
-#             print "# of constraints:", len(constraints)
 
         # FIXME:
         # Check here how many constrained edges we have outgoing of
@@ -157,7 +158,6 @@ def init_skeleton(dt):
 
             # make two bisectors at a terminal vertex
             if len(constraints) == 1:
-#                     print "central vertex", v
 
                 assert constraints[0] == 0
                 edge = around[0]
@@ -168,9 +168,9 @@ def init_skeleton(dt):
                 # from segment over terminal vertex to this kinetic vertex, 
                 # turns right
                 # (first bisector when going ccw at end)
-                p2 = tuple(map(add, start, perp(vec)))
+                p2 = tuple(map(add, start, rotate90ccw(vec)))
                 p1 = v
-                p0 = tuple(map(add, start, perp(perp(vec))))
+                p0 = tuple(map(add, start, rotate90ccw(rotate90ccw(vec))))
                 bi = bisector(p0, p1, p2)
 #                 print >> bisector_fh, "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(p1, map(add, p1, bi)) 
 #                     print nodes[v]
@@ -184,9 +184,9 @@ def init_skeleton(dt):
 
                 # from segment to this vertex, turns left
                 # second bisector when going ccw at end
-                p2 = tuple(map(add, start, perp(perp(vec))))
+                p2 = tuple(map(add, start, rotate90ccw(rotate90ccw(vec))))
                 p1 = v
-                p0 = tuple(map(add, start, perp(perp(perp(vec)))))
+                p0 = tuple(map(add, start, rotate90ccw(rotate90ccw(rotate90ccw(vec)))))
                 bi = bisector(p0, p1, p2)
 #                 print >> bisector_fh, "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(p1, map(add, p1, bi)) 
                 # FIXME insert additional triangle at this side
@@ -250,6 +250,7 @@ def init_skeleton(dt):
                 first_ok = is_quad(first_quad)
                 last_ok = is_quad(last_quad)
 
+
                 # if first is True and second False
                 # assign ktriangles triangle to kvA/kvB and the corner to kvB
 
@@ -304,6 +305,7 @@ def init_skeleton(dt):
 
             # make bisectors
             else:
+                
                 assert len(constraints) >= 2
                 # group the triangles around the vertex
                 constraints.append(len(around))
@@ -330,7 +332,6 @@ def init_skeleton(dt):
                     kvertices.append(kv)
                     # link vertices to each other in circular list
                     link_around.append( ((end.triangle, cw(end.side)), kv, (begin.triangle, ccw(begin.side))))
-
     for left, curv, right in link_around: # left is cw, right is ccw
         if left is not None:
             cwv = triangle2ktriangle[left[0]].vertices[left[1]]
@@ -339,7 +340,6 @@ def init_skeleton(dt):
         if right is not None:
             ccwv = triangle2ktriangle[right[0]].vertices[right[1]]
             curv.right = ccwv, 0
-
     # -- copy infinite vertices into the kinetic triangles
     # make dico of infinite vertices (lookup by coordinate value)
     infinites = {}

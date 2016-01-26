@@ -1,7 +1,9 @@
 from collections import namedtuple
 
 class Event(object):
+    """ """
     def __init__(self, when, tri, side = None, tp = None, tri_tp=-1):
+        """ """
         self.time = when
         self.triangle = tri
         self.side = side
@@ -9,16 +11,8 @@ class Event(object):
         assert tri_tp != -1
         self.triangle_tp = tri_tp
 
-#     def __eq__(self, other):
-#         return self.time == other.time
-# 
-#     def __lt__(self, other):
-#         return self.time < other.time
-# 
-#     def __gt__(self, other):
-#         return self.time > other.time
-
     def __str__(self):
+        """ """
         finite_txt = "finite"
         if not self.triangle.is_finite:
             finite_txt = "infinite"
@@ -28,6 +22,7 @@ class Skeleton(object):
     """Represents a Straight Skeleton 
     """
     def __init__(self):
+        """ """
         # positions --> skeleton positions
         self.sk_nodes = []
         # kinetic primitives --> (traced) wavefront
@@ -35,6 +30,7 @@ class Skeleton(object):
         self.triangles = []
 
     def segments(self):
+        """ """
         segments = []
         for v in self.vertices:
             if v.stops_at is not None:
@@ -66,9 +62,6 @@ class KineticVertex(object):
         # next / prev pos
         # while looking in direction of bisector, see which 
         # kinetic vertex you see on the left, and which on the right
-        #self.left = None
-        #self.right = None
-
         self._left = [] # (start, stop, vertex)
         self._right = []
 
@@ -85,11 +78,9 @@ class KineticVertex(object):
         time = 0
         # 4.281470022378475
         return "{0[0]} {0[1]} ".format(self.position_at(time))
-    
+
     def __repr__(self):
-        # FIXXME: make other method (dependent on time as argument)
-        time = 0
-        # 4.281470022378475
+        """ """
         return "KineticVertex({0}, {1})".format(self.origin, self.velocity)
 
     def distance2(self, other):
@@ -110,11 +101,13 @@ class KineticVertex(object):
 
     @property
     def left(self):
+        """ """
         if self._left:
             return self._left[-1][2]
 
     @property
     def right(self):
+        """ """
         if self._right:
             return self._right[-1][2]
 
@@ -132,12 +125,14 @@ class KineticVertex(object):
 
     @right.setter
     def right(self, v):
+        """ """
         ref, time, = v
         if len(self._right) > 0:
             self._right[-1] = self._right[-1][0], time, self._right[-1][2]
         self._right.append((time, None, ref))
 
     def left_at(self, time):
+        """ """
         for item in self._left:
             if (item[0] <= time and item[1] > time) or \
                 (item[0] <= time and item[1] is None):
@@ -145,6 +140,7 @@ class KineticVertex(object):
         return None
 
     def right_at(self, time):
+        """ """
         for item in self._right:
             if (item[0] <= time and item[1] > time) or \
                 (item[0] <= time and item[1] is None):
@@ -153,8 +149,12 @@ class KineticVertex(object):
 
 class InfiniteVertex(object): # Stationary Vertex
     def __init__(self, origin=None):
+        """ """
         self.origin = origin
         self.velocity = (0,0)
+        # infinitevertex does not have circular thing
+        self.left = None
+        self.right = None
 
     def __repr__(self):
         return "InfiniteVertex({0})".format(self.origin)
@@ -210,6 +210,7 @@ class KineticTriangle(object):
         return s
 
     def __str__(self):
+        """ """
         vertices = []
         for idx in range(3):
             v = self.vertices[idx]
@@ -231,6 +232,7 @@ class KineticTriangle(object):
         return "POLYGON(({0}))".format(", ".join(vertices))
 
     def str_at(self, t):
+        """ """
         vertices = []
 #         if self.is_finite:
         for idx in range(3):
@@ -304,7 +306,7 @@ def test_perp():
 
 # test_perp()
 #     vec = tuple(map(sub, t.vertices[e], t.vertices[s]))
-#     vec = perp(perp(vec))
+#     vec = rotate90ccw(rotate90ccw(vec))
 #     opp_angle = atan2(vec[1], vec[0])
 #     while opp_angle < 0:
 #         opp_angle += 2 * pi

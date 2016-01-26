@@ -18,8 +18,8 @@ def output_triangles_at_T(tri, T, fh):
             continue
         fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), t.str_at(T), [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.is_finite, t.info, T))
 
-
 def output_kdt(skel, time):
+    """ """
 #     time = 0
     with open("/tmp/ktris.wkt", "w") as fh:
         fh.write("id;wkt;n0;n1;n2;v0;v1;v2\n")
@@ -55,6 +55,7 @@ def output_vertices_at_T(V, T, fh):
         fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.position_at(T), id(v.left), id(v.right)))
 
 def output_dt(dt):
+    """ """
     with open("/tmp/vertices.wkt", "w") as fh:
         output_vertices([v for v in dt.vertices], fh)
 
@@ -65,10 +66,11 @@ def output_dt(dt):
     with open("/tmp/segments.wkt", "w") as fh:
         output_edges([e for e in FiniteEdgeIterator(dt, True)], fh)
 
-def output_offsets(skel):
+def output_offsets(skel, now=1000):
+    """ """
     with open("/tmp/offsetsl.wkt", "w") as fh:
         fh.write("wkt\n")
-        for t in range(0, 1000):
+        for t in range(0, 5 * int(now)):
             t *= .2
             for v in skel.vertices:
                 if (v.starts_at <= t and v.stops_at > t) or \
@@ -83,7 +85,7 @@ def output_offsets(skel):
 
     with open("/tmp/offsetsr.wkt", "w") as fh:
         fh.write("wkt\n")
-        for t in range(0, 1000):
+        for t in range(0, 5 * int(now)):
             t *= .2
             for v in skel.vertices:
                 if v.starts_at <= t and v.stops_at > t or \
@@ -99,6 +101,7 @@ def output_offsets(skel):
 
 
 def output_skel(skel):
+    """ """
     with open("/tmp/skel.wkt", "w") as fh:
         fh.write("wkt\n")
         for v in skel.vertices:
