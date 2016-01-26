@@ -5,7 +5,7 @@
 
 from itertools import imap
 from operator import add, sub, mul, truediv
-from math import pi, atan2, degrees, hypot, sin
+from math import pi, atan2, degrees, hypot, sin, sqrt
 from pprint import pprint
 from tri.delaunay import orient2d
 import cmath
@@ -192,6 +192,15 @@ def normalize(v):
     lengthv = hypot(v[0], v[1])
     assert lengthv != 0, "Vector without length cannot be normalized: {0}".format(v)
     return tuple([i/lengthv for i in v])
+
+
+def dot(v1, v2):
+    """Returns dot product of v1 and v2 """
+    return sum(p*q for p,q in zip(v1, v2))
+
+def length(v):
+    """Euclidean length of vector"""
+    return sqrt(sum( [x**2 for x in v] ) )
 
 # def perp(v):
 #     # FIXME: 

@@ -52,7 +52,6 @@ def init_event_list(skel):
             q.add(res)
     return q
 
-
 # ------------------------------------------------------------------------------
 # Event handling
 
@@ -454,6 +453,7 @@ def event_loop(queue, skel, pause=False):
 #     for e in queue:
 #             print e.time.as_integer_ratio(), e
 #     print "visualize start"
+    pass
     # -- clean out files for visualization
     for file_nm in [
             "/tmp/sknodes_progress.wkt",
@@ -503,11 +503,15 @@ def event_loop(queue, skel, pause=False):
             handle_split_event(evt, skel, queue)
         check_ktriangles(skel.triangles, NOW)
         visualize(queue, skel, NOW)
+        pass
 #         for e in queue:
 #             print e.time.as_integer_ratio(), e
 #         print "after", NOW
     visualize(queue, skel, NOW+10)
-    return NOW
+    for v in skel.vertices:
+        if v.stops_at is None:
+            stop_kvertex(v, NOW+10)
+    return NOW+10
 
 
 def visualize(queue, skel, NOW):

@@ -24,9 +24,9 @@ def calc_skel(conv, pause=False, output=True):
     # step 3 -- make initial event list
     el = init_event_list(skel)
     # step 4 -- handle events until finished
-    t = event_loop(el, skel, pause)
+    last_evt_time = event_loop(el, skel, pause)
     # step 5 -- output offsets and the skeleton
     if output:
-        output_offsets(skel, t+10)
+        output_offsets(skel, last_evt_time)
         output_skel(skel)
     return skel

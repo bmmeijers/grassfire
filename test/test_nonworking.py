@@ -41,7 +41,6 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         skel = calc_skel(conv)
 #         return
 
-
 #     def test_cocirculair_3(self):
 #         """
 #         """
@@ -61,8 +60,6 @@ class TestSimultaneousEvents(unittest.TestCase):
 #             conv.add_segment(*line)
 #         skel = calc_skel(conv)
 #         return
-
-
 
 #     def test_cocirculair_4(self):
 #         """
@@ -109,8 +106,6 @@ class TestSimultaneousEvents(unittest.TestCase):
 #             conv.add_segment(*line)
 #         skel = calc_skel(conv)
 
-
-
 #     def test_star_cocircular(self):
 #         """4 v-shape lines pointing towards center
 #         """
@@ -138,9 +133,6 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         # this is because opposite 1 triangle collapses
 #         # which does not share any vertex with earlier collapsed triangles
 #         assert len(skel.sk_nodes) == 26, len(skel.sk_nodes)
-
-
-
 
 #     def test_infinite3(self):
 #         """3 segments with terminal vertices at convex hull
@@ -185,7 +177,6 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         polygon = [[(0, 0), (0., 10), (15,10), (15,0.), (2., 0.), (0,0)]]
 #         conv.add_polygon(polygon)
 #         skel = calc_skel(conv)
-
 #     def test_tiny_v(self):
 #         """Tiny V at bottom of square"""
 #         conv = ToPointsAndSegments()
@@ -234,8 +225,6 @@ class TestSimultaneousEvents(unittest.TestCase):
 #             conv.add_polygon(polygon)
 #         skel = calc_skel(conv)
 
-
-
 #     def test_3tris_infinte_flips(self):
 #         """This configuration seems to lead to infinite flip events
 #         """
@@ -249,8 +238,6 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         for polygon in polygons:
 #             conv.add_polygon(polygon)
 #         skel = calc_skel(conv)
-
-
 
 # 
 #     def test_bottom_circle_top_square(self):
@@ -271,23 +258,19 @@ class TestSimultaneousEvents(unittest.TestCase):
 #         assert len(skel.segments()) == (7+6)
 # 
 
-
-
 #     def test_cross(self):
 #         ring = [(0,0), (10, 0), (10,-10), (15, -10), (15,0), (25,0), (25,5), (15,5), (15,15), (10,15), (10,5), (0,5), (0,0)]
 #         conv = ToPointsAndSegments()
 #         conv.add_polygon([ring])
 #         skel = calc_skel(conv)
- 
-
-# class TestGrassfire3(unittest.TestCase):
-
 
     def test_parallellogram(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
         skel = calc_skel(conv)
-# 
+        positions = [n.pos for n in skel.sk_nodes]
+#         # additional: 
+        assert (3.64128183429, 18.5688030572) in positions
 
 if __name__ == "__main__":
 
