@@ -271,7 +271,8 @@ def bisector(p0, p1, p2):
     v = bisector_unit(p0, p1, p2)
     s = scaling_factor(p0, p1, p2)
     if s is None:
-        raise ValueError("Infinite speed")
+        return (0., 0.)
+        # raise ValueError("Infinite speed")
     return vector_mul_scalar(v, s)
 
 

@@ -874,8 +874,8 @@ def test_solve():
     print solve_quadratic(A, B, C) == [-2.0, -1.0]
 
 def main():
-#     test_compute_collapse_times()
-    test_one_collapse()
+    test_compute_collapse_times()
+#     test_one_collapse()
 
 def test_one_collapse():
     

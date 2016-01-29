@@ -59,52 +59,6 @@ def init_event_list(skel):
 # ------------------------------------------------------------------------------
 # Event handling
 
-# FIXME: unify by making v a list of vertices?
-def stop_kvertex_at_sk_node(v, now, sk_node):
-    """Associate a kinetic vertex with a particular skeleton node and time `now`
-    """
-    v.stops_at = now
-    v.stop_node = sk_node
-    return sk_node
-
-def stop_kvertex(v, now):
-    """Stop 1 kinetic vertex, making a node at the place where this node stops.
-    """
-    v.stops_at = now
-    pos = v.position_at(now)
-    sk_node = SkeletonNode(pos)
-    v.stop_node = sk_node
-    return sk_node
-
-def stop_kvertices2(v1, v2, now):
-    """Stop 2 kinetic vertices, making a node at the place where they stop.
-    If a vertex already has a node associated, use this node to connect to.
-    """
-    # see if a vertex already has a skeleton node
-    sk_node = None
-    if v1.stops_at is None:
-        v1.stops_at = now
-    else:
-        sk_node = v1.stop_node
-    if v2.stops_at is None:
-        v2.stops_at = now
-    else:
-        sk_node = v2.stop_node
-    # if so, use it, otherwise make new node
-    if sk_node is not None:
-        v1.stop_node = sk_node
-        v2.stop_node = sk_node
-        return sk_node, False
-    else:
-        a = v1.position_at(now)
-        b = v2.position_at(now)
-        pos = tuple(map(lambda x: x*.5, map(add, a, b)))
-        sk_node = SkeletonNode(pos)
-        v1.stop_node = sk_node
-        v2.stop_node = sk_node
-        return sk_node, True
-
-
 def stop_kvertices(V, now):
     """ Stop a list of kinetic vertices at time t, creating a new node.
 
@@ -139,29 +93,6 @@ def stop_kvertices(V, now):
         return sk_node, True
 
 
-
-def stop_kvertices3(v0, v1, v2, now):
-    """Stop 3 kinetic vertices, making a node at the place where they stop"""
-    # get positions of the 3 vertices
-    # (these should be more or less similar!)
-    a = v0.position_at(now)
-    b = v1.position_at(now)
-    c = v2.position_at(now)
-    # these vertices stop at time t=now
-    v0.stops_at = now
-    v1.stops_at = now
-    v2.stops_at = now
-    # obtain position of new skeleton node
-    x = sum([a[0], b[0], c[0]]) / 3.
-    y = sum([a[1], b[1], c[1]]) / 3.
-    pos = (x, y)
-    # make this node
-    sk_node = SkeletonNode(pos)
-    v0.stop_node = sk_node
-    v1.stop_node = sk_node
-    v2.stop_node = sk_node
-    return sk_node
-
 def compute_new_kvertex(v1, v2, now, sk_node):
     """Based on the two kinetic vertices, time t=now and the skeleton node
     return a new kinetic vertex.
@@ -194,6 +125,7 @@ def compute_new_kvertex(v1, v2, now, sk_node):
                      sk_node.pos[1] + negvelo[1] * now)
     kv.origin = pos_at_t0
     kv.velocity = velo
+    assert kv.velocity != (0.,0.)
     return kv
 
 def replace_kvertex(t, v, newv, now, direction, queue):
@@ -233,163 +165,6 @@ def update_circ(kv, v1, v2, now):
     v1.right = kv, now
     v2.left = kv, now
 
-
-# def handle_edge_event(evt, skel, queue):
-#     """ Handle an edge event """
-#     t = evt.triangle
-#     logging.debug(evt.side)
-#     e = evt.side[0] # pick first side
-#     now = evt.time
-#     v0 = t.vertices[(e) % 3]
-#     v1 = t.vertices[(e+1) % 3]
-#     v2 = t.vertices[(e+2) % 3]
-#     if t.type == 3:
-#         # stop 3 vertices
-#         # add node to skeleton structure
-#         sk_node = stop_kvertices3(v0, v1, v2, now)
-#         skel.sk_nodes.append(sk_node)
-#     elif len(evt.side) != 1:
-#         raise NotImplementedError("Problem with multiple sides collapsing not there yet")
-#     elif t.type == 2 and t.neighbours[e] is not None:
-#         logging.debug("handle event for 2 triangle that collapses completely")
-#         # all 3 sides of 2 triangle collapse at the same time
-#         sk_node = stop_kvertices3(v0, v1, v2, now)
-#         kv = compute_new_kvertex(v2.left, v1.right, now, sk_node)
-#         update_circ(kv, v2.left, v1.right, now)
-#         # add to skeleton structure
-#         skel.sk_nodes.append(sk_node)
-#         a = t.neighbours[(e+1) % 3]
-#         b = t.neighbours[(e+2) % 3]
-#         n = t.neighbours[e]
-#         assert a is None
-#         assert b is None
-#         assert n is not None
-#         # where is t in the list of neighbours of triangle n 
-#         t_idx = n.neighbours.index(t)
-#         if n.type == 0:
-#             if n.event != None:
-#                 queue.discard(n.event)
-#             logging.debug("2-triangle, also dealing with 0-triangle neighbour")
-#             skel.vertices.append(kv)
-#             replace_kvertex(n, v1, kv, now, cw, queue)
-#             replace_kvertex(n, v2, kv, now, ccw, queue)
-#             # we have a neighbouring 0 triangle
-#             # that collapses at side `t_idx`
-#             n0 = n.neighbours[(t_idx) % 3]
-#             n1 = n.neighbours[(t_idx+1) % 3]
-#             n2 = n.neighbours[(t_idx+2) % 3]
-#             assert n0 is t
-#             n1_side = n1.neighbours.index(n)
-#             n2_side = n2.neighbours.index(n)
-#             n1.neighbours[n1_side] = n2
-#             n2.neighbours[n2_side] = n1
-#             n.neighbours = [None, None, None]
-#             n.vertices = [None, None, None]
-#             skel.triangles.remove(n)
-#         elif n.type == 2:
-#             # handle adjacent 2 triangle
-#             # as this is a 2 triangle, 
-#             # the neighbour 2-triangle also should collapse to point
-#             logging.debug("2-triangle, also dealing with 2-triangle neighbour")
-#             assert n.event != None
-#             queue.discard(n.event)
-#             # we have a neighbouring 2 triangle
-#             # that collapses at side `n_idx`
-#             n0 = n.neighbours[(t_idx) % 3]
-#             n1 = n.neighbours[(t_idx+1) % 3]
-#             n2 = n.neighbours[(t_idx+2) % 3]
-#             assert n0 is t
-#             assert n1 is None
-#             assert n2 is None
-#             # the vertex opposite of collapsed edge in neighbour
-#             still_moving = n.vertices[t_idx]
-#             stop_kvertex_at_sk_node(still_moving, now, sk_node)
-#             skel.triangles.remove(n)
-#         elif n.event != None:
-#             replace_in_queue(n, n.event.time, queue)
-#     else:
-#         # This part handles type 2, type 1 and type 0 triangles
-#         # -- find out whether we have a wavefront edge that collapses
-#         # or a spoke that collapses. A spoke collapsing means that
-#         # we have to detach the neighbour and duplicate
-#         # the kinetic vertices... (see Figure 8 / 9 on page 19)
-#         sk_node, to_append = stop_kvertices2(v1, v2, now)
-#         # add node to skeleton structure, skeleton nodes
-#         if to_append:
-#             skel.sk_nodes.append(sk_node)
-#         kv = compute_new_kvertex(v1.left, v2.right, now, sk_node)
-#         # update circular list
-#         update_circ(kv, v1.left, v2.right, now)
-#         # append to skeleton structure, kinetic vertices
-#         skel.vertices.append(kv)
-#         # get neighbours around collapsing triangle
-#         a = t.neighbours[(e+1) % 3]
-#         b = t.neighbours[(e+2) % 3]
-#         n = t.neighbours[e]
-#         if a is not None:
-#             a_idx = a.neighbours.index(t)
-#             a.neighbours[a_idx] = b
-#             replace_kvertex(a, v2, kv, now, cw, queue)
-#         if b is not None:
-#             b_idx = b.neighbours.index(t)
-#             b.neighbours[b_idx] = a
-#             replace_kvertex(b, v1, kv, now, ccw, queue)
-#         if n is not None:
-#             # we have a neighbouring 0 triangle
-#             # that collapses at side `t_idx`
-#             if n.type == 0:
-#                 if n.event != None:
-#                     queue.discard(n.event)
-#                 # take neighbours around neighbour
-#                 t_idx = n.neighbours.index(t)
-#                 n0 = n.neighbours[(t_idx) % 3]
-#                 n1 = n.neighbours[(t_idx+1) % 3]
-#                 n2 = n.neighbours[(t_idx+2) % 3]
-#                 assert n0 is t
-#                 if isinstance(n.vertices[t_idx], InfiniteVertex):
-#                     nv1, nv2 = n.vertices[(t_idx+1)%3], n.vertices[(t_idx+2)%3]
-#                     sk_node, to_append = stop_kvertices2(nv1, nv2, now)
-#                     kv = compute_new_kvertex(nv1.left, nv2.right, now, sk_node)
-#                     # update circular list
-#                     update_circ(kv, nv1.left, nv2.right, now)
-#                     # append to skeleton structure, kinetic vertices
-#                     skel.vertices.append(kv)
-#                     a = n.neighbours[(t_idx+1) % 3]
-#                     b = n.neighbours[(t_idx+2) % 3]
-#                     if a is not None:
-#                         a_idx = a.neighbours.index(n)
-#                         a.neighbours[a_idx] = b
-#                         replace_kvertex(a, nv2, kv, now, cw, queue)
-#                     if b is not None:
-#                         b_idx = b.neighbours.index(n)
-#                         b.neighbours[b_idx] = a
-#                         replace_kvertex(b, nv1, kv, now, ccw, queue)
-#                     skel.triangles.remove(n)
-#     #                     raise ValueError("infinite vertex, we need to do something different")
-#                 else:
-#                     # glue neighbours together
-#                     n1_side = n1.neighbours.index(n)
-#                     n2_side = n2.neighbours.index(n)
-#                     n1.neighbours[n1_side] = n2
-#                     n2.neighbours[n2_side] = n1
-#                     n.neighbours = [None, None, None]
-#                     n.vertices = [None, None, None]
-#                     skel.triangles.remove(n)
-#             else:
-#                 pass
-#     #                 schedule_immediately(n, now, queue)
-#     # potentially slow (as skel.triangles is a unsorted list)
-#     skel.triangles.remove(t)
-
-# def schedule_immediately(triangle, now, queue):
-#     """ Make sure that triangle is at top of event queue for next iteration """
-#     if triangle.event != None:
-#         queue.remove(triangle.event)
-#         event = triangle.event
-#         event.time = now
-#         queue.add(triangle.event)
-#     else:
-#         logging.debug("No event for triangle {0} to schedule immediately!!!".format(id(triangle)))
 
 # ------------------------------------------------------------------------------
 # Edge event handlers
@@ -490,7 +265,10 @@ def handle_split_event(evt, skel, queue):
     assert n is None
     v1 = t.vertices[(e+1) % 3]
     v2 = t.vertices[(e+2) % 3]
-    sk_node = stop_kvertex(v, now)
+    sk_node, newly_made = stop_kvertices([v], now)
+    # add the skeleton node to the skeleton
+    assert newly_made == True
+    skel.sk_nodes.append(sk_node)
     assert v1.right is v2
     assert v2.left is v1
     vb = compute_new_kvertex(v.left, v2, now, sk_node)
@@ -498,15 +276,14 @@ def handle_split_event(evt, skel, queue):
     # split circular list into 2 lists here
     update_circ(vb, v.left, v2, now)
     update_circ(va, v1, v.right, now)
-    # add the skeleton node and the two kinetic vertices to the skeleton
-    skel.sk_nodes.append(sk_node)
+    # add the two kinetic vertices to the skeleton
     skel.vertices.append(va)
     skel.vertices.append(vb)
-    # update neighbour 1
+    # updates (triangle fan) at neighbour 1
     b = t.neighbours[(e+1)%3]
     b.neighbours[b.neighbours.index(t)] = None
     replace_kvertex(b, v, vb, now, ccw, queue)
-    # update neighbour 2
+    # updates (triangle fan) at neighbour 2
     a = t.neighbours[(e+2)%3]
     a.neighbours[a.neighbours.index(t)] = None
     replace_kvertex(a, v, va, now, cw, queue)
@@ -574,6 +351,8 @@ def flip(t0, side0, t1, side1):
     t1.vertices = [C, D, A]
     t1.neighbours = [DA, t0, CD]
 
+# Main event loop
+# -----------------------------------------------------------------------------
 
 def event_loop(queue, skel, pause=False):
     """ The main event loop """
