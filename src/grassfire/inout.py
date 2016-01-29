@@ -16,8 +16,11 @@ def output_triangles_at_T(tri, T, fh):
     for t in tri:
         if t is None:
             continue
-        fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), t.str_at(T), [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.is_finite, t.info, T))
-
+        if t.stops_at == None:
+            fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), t.str_at(T), [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.is_finite, t.info, T))
+        else:
+            # we skip the triangle if it has a timestamp associated
+            pass
 def output_kdt(skel, time):
     """ """
 #     time = 0

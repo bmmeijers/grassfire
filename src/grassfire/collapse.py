@@ -125,8 +125,8 @@ def compute_event_0triangle(tri, now, sieve):
     # - collapse to a point? -- see circle
 
     # A triangle that is bounded only by spokes can either collapse
-    # due to a flip event, that is, a vertex can sweep across its oppos-
-    # ing spoke, or because one of its spokes collapses to zero length.
+    # due to a flip event, that is, a vertex can sweep across its 
+    # opposing spoke, or because one of its spokes collapses to zero length.
     # For each edge of a triangle we compute its collapse time, if
     # it exists. We also compute the time when the triangle's area
     # becomes zero using the determinant approach.
@@ -164,10 +164,36 @@ def compute_event_0triangle(tri, now, sieve):
             tp = "flip"
             return Event(when=time, tri=tri, side=(side,), tp=tp, tri_tp=tri.type)
         elif time_edge_collapse != None:
-            return None
+            time = time_edge_collapse
+            dists = [d.distance2_at(a, time), 
+                     a.distance2_at(o, time), 
+                     o.distance2_at(d, time)]
+            zeros = [near_zero(_) for _ in dists]
+            sides_collapse = zeros.count(True)
+            if sides_collapse == 3:
+                return Event(when=time, tri=tri, side = (0, 1, 2), tp="edge", tri_tp=tri.type)
+            elif sides_collapse == 1:
+                side = zeros.index(True)
+                return Event(when=time, tri=tri, side = (side,), tp="edge", tri_tp=tri.type)
+            else:
+                raise ValueError("0 triangle with 2 or 0 side collapse, while edge collapse time computed?")
+
     else:
+        # FIXME: much duplication here with above
         if time_edge_collapse != None:
-            return None
+            time = time_edge_collapse
+            dists = [d.distance2_at(a, time), 
+                     a.distance2_at(o, time), 
+                     o.distance2_at(d, time)]
+            zeros = [near_zero(_) for _ in dists]
+            sides_collapse = zeros.count(True)
+            if sides_collapse == 3:
+                return Event(when=time, tri=tri, side = (0, 1, 2), tp="edge", tri_tp=tri.type)
+            elif sides_collapse == 1:
+                side = zeros.index(True)
+                return Event(when=time, tri=tri, side = (side,), tp="edge", tri_tp=tri.type)
+            else:
+                raise ValueError("0 triangle with 2 or 0 side collapse, while edge collapse time computed?")
         else:
             raise NotImplementedError("time_area_collapse not None, while time edge collapse is None")
 
@@ -338,12 +364,13 @@ def compute_event_2triangle(tri, now, sieve):
                  o.distance2_at(d, time)]
         logging.debug("distances at time = {1}: {0}".format(dists, time))
         zeros = [near_zero(dist) for dist in dists]
+        logging.debug("near_zero = {}".format(zeros))
         sides_collapse = zeros.count(True)
         if sides_collapse == 3:
-            for side, _ in enumerate(tri.neighbours):
-                if _ is not None:
-                    break
-            sides = (side,) # take the side that is not None (has a neighbour)
+#             for side, _ in enumerate(tri.neighbours):
+#                 if _ is not None:
+#                     break
+            sides = range(3) # (side,) # take the side that is not None (has a neighbour)
             return Event(when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
         elif sides_collapse == 2:
             # hopefully never happens -- 
@@ -355,7 +382,8 @@ def compute_event_2triangle(tri, now, sieve):
             sides = (side,)
             return Event(when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
         elif sides_collapse == 0:
-            raise ValueError("This is not possible with this type of triangle") 
+            return None
+            #raise ValueError("This is not possible with this type of triangle") 
     else:
         # -- Triangle does not collapse
         return None
@@ -399,8 +427,6 @@ def compute_event_3triangle(tri, now, sieve):
         return None
 
 def compute_event_inftriangle(tri, now, sieve):
-    # FIXME: negative collapse times are probably the times we are after 
-    # here as the orientation of the triangle is in reverse as well
     for inf_idx, v in enumerate(tri.vertices):
         if isinstance(v, InfiniteVertex):
             break
@@ -430,7 +456,7 @@ def compute_event_inftriangle(tri, now, sieve):
     if time:
         dist = o.distance2_at(d, time)
         if near_zero(dist):
-            return None
+            return Event(when=time, tri=tri, side=(side,), tp="edge", tri_tp=tri.type)
             # non-wavefront edge collapses
 #             return Event(when=time, tri=tri, side=(side,), tp="edge")
         else:
@@ -468,12 +494,16 @@ def compute_collapse_time(tri, now=0, sieve=find_gte):
         # finite triangles
         tp = tri.type
         if tp == 0:
+            logging.debug("event for 0-triangle")
             event = compute_event_0triangle(tri, now, sieve)
         elif tp == 1:
+            logging.debug("event for 1-triangle")
             event = compute_event_1triangle(tri, now, sieve)
         elif tp == 2:
+            logging.debug("event for 2-triangle")
             event = compute_event_2triangle(tri, now, sieve)
         elif tp == 3:
+            logging.debug("event for 3-triangle")
             event = compute_event_3triangle(tri, now, sieve)
     else:
         # flip or collapse to point
@@ -483,6 +513,22 @@ def compute_collapse_time(tri, now=0, sieve=find_gte):
         tri.event = event
     logging.debug("{} --- {}".format(id(tri), event))
     return event
+
+def compute_collapse_time_at_T(tri, time):
+    """Compute event for triangle that collapse at time
+    Somehow we know that the triangle collapse at this moment
+    """
+    o, d, a = tri.vertices
+    dists = [d.distance2_at(a, time), 
+             a.distance2_at(o, time), 
+             o.distance2_at(d, time)]
+    logging.debug("distances at time = {1}: {0}".format(dists, time))
+    zeros = [near_zero(dist) for dist in dists]
+    sides = []
+    for i, zero in enumerate(zeros):
+        if zero == True:
+            sides.append(i)
+    return Event(when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
 
 def collapse_time_edge(v1, v2):
     """Returns the time when the given 2 kinetic vertices are closest to each
@@ -544,10 +590,11 @@ def solve_quadratic(A, B, C):
     Note, if A == 0 and B != 0 gives the answer for B*x + C = 0
     """
     if near_zero(A) and not near_zero(B):
-        # A near zero, not a quadratic, but a linear equation to solve
-        #         B*x + C = 0
-        #         B*x = -C
-        #         x = -C / B
+        # A near zero, not a quadratic => 
+        # we solve a linear equation:
+        # B*x + C = 0
+        # B*x = -C
+        # x = -C / B
         return [-C/B]
     elif near_zero(A) and near_zero(B):
         # No solution, line parallel to the x-axis, not crossing the x-axis
@@ -572,53 +619,44 @@ def solve_quadratic(A, B, C):
 def area_collapse_time_coeff(kva, kvb, kvc):
     """Returns coefficients of quadratic in t
     """
-    pa = kva.origin
-    shifta = kva.velocity
-
-    pb = kvb.origin
-    shiftb = kvb.velocity
-
-    pc = kvc.origin
-    shiftc = kvc.velocity
-
+    # points and velocity vectors
+    pa, shifta = kva.origin, kva.velocity
+    pb, shiftb = kvb.origin, kvb.velocity
+    pc, shiftc = kvc.origin, kvc.velocity
+    # for each point, original x- and y-coordinates
     xaorig, yaorig = pa[0], pa[1]
     xborig, yborig = pb[0], pb[1]
     xcorig, ycorig = pc[0], pc[1]
-
+    # for each point, magnitude in each direction
     dxa, dya = shifta[0], shifta[1]
     dxb, dyb = shiftb[0], shiftb[1]
     dxc, dyc = shiftc[0], shiftc[1]
-
-# The area of the triangle with 3 moving vertices is function of time t
-# (i.e. calculate determinant based on position of the 3 vertices at time t):
-#
-# area(t) = .5 *(xaorig + dxa *t) *(yborig + dyb *t) - 0.5 *(xborig + dxb *t) *(yaorig + dya *t)  + 0.5 *(xborig + dxb *t) *(ycorig + dyc *t)  - 0.5 *(xcorig + dxc *t) *(yborig + dyb *t) + 0.5 *(xcorig + dxc *t)* (yaorig + dya *t) - 0.5 *(xaorig + dxa *t)* (ycorig + dyc *t)
-#
-# Take partial derivative with respect to t -- this leads to quadratic function in t:
-#        C                           B               B                               A
-#  0.5 * xaorig * yborig + 0.5 * xaorig * dyb * t + 0.5 * dxa * t * yborig + 0.5 * dxa * pow(t,2) * dyb \
-#- 0.5 * xborig * yaorig - 0.5 * xborig * dya * t - 0.5 * dxb * t * yaorig - 0.5 * dxb * pow(t,2) * dya \
-#+ 0.5 * xborig * ycorig + 0.5 * xborig * dyc * t + 0.5 * dxb * t * ycorig + 0.5 * dxb * pow(t,2) * dyc \
-#- 0.5 * xcorig * yborig - 0.5 * xcorig * dyb * t - 0.5 * dxc * t * yborig - 0.5 * dxc * pow(t,2) * dyb \
-#+ 0.5 * xcorig * yaorig + 0.5 * xcorig * dya * t + 0.5 * dxc * t * yaorig + 0.5 * dxc * pow(t,2) * dya \
-#- 0.5 * xaorig * ycorig - 0.5 * xaorig * dyc * t - 0.5 * dxa * t * ycorig - 0.5 * dxa * pow(t,2) * dyc
-# for solving we can factor out all 0.5*'s
+    # The area of the triangle with 3 moving vertices is function of time t
+    # (i.e. calculate determinant based on position of the 3 vertices at time t):
+    #
+    # area(t) = .5 *(xaorig + dxa *t) *(yborig + dyb *t) - 0.5 *(xborig + dxb *t) *(yaorig + dya *t)  + 0.5 *(xborig + dxb *t) *(ycorig + dyc *t)  - 0.5 *(xcorig + dxc *t) *(yborig + dyb *t) + 0.5 *(xcorig + dxc *t)* (yaorig + dya *t) - 0.5 *(xaorig + dxa *t)* (ycorig + dyc *t)
+    #
+    # Take partial derivative with respect to t -- this leads to quadratic function in t:
+    #        C                           B               B                               A
+    #  0.5 * xaorig * yborig + 0.5 * xaorig * dyb * t + 0.5 * dxa * t * yborig + 0.5 * dxa * pow(t,2) * dyb \
+    #- 0.5 * xborig * yaorig - 0.5 * xborig * dya * t - 0.5 * dxb * t * yaorig - 0.5 * dxb * pow(t,2) * dya \
+    #+ 0.5 * xborig * ycorig + 0.5 * xborig * dyc * t + 0.5 * dxb * t * ycorig + 0.5 * dxb * pow(t,2) * dyc \
+    #- 0.5 * xcorig * yborig - 0.5 * xcorig * dyb * t - 0.5 * dxc * t * yborig - 0.5 * dxc * pow(t,2) * dyb \
+    #+ 0.5 * xcorig * yaorig + 0.5 * xcorig * dya * t + 0.5 * dxc * t * yaorig + 0.5 * dxc * pow(t,2) * dya \
+    #- 0.5 * xaorig * ycorig - 0.5 * xaorig * dyc * t - 0.5 * dxa * t * ycorig - 0.5 * dxa * pow(t,2) * dyc
+    # for solving we can factor out all 0.5*'s
     A = \
         dxa * dyb - dxb * dya + dxb * dyc - \
         dxc * dyb + dxc * dya - dxa * dyc
-
     B = xaorig * dyb - xborig * dya + \
         xborig * dyc - xcorig * dyb + \
         xcorig * dya - xaorig * dyc + \
         dxa * yborig - dxb * yaorig + \
         dxb * ycorig - dxc * yborig + \
         dxc * yaorig - dxa * ycorig
-
     C = xaorig * yborig - xborig * yaorig + \
         xborig * ycorig - xcorig * yborig + \
         xcorig * yaorig - xaorig * ycorig
-#    print "coefficients", A, B, C
-    #ret = tuple(map(lambda x: x*0.5, [A, B, C]))
     ret = (A, B, C)
     logging.debug("coefficients {0}".format(ret))
     return ret
@@ -651,7 +689,6 @@ def visualize_collapse(tri, T=0):
         for kvertex in tri.vertices:
             p1 = kvertex.origin
             bi = kvertex.velocity
-            print bi
             bineg = vector_mul_scalar(bi, -10000.0)
             bipos = vector_mul_scalar(bi, 10000.0)
             bisector_fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(map(add, p1, bipos), 
@@ -837,8 +874,8 @@ def test_solve():
     print solve_quadratic(A, B, C) == [-2.0, -1.0]
 
 def main():
-    test_compute_collapse_times()
-#     test_one_collapse()
+#     test_compute_collapse_times()
+    test_one_collapse()
 
 def test_one_collapse():
     
@@ -848,8 +885,11 @@ def test_one_collapse():
     
 #     tri = KineticTriangle(KineticVertex((3.36602540378, 4.83012701892), (-1.366025403784519, 0.366025403784139)), KineticVertex((1.63397459622, 4.83012701892), (1.3660254037847726, 0.366025403783193)), KineticVertex((5.86602540378, 0.5), (-0.366025403784139, -1.3660254037845188)), True, None, True)
 #     tri = KineticTriangle(KineticVertex((11.1, 0.0), (-0.41421356237309614, 1.0)), KineticVertex((14.0, 10.0), (-0.41434397951188867, -1.0828510849683515)), KineticVertex((-33.307692307692705, 2.115384615384554), (9.300198345114286, 0.536239302469343)), None, True, True)
-    tri = KineticTriangle(KineticVertex((-0.9510565162951535, 0.3090169943749475), (1.6827457682352098, -0.5467572438521933)), KineticVertex((6.123233995736766e-17, 1.0), (-2.3811458388420067e-16, -1.7693436082961256)), KineticVertex((-1.6180339887498947, 1.1755705045849465), (0.18250881904109725, 1.4023874396799996)), True, None, True)
+    #tri = KineticTriangle(KineticVertex((-0.9510565162951535, 0.3090169943749475), (1.6827457682352098, -0.5467572438521933)), KineticVertex((6.123233995736766e-17, 1.0), (-2.3811458388420067e-16, -1.7693436082961256)), KineticVertex((-1.6180339887498947, 1.1755705045849465), (0.18250881904109725, 1.4023874396799996)), True, None, True)
     # tri = KineticTriangle(KineticVertex((-0.587785252292473, 0.8090169943749475), (1.0399940791944127, -1.4314290480002558)), KineticVertex((-0.9510565162951535, 0.3090169943749475), (1.6827457682352098, -0.5467572438521933)), KineticVertex((-0.5877852522924732, -0.8090169943749473), (1.0399940791944131, 1.4314290480002556)), True, True, True)
+    
+    tri = KineticTriangle(KineticVertex([3.36092084343274, 4.81953957828363], (0, 0)), KineticVertex((0.0, 0.0), (1.0, 1.0)), KineticVertex((14.0, 10.0), (-0.41434397951188867, -1.0828510849683515)), True, None, None)
+    
     now = 0. #0.6339745962123428
     evt = compute_collapse_time(tri, now)
     print evt

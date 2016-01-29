@@ -122,7 +122,7 @@ def is_close(a,
                  (diff <= abs(rel_tol * a))) or
                 (diff <= abs_tol))
     elif method == "average":
-        return ((diff <= abs(rel_tol * (a + b) / 2) or
+        return ((diff <= abs(rel_tol * (a + b) * 0.5) or
                 (diff <= abs_tol)))
 
 

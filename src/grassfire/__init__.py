@@ -7,7 +7,7 @@ __all__ = ["calc_skel"]
 # ------------------------------------------------------------------------------
 # main function for calculating skeleton
 
-def calc_skel(conv, pause=False, output=True):
+def calc_skel(conv, pause=False, output=False):
     """Perform the calculation of the skeleton, given points and segments
 
     Returns:
