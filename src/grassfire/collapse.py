@@ -370,7 +370,7 @@ def compute_event_2triangle(tri, now, sieve):
 #             for side, _ in enumerate(tri.neighbours):
 #                 if _ is not None:
 #                     break
-            sides = range(3) # (side,) # take the side that is not None (has a neighbour)
+            sides = tuple(range(3)) # (side,) # take the side that is not None (has a neighbour)
             return Event(when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
         elif sides_collapse == 2:
             # hopefully never happens -- 
@@ -465,7 +465,6 @@ def compute_event_inftriangle(tri, now, sieve):
             # The flip of infinite triangle leads to finite and infinite triangle
             # The result should be that the finite triangle has a good orientation
             # which results in the triangle laying outside of the already swept domain
-            
             # o->d = side
             # d->a = cw(side)
             # a->o = ccw(side)
@@ -682,7 +681,6 @@ def visualize_collapse(tri, T=0):
             if n is None:
                 edges.append(Edge(tri, i))
         output_edges_at_T(edges, T, fh)
-
 
     with open("/tmp/rays.wkt", "w") as bisector_fh:
         bisector_fh.write("wkt\n")

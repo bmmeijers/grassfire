@@ -21,6 +21,7 @@ def output_triangles_at_T(tri, T, fh):
         else:
             # we skip the triangle if it has a timestamp associated
             pass
+
 def output_kdt(skel, time):
     """ """
 #     time = 0
@@ -41,8 +42,6 @@ def output_kdt(skel, time):
                     continue
                 fh.write("{0};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]}\n".format(id(t), poly, [id(n) for n in t.neighbours], [id(v) for v in t.vertices]))
             #fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.position_at(t), id(v.left), id(v.right)))
-
-
     with open("/tmp/kvertices.wkt", "w") as fh:
         fh.write("id;wkt;left cw;right ccw\n")
         for v in skel.vertices:
@@ -118,7 +117,6 @@ def output_skel(skel):
                                                                       v.position_at(1000))
                 fh.write(s)
                 fh.write("\n")
-
 
     with open("/tmp/skelnodes.wkt", "w") as fh:
         fh.write("wkt\n")

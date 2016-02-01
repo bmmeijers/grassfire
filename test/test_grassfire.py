@@ -8,34 +8,38 @@ from grassfire import calc_skel
 # as well (requires approximate comparisons for geometry that is generated)
 
 class TestGrassfire(unittest.TestCase):
-    def setUp(self):
-        pass
+    """Relatively simple test cases for Straight Skeleton"""
 
     def test_diamantlike(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(-15,0), (-1,0), (0,-1), (1,0), (15,0), (0,15), (-15,0)]])
         skel = calc_skel(conv)
-        assert len(skel.segments()) == (7+6)
+        assert len(skel.segments()) == (7+6), len(skel.segments())
+        assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
  
     def test_quad(self):
-        """Quad that works"""
+        """Quad"""
         ring = [(1,0), (0, 5), (1,10), (2, 5), (1,0)]
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
         skel = calc_skel(conv)
- 
+        assert len(skel.sk_nodes) == 5, len(skel.segments())
+        assert len(skel.segments()) == (4+4), len(skel.sk_nodes)
+
     def test_diamant(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
         skel = calc_skel(conv)
         assert len(skel.segments()) == 8, len(skel.segments())
-   
+        assert len(skel.sk_nodes) == 5, len(skel.sk_nodes)
+
     def test_simple_poly(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
         skel = calc_skel(conv)
         assert len(skel.segments()) == 12
- 
+        assert len(skel.sk_nodes) == 8
+
     def test_simple_infinite(self):
         """1 segment with terminal vertices at convex hull
         """
@@ -46,15 +50,18 @@ class TestGrassfire(unittest.TestCase):
             conv.add_point(line[1])
             conv.add_segment(*line)
         skel = calc_skel(conv)
-        return
- 
+        assert len(skel.segments()) == 4
+        assert len(skel.sk_nodes) == 2
+
     def test_two_teeth(self):
         conv = ToPointsAndSegments()
         polygon = [[(-2,-1), (-1,0), (1,0), (1.5,-.5), (1.2,.7), 
                     (.4,1.2), (-.6,1.1), (-1.7,.7), (-2,-1)]]
         conv.add_polygon(polygon)
         skel = calc_skel(conv)
-   
+        assert len(skel.segments()) == 22
+        assert len(skel.sk_nodes) == 15
+
     def test_triangle(self):
         conv = ToPointsAndSegments()
         conv.add_point((10,0))
@@ -65,7 +72,8 @@ class TestGrassfire(unittest.TestCase):
         conv.add_segment((-2,-8), (10,0))
         skel = calc_skel(conv)
         assert len(skel.segments()) == 6
-   
+        assert len(skel.sk_nodes) == 4
+
     def test_quad(self):
         conv = ToPointsAndSegments()
         conv.add_point((8,2))
@@ -81,20 +89,23 @@ class TestGrassfire(unittest.TestCase):
         conv.add_segment((-2,-8), (4,5))
         skel = calc_skel(conv)
         assert len(skel.segments()) == 14
- 
+        assert len(skel.sk_nodes) == 9
+
     def test_simultaneous(self):
         # substitute with this and we get a lot of simultaneous events!
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0,1), (1,0), (3,0), (4,1), (4,3), (3,4), (1,4), (0,3), (0,1)]])
-        skel = calc_skel(conv)#
+        skel = calc_skel(conv)
         assert len(skel.segments()) == (8+4+8)
- 
+        assert len(skel.sk_nodes) == 13
+
     def test_squarish(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0,1), (1,0), (2,0), (3,1), (3,2), (2,3), (1,3), (0,2), (0,1)]])
         skel = calc_skel(conv)
         assert len(skel.segments()) == (12 + 8)
- 
+        assert len(skel.sk_nodes) == 13
+
     def test_bottom_circle(self):
         """bottom circle"""
         from math import pi, cos, sin, degrees
@@ -109,29 +120,31 @@ class TestGrassfire(unittest.TestCase):
         conv.add_polygon([ring])
         skel = calc_skel(conv)
         assert len(skel.segments()) == (9+15)
- 
+        assert len(skel.sk_nodes) == 16
+
     def test_poly(self):
         """Simple polygon with small dent"""
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
         skel = calc_skel(conv, pause = True)
         assert len(skel.segments()) == (8+13)
- 
+        assert len(skel.sk_nodes) == 14
+  
     def test_cocircular1(self):
         ok = (3.8,0.8) # this works
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0,1), (1,0), (3,0), ok, (4,3), (3,4), (1,4), (0,3), (0,1)]])
         skel = calc_skel(conv) 
         assert len(skel.segments()) == 13+8
- 
+        assert len(skel.sk_nodes) == 14
+
     def test_sharp_v(self):
         """Sharp V-shaped polyline
- 
+  
         Tests collapse of 2 triangle and handling of
         collapse of spoke
         """
         conv = ToPointsAndSegments()
-#         l0 = [(0.0, -1.0), (5.0, -1.0)]
         l1 = [(0, 0.5), (1,1)]
         l2 = [(1,1), (0.5, 0)]
         for line in l1, l2:
@@ -140,46 +153,48 @@ class TestGrassfire(unittest.TestCase):
             conv.add_segment(*line)
         skel = calc_skel(conv)
         assert len(skel.segments()) == (3+4)
- 
-    def test_rocket(self):
+        assert len(skel.sk_nodes) == 4
+
+    def test_rocket2(self):
         """Contains zero triangle to flip ...
         """
         ring = [(0,0), (10, 0), (15,5), (10,9), (1,7), (6,4), (0,0)]
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
-        skel = calc_skel(conv, output=True, pause=True)
- 
+        skel = calc_skel(conv)
+        assert len(skel.segments()) == 15
+        assert len(skel.sk_nodes) == 10
+
     def test_infinite2(self):
         """2 segments with terminal vertices at convex hull
         """
         conv = ToPointsAndSegments()
-#         l0 = [(0.0, -1.0), (5.0, -1.0)]
         l1 = [(5.86602540378, 0.5), (3.36602540378, 4.83012701892)]
         l2 = [(1.63397459622, 4.83012701892), (-0.866025403784, 0.5)]
-        for line in l1, l2:#, l2:
+        for line in l1, l2:
             conv.add_point(line[0])
             conv.add_point(line[1])
             conv.add_segment(*line)
         skel = calc_skel(conv)
-        return
- 
+        assert len(skel.segments()) == 11
+        assert len(skel.sk_nodes) == 6
+
     def test_cocirculair_2(self):
         """2 segments with terminal vertices at convex hull
         """
         conv = ToPointsAndSegments()
-#         l0 = [(0.0, -1.0), (5.0, -1.0)]
         l1 = [(0, 0.5), (1,1)]
         l2 = [(1,1), (0.5, 0)]
-             
         l3 = [(2.5, 3), (2,2)]
         l4 = [(2, 2), (3,2.5)]
-        for line in l1, l2, l3, l4:#, l2:
+        for line in l1, l2, l3, l4:
             conv.add_point(line[0])
             conv.add_point(line[1])
             conv.add_segment(*line)
         skel = calc_skel(conv)
-        return
- 
+        assert len(skel.segments()) == 16
+        assert len(skel.sk_nodes) == 9
+
     def test_2_vshape(self):
         from math import cos, sin, pi
         # misses event
@@ -201,7 +216,9 @@ class TestGrassfire(unittest.TestCase):
             conv.add_point(line[1])
             conv.add_segment(*line)
         skel = calc_skel(conv)
- 
+        assert len(skel.segments()) == 17
+        assert len(skel.sk_nodes) == 10
+
     def test_cocirculair_3(self):
         """
         """
@@ -220,7 +237,7 @@ class TestGrassfire(unittest.TestCase):
             conv.add_segment(*line)
         skel = calc_skel(conv)
         assert len(skel.segments()) == 26
- 
+  
     def test_cocirculair_4(self):
         """
         """
@@ -242,7 +259,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.sk_nodes) == 21
         assert len(skel.segments()) == 36
-
+ 
     def test_star_cocircular(self):
         """4 v-shape lines pointing towards center
         """
@@ -267,7 +284,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 45
         assert len(skel.sk_nodes) == 26, len(skel.sk_nodes)
-
+ 
     def test_infinite3(self):
         """3 segments with terminal vertices at convex hull
         """
@@ -283,6 +300,23 @@ class TestGrassfire(unittest.TestCase):
         assert len(skel.segments()) == 18
         assert len(skel.sk_nodes) == 10
 
+    def test_rocket(self):
+        """Two 2-triangles collapse at same time, sharing one vertex, that
+        should lead to 1 new skeleton node and only 1 new kinetic vertex
+        (3 original vertices are stopped, with 2 at same processing step)
+        """
+        ###################################################
+        # No parallel edges, but simultaneous event, 
+        # leading to infinite fast vertex, if not careful
+        ###################################################
+        conv = ToPointsAndSegments()
+        polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.),
+                    (1., 0.), (-.1,3), (0.,10.)]]
+        conv.add_polygon(polygon)
+        skel = calc_skel(conv)
+        assert len(skel.segments()) == 7+6
+        assert len(skel.sk_nodes) == 8
+
 if __name__ == "__main__":
     if False:
         import logging
@@ -291,7 +325,7 @@ if __name__ == "__main__":
         root.setLevel(logging.DEBUG)
         ch = logging.StreamHandler(sys.stdout)
         ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter('%(asctime)s - %(message)s')
         ch.setFormatter(formatter)
         root.addHandler(ch)
     unittest.main()
