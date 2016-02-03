@@ -307,6 +307,16 @@ class TestGrassfire(unittest.TestCase):
         assert len(skel.segments()) == 7+6
         assert len(skel.sk_nodes) == 8
 
+    def test_rocket2(self):
+        """Contains zero triangle to flip ...
+        """
+        ring = [(0,0), (10, 0), (15,5), (10,9), (1,7), (6,4), (0,0)]
+        conv = ToPointsAndSegments()
+        conv.add_polygon([ring])
+        skel = calc_skel(conv)
+        assert len(skel.segments()) == 15
+        assert len(skel.sk_nodes) == 10
+
 if __name__ == "__main__":
     if False:
         import logging

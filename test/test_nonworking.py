@@ -10,36 +10,26 @@ class TestSimultaneousEvents(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_rocket2(self):
-        """Contains zero triangle to flip ...
-        """
-        ring = [(0,0), (10, 0), (15,5), (10,9), (1,7), (6,4), (0,0)]
-        conv = ToPointsAndSegments()
-        conv.add_polygon([ring])
-        skel = calc_skel(conv, pause=True, output=True)
-        assert len(skel.segments()) == 15
-        assert len(skel.sk_nodes) == 10
-
 # ##############################################################################
 # # PARALLEL EDGES IN THE INPUT, leading to problems 
 # # (e.g. nodes not on correct location)
 # ##############################################################################
 # 
-#     def test_cshape(self):
-#         """Parallel c-shape wavefront"""
-#         # FIXME: missing parallel piece of wavefront
-#         # plus having a vertex too many
-#         conv = ToPointsAndSegments()
-#         l0 = [(0.0, 0.0), (0.0, 3)]
-#         l1 = [(0, 3), (5,3)]
-#         l2 = [(0,0), (5,0)]
-#         for line in l0, l1, l2:
-#             conv.add_point(line[0])
-#             conv.add_point(line[1])
-#             conv.add_segment(*line)
-#         skel = calc_skel(conv,
-#                          pause=True,
-#                          output=True)
+    def test_cshape(self):
+        """Parallel c-shape wavefront"""
+        # FIXME: missing parallel piece of wavefront
+        # plus having a vertex too many
+        conv = ToPointsAndSegments()
+        l0 = [(0.0, 0.0), (0.0, 3)]
+        l1 = [(0, 3), (5,3)]
+        l2 = [(0,0), (5,0)]
+        for line in l0, l1, l2:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        skel = calc_skel(conv,
+                         pause=True,
+                         output=True)
 
 
 #     def test_flipped_cshape(self):
