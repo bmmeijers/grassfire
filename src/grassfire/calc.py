@@ -9,6 +9,7 @@ from math import pi, atan2, degrees, hypot, sin, sqrt
 from pprint import pprint
 from tri.delaunay import orient2d
 import cmath
+import logging
 
 def get_unique_times(times):
     """Filters out None values and then returns unique event times,
@@ -202,6 +203,18 @@ def length(v):
     """Euclidean length of vector"""
     return sqrt(sum( [x**2 for x in v] ) )
 
+def length2(v):
+    """*squared* Euclidean length of vector"""
+    return sum( [x**2 for x in v] )
+
+def dist(start, end):
+    """distance between two positons"""
+    return length(map(sub, start, end))
+
+def dist2(start, end):
+    """squared distance between two positons"""
+    return length2(map(sub, start, end))
+
 # def perp(v):
 #     # FIXME: 
 #     # rename to: rotate90ccw(v)
@@ -271,7 +284,7 @@ def bisector(p0, p1, p2):
     v = bisector_unit(p0, p1, p2)
     s = scaling_factor(p0, p1, p2)
     if s is None:
-        return (0., 0.)
+        return 0., 0.
         # raise ValueError("Infinite speed")
     return vector_mul_scalar(v, s)
 
@@ -338,7 +351,8 @@ def scaling_factor(p0, p1, p2):
     It returns None if the angle between the given points is 0 (folding back)
     """
     alpha = angle(p0, p1, p2) *.5
-    if is_close(0, alpha):
+    logging.debug("alpha = {}".format(alpha))
+    if near_zero(alpha): # is_close(0, alpha):
         return None
     else:
         return 1. / sin(alpha)

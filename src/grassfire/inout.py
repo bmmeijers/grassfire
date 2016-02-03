@@ -83,7 +83,8 @@ def output_offsets(skel, now=1000):
                         fh.write(s)
                         fh.write("\n")
                     except AttributeError:
-                        print "*"
+                        #print "*"
+                        pass
 
     with open("/tmp/offsetsr.wkt", "w") as fh:
         fh.write("wkt\n")
@@ -99,7 +100,8 @@ def output_offsets(skel, now=1000):
                         fh.write(s)
                         fh.write("\n")
                     except AttributeError:
-                        print "FIXME: investigate"
+                        #print "FIXME: investigate"
+                        pass
 
 
 def output_skel(skel):

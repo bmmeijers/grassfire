@@ -126,7 +126,7 @@ class TestGrassfire(unittest.TestCase):
         """Simple polygon with small dent"""
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0, 0), (9, 0), (11, -.1), (11.1,0), (22,0), (14,10), (2,8), (0, 5), (0,0)]])
-        skel = calc_skel(conv, pause = True)
+        skel = calc_skel(conv)
         assert len(skel.segments()) == (8+13)
         assert len(skel.sk_nodes) == 14
   

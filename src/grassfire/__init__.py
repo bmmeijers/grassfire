@@ -1,7 +1,10 @@
 from tri import ToPointsAndSegments, triangulate
+from tri.delaunay import FiniteEdgeIterator
+
 from grassfire.inout import output_offsets, output_skel
 from grassfire.initialize import init_skeleton
 from grassfire.events import init_event_list, event_loop
+
 
 __all__ = ["calc_skel"]
 # ------------------------------------------------------------------------------
@@ -17,6 +20,11 @@ def calc_skel(conv, pause=False, output=False):
     # FIXME: keep info on points 
     # (so that we know after the construction what each node represents)
     dt = triangulate(conv.points, None, conv.segments)
+    with open("/tmp/edges.wkt", "w") as fh:
+        fh.write("id;wkt\n")
+        edgeit = FiniteEdgeIterator(dt, constraints_only=True)
+        for j, edge in enumerate(edgeit):
+            fh.write("{0};LINESTRING({1[0][0]} {1[0][1]}, {1[1][0]} {1[1][1]})\n".format(j, edge.segment))
     # step 2 -- copy over triangles and deal with 
     # - terminal 1-vertices (add triangle)
     # - infinite triangles
