@@ -25,21 +25,21 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.sk_nodes) == 5, len(skel.segments())
         assert len(skel.segments()) == (4+4), len(skel.sk_nodes)
-
+ 
     def test_diamant(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
         skel = calc_skel(conv)
         assert len(skel.segments()) == 8, len(skel.segments())
         assert len(skel.sk_nodes) == 5, len(skel.sk_nodes)
-
+ 
     def test_simple_poly(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
         skel = calc_skel(conv)
         assert len(skel.segments()) == 12
         assert len(skel.sk_nodes) == 8
-
+ 
     def test_simple_infinite(self):
         """1 segment with terminal vertices at convex hull
         """
@@ -52,7 +52,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 4
         assert len(skel.sk_nodes) == 2
-
+ 
     def test_two_teeth(self):
         conv = ToPointsAndSegments()
         polygon = [[(-2,-1), (-1,0), (1,0), (1.5,-.5), (1.2,.7), 
@@ -61,7 +61,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 22
         assert len(skel.sk_nodes) == 15
-
+ 
     def test_triangle(self):
         conv = ToPointsAndSegments()
         conv.add_point((10,0))
@@ -73,7 +73,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 6
         assert len(skel.sk_nodes) == 4
-
+ 
     def test_quad(self):
         conv = ToPointsAndSegments()
         conv.add_point((8,2))
@@ -90,7 +90,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 14
         assert len(skel.sk_nodes) == 9
-
+ 
     def test_simultaneous(self):
         # substitute with this and we get a lot of simultaneous events!
         conv = ToPointsAndSegments()
@@ -98,14 +98,14 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == (8+4+8)
         assert len(skel.sk_nodes) == 13
-
+ 
     def test_squarish(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0,1), (1,0), (2,0), (3,1), (3,2), (2,3), (1,3), (0,2), (0,1)]])
         skel = calc_skel(conv)
         assert len(skel.segments()) == (12 + 8)
         assert len(skel.sk_nodes) == 13
-
+ 
     def test_bottom_circle(self):
         """bottom circle"""
         from math import pi, cos, sin, degrees
@@ -121,7 +121,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == (9+15)
         assert len(skel.sk_nodes) == 16
-
+ 
     def test_poly(self):
         """Simple polygon with small dent"""
         conv = ToPointsAndSegments()
@@ -129,7 +129,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == (8+13)
         assert len(skel.sk_nodes) == 14
-  
+   
     def test_cocircular1(self):
         ok = (3.8,0.8) # this works
         conv = ToPointsAndSegments()
@@ -137,10 +137,10 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv) 
         assert len(skel.segments()) == 13+8
         assert len(skel.sk_nodes) == 14
-
+ 
     def test_sharp_v(self):
         """Sharp V-shaped polyline
-  
+   
         Tests collapse of 2 triangle and handling of
         collapse of spoke
         """
@@ -155,16 +155,6 @@ class TestGrassfire(unittest.TestCase):
         assert len(skel.segments()) == (3+4)
         assert len(skel.sk_nodes) == 4
 
-    def test_rocket2(self):
-        """Contains zero triangle to flip ...
-        """
-        ring = [(0,0), (10, 0), (15,5), (10,9), (1,7), (6,4), (0,0)]
-        conv = ToPointsAndSegments()
-        conv.add_polygon([ring])
-        skel = calc_skel(conv)
-        assert len(skel.segments()) == 15
-        assert len(skel.sk_nodes) == 10
-
     def test_infinite2(self):
         """2 segments with terminal vertices at convex hull
         """
@@ -178,7 +168,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 11
         assert len(skel.sk_nodes) == 6
-
+ 
     def test_cocirculair_2(self):
         """2 segments with terminal vertices at convex hull
         """
@@ -194,7 +184,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 16
         assert len(skel.sk_nodes) == 9
-
+ 
     def test_2_vshape(self):
         from math import cos, sin, pi
         # misses event
@@ -218,7 +208,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 17
         assert len(skel.sk_nodes) == 10
-
+ 
     def test_cocirculair_3(self):
         """
         """
@@ -237,7 +227,7 @@ class TestGrassfire(unittest.TestCase):
             conv.add_segment(*line)
         skel = calc_skel(conv)
         assert len(skel.segments()) == 26
-  
+   
     def test_cocirculair_4(self):
         """
         """
@@ -259,7 +249,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.sk_nodes) == 21
         assert len(skel.segments()) == 36
- 
+  
     def test_star_cocircular(self):
         """4 v-shape lines pointing towards center
         """
@@ -284,7 +274,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 45
         assert len(skel.sk_nodes) == 26, len(skel.sk_nodes)
- 
+  
     def test_infinite3(self):
         """3 segments with terminal vertices at convex hull
         """
@@ -299,7 +289,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 18
         assert len(skel.sk_nodes) == 10
-
+ 
     def test_rocket(self):
         """Two 2-triangles collapse at same time, sharing one vertex, that
         should lead to 1 new skeleton node and only 1 new kinetic vertex

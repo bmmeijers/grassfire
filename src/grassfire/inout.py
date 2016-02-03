@@ -1,5 +1,6 @@
 from tri.delaunay import output_triangles, output_vertices, output_edges
 from tri.delaunay import TriangleIterator, FiniteEdgeIterator
+import logging
 # ------------------------------------------------------------------------------
 # output
 
@@ -70,10 +71,14 @@ def output_dt(dt):
 
 def output_offsets(skel, now=1000):
     """ """
+    logging.debug("offsets for t= {}".format(now))
+    now = 10
+    ct = 1000
+    inc = now / float(ct)
+    times = [t*inc for t in range(ct)]
     with open("/tmp/offsetsl.wkt", "w") as fh:
         fh.write("wkt\n")
-        for t in range(0, 5 * int(now)):
-            t *= .2
+        for t in times:
             for v in skel.vertices:
                 if (v.starts_at <= t and v.stops_at > t) or \
                     (v.starts_at <= t and v.stops_at is None): 
@@ -88,8 +93,7 @@ def output_offsets(skel, now=1000):
 
     with open("/tmp/offsetsr.wkt", "w") as fh:
         fh.write("wkt\n")
-        for t in range(0, 5 * int(now)):
-            t *= .2
+        for t in times:
             for v in skel.vertices:
                 if v.starts_at <= t and v.stops_at > t or \
                     (v.starts_at <= t and v.stops_at is None):

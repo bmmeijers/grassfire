@@ -14,7 +14,6 @@ from grassfire.collapse import compute_collapse_time, find_gt, \
 from grassfire.inout import output_edges_at_T, output_triangles_at_T
 from collections import deque
 from itertools import chain
-from buildbot.util import now
 
 
 def compare_event_by_time(one, other):
@@ -629,7 +628,7 @@ def event_loop(queue, skel, pause=False):
                     print "."
                     prev_time += step_time
                     visualize(queue, skel, prev_time + step_time)
-                    sleep(1.)
+                    sleep(0.5)
             # visualize(queue, skel, prev_time)
             prev_time = NOW
             evt = queue.popleft()
@@ -658,12 +657,12 @@ def event_loop(queue, skel, pause=False):
         for i, e in enumerate(queue):
             logging.debug("{0:5d} {1}".format(i, e))
         logging.debug("=" * 80)
-    
-    if pause:
-        visualize(queue, skel, NOW)
-        sleep(2.)
-        NOW += 100
-        visualize(queue, skel, NOW)
+
+#     if pause:
+#         for t in range(3):
+#             NOW += t
+#             visualize(queue, skel, NOW)
+#             sleep(1.)
     return NOW
 
 
