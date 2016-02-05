@@ -212,6 +212,7 @@ def compute_event_0triangle(tri, now, sieve):
                 side = zeros.index(True)
                 return Event(when=time, tri=tri, side = (side,), tp="edge", tri_tp=tri.type)
             else:
+                return None
                 raise ValueError("0 triangle with 2 or 0 side collapse, while edge collapse time computed?")
         else:
             logging.debug("HERE")

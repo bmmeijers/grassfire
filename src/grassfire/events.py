@@ -14,6 +14,7 @@ from grassfire.collapse import compute_collapse_time, find_gt, \
 from grassfire.inout import output_edges_at_T, output_triangles_at_T
 from collections import deque
 from itertools import chain
+from pprint import pprint
 
 
 def compare_event_by_time(one, other):
@@ -286,13 +287,27 @@ def handle_edge_event(evt, skel, queue, immediate):
     t.stops_at = now
     # 
     if are_parallel:
-        # either one of the collapsed fans has length
-        if fan_a:
-            assert len(fan_b) == 0
-            handle_fan(fan_a, kv, skel, queue, now)
-        if fan_b:
-            assert len(fan_a) == 0
-            handle_fan(fan_b, kv, skel, queue, now)
+        v = kv.position_at(now)
+        kvl = kv.left.position_at(now)
+        kvr = kv.right.position_at(now)
+        d1 = dist2(v, kvl)
+        d2 = dist2(v, kvr)
+        if near_zero(d1 - d2):
+            if fan_a:
+                fan = fan_a
+            else:
+                fan = fan_b
+            handle_fan(fan, kv, skel, queue, now)
+        else:
+            # either one of the collapsed fans has length
+            if fan_a:
+                print "CW"
+                assert len(fan_b) == 0
+                handle_fan_cw(fan_a, kv, skel, queue, now)
+            if fan_b:
+                print "CCW"
+                assert len(fan_a) == 0
+                handle_fan_ccw(fan_b, kv, skel, queue, now)
 
         # parallel.append((stack[0][0], stack[0][1], now))
         # raise NotImplementedError("Handling parallel wavefronts not implemented yet")
@@ -372,18 +387,27 @@ def handle_edge_event_3sides(evt, skel, queue, immediate):
     t.stops_at = now
 
 
-def handle_fan(fan, pivot, skel, queue, now):
+def handle_fan(fan,pivot,skel,queue,now):
     """Brute force handling of collapsed triangles that form a triangle fan
     between two wavefront edges
     """
-    logging.debug("\n\nHANDLING FAN OF TRIANGLES\n\n")
-    # FIXME: this does create many duplicate skeleton nodes for now
+    logging.debug("\n\nHANDLE FAN OF TRIANGLES that just collapses\n\n")
+    assert len(fan) == 1
     for t in fan:
-        for v in t.vertices:
-            v.stops_at = now
-            sk = SkeletonNode(v.position_at(now))
-            skel.sk_nodes.append(sk)
-            v.stop_node = sk
+        e = t.vertices.index(pivot)
+        v = t.vertices[e]
+        v1 = t.vertices[(e+1) % 3]
+        v2 = t.vertices[(e+2) % 3]
+        s1, s2 = v1.position_at(now), v2.position_at(now)
+        x, y = (s1[0] + s2[0]) *.5, (s1[1] + s2[1]) *.5
+        sk = SkeletonNode((x,y))
+        skel.sk_nodes.append(sk)
+        v.stops_at = now
+        v.stop_node = sk
+        v1.stops_at = now
+        v1.stop_node = sk
+        v2.stops_at = now
+        v2.stop_node = sk
         t.stops_at = now
         if t.event != None:
             logging.debug("Removed: "+str(t.event))
@@ -391,6 +415,68 @@ def handle_fan(fan, pivot, skel, queue, now):
         for n in t.neighbours:
             if n != None:
                 n.neighbours[n.neighbours.index(t)] = None
+
+def handle_fan_cw(fan, pivot, skel, queue, now):
+    """Brute force handling of collapsed triangles that form a triangle fan
+    between two wavefront edges
+    """
+    assert len(fan) == 1
+    for t in fan:
+        e = t.vertices.index(pivot)
+        v = t.vertices[e]
+        v1 = t.vertices[(e+1) % 3]
+        v2 = t.vertices[(e+2) % 3]
+        sk = SkeletonNode(v2.position_at(now))
+        skel.sk_nodes.append(sk)
+        v.stops_at = now
+        v.stop_node = sk
+        v2.stops_at = now
+        v2.stop_node = sk
+        t.stops_at = now
+        if t.event != None:
+            logging.debug("Removed: "+str(t.event))
+            queue.discard(t.event)
+        for n in t.neighbours:
+            if n != None:
+                n.neighbours[n.neighbours.index(t)] = None
+        kv, newly_made = compute_new_kvertex(v2.left, v1, now, sk, [])
+        assert newly_made
+        skel.vertices.append(kv)
+        update_circ(kv, v2.left, v1, now)
+
+    logging.debug("\n\nHANDLED FAN OF TRIANGLES\n\n")
+
+def handle_fan_ccw(fan, pivot, skel, queue, now):
+    """Brute force handling of collapsed triangles that form a triangle fan
+    between two wavefront edges
+    """
+    logging.debug("\n\nHANDLING FAN OF TRIANGLES\n\n")
+    # FIXME: this does create many duplicate skeleton nodes for now
+    assert len(fan) == 1
+    for t in fan:
+        e = t.vertices.index(pivot)
+        v = t.vertices[e]
+        v1 = t.vertices[(e+1) % 3]
+        v2 = t.vertices[(e+2) % 3]
+        sk = SkeletonNode(v1.position_at(now))
+        skel.sk_nodes.append(sk)
+        v.stops_at = now
+        v.stop_node = sk
+        v1.stops_at = now
+        v1.stop_node = sk
+        t.stops_at = now
+        if t.event != None:
+            logging.debug("Removed: "+str(t.event))
+            queue.discard(t.event)
+        for n in t.neighbours:
+            if n != None:
+                n.neighbours[n.neighbours.index(t)] = None
+        kv, newly_made = compute_new_kvertex(v2, v1.right, now, sk, [])
+        assert newly_made
+        skel.vertices.append(kv)
+        update_circ(kv, v2, v1.right, now)
+    logging.debug("\n\nHANDLED FAN OF TRIANGLES\n\n")
+
 
 def schedule_immediately(tri, now, queue, immediate):
     """Schedule a triangle for immediate processing
@@ -588,7 +674,7 @@ def event_loop(queue, skel, pause=False):
         with open(file_nm, 'w') as fh:
             pass
     # -- visualize
-    NOW = prev_time = 0.01
+    NOW = prev_time = 1e-5
     if pause:
         visualize(queue, skel, prev_time)
     immediate = deque([])

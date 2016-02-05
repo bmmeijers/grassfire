@@ -114,8 +114,11 @@ def output_skel(skel):
         fh.write("wkt\n")
         for v in skel.vertices:
             if v.stops_at is not None:
-                s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(v.starts_at), 
-                                                                      v.position_at(v.stops_at))
+                s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.start_node.pos,
+                                                                      v.stop_node.pos
+                                                                      #v.position_at(v.starts_at), 
+                                                                      #v.position_at(v.stops_at)
+                                                                      )
                 fh.write(s)
                 fh.write("\n")
             else:

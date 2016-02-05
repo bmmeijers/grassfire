@@ -6,12 +6,12 @@ class Transform(object):
         self.translate = translate
 
     def forward(self, pt):
-        """From the original to (-1,-1),(1,1) box """
+        """From the original box to (-1,-1),(1,1) box """
         return (pt[0]-self.translate[0]) / self.scale[0], \
             (pt[1]-self.translate[1]) / self.scale[1]
 
     def backward(self, pt):
-        """From the (-1,-1),(1,1) box back to the original"""
+        """From the (-1,-1),(1,1) box back to the original box"""
         return (pt[0]*self.scale[0]) + self.translate[0], \
             (pt[1]*self.scale[1]) + self.translate[1]
 
@@ -29,7 +29,7 @@ def get_transform(box):
     return Transform((scale, scale), (scx, scy))
 
 def get_box(pts):
-    """
+    """Returns tight fitting bounding box (axis aligned) around set of points
     """
     assert len(pts)
     it = iter(pts)
