@@ -984,6 +984,11 @@ watcher.addPath( '/tmp/wavefront_edges_progress.wkt' )
 watcher.fileChanged.connect( iface.mapCanvas().refresh )
 
 
+from PyQt4.QtCore import QFileSystemWatcher
+watcher = QFileSystemWatcher()
+watcher.addPath( '/tmp/rays.wkt' )
+watcher.fileChanged.connect( iface.mapCanvas().refresh )
+
 # test_infinite2()
 
 #test_bottom_circle_top_square()

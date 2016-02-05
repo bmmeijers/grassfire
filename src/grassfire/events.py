@@ -678,15 +678,17 @@ def event_loop(queue, skel, pause=False):
     if pause:
         visualize(queue, skel, prev_time)
     immediate = deque([])
-    logging.debug("=" * 80)
-    logging.debug("Immediate / Queue at start of process")
-    logging.debug("=" * 80)
-    for i, e in enumerate(immediate):
-        logging.debug("{0:5d} {1}".format(i, e))
-    logging.debug("-" * 80)
-    for i, e in enumerate(queue):
-        logging.debug("{0:5d} {1}".format(i, e))
-    logging.debug("=" * 80)
+#     logging.debug("=" * 80)
+#     logging.debug("Immediate / Queue at start of process")
+#     logging.debug("=" * 80)
+#     for i, e in enumerate(immediate):
+#         logging.debug("{0:5d} {1}".format(i, e))
+#     logging.debug("-" * 80)
+#     for i, e in enumerate(queue):
+#         logging.debug("{0:5d} {1}".format(i, e))
+#     logging.debug("=" * 80)
+
+    step = prev = 0.025
     while queue or immediate:
 #         if parallel:
 #             evt = parallel.popleft()
@@ -700,24 +702,28 @@ def event_loop(queue, skel, pause=False):
         else:
             peek = next(iter(queue))
             NOW = peek.time
-            if pause and True: # visualize progressively
-                if peek.tp == "flip":
-                    ct = 2
-                else:
-                    ct = 10
-                # -- use this for getting progress visualization
-                delta = NOW - prev_time
-                if near_zero(delta):
-                    ct = 1
-                step_time = delta / ct
-                for i in range(ct-1): #ct - 2): # stop 1 step before
-                    print "."
-                    prev_time += step_time
-                    visualize(queue, skel, prev_time + step_time)
-                    sleep(0.5)
-            # visualize(queue, skel, prev_time)
-            prev_time = NOW
+#             if pause and False: # visualize progressively
+#                 if peek.tp == "flip":
+#                     ct = 2
+#                 else:
+#                     ct = 10
+#                 # -- use this for getting progress visualization
+#                 delta = NOW - prev_time
+#                 if near_zero(delta):
+#                     ct = 1
+#                 step_time = delta / ct
+#                 for i in range(ct-1): #ct - 2): # stop 1 step before
+#                     print "."
+#                     prev_time += step_time
+#                     visualize(queue, skel, prev_time + step_time)
+#                     sleep(0.5)
+            visualize(queue, skel, NOW)
+#             if NOW > prev:
+#                 visualize(queue, skel, NOW)
+#                 sleep(1.5)
+#                 prev += step
             evt = queue.popleft()
+            prev_time = NOW
         # -- decide what to do based on event type
         logging.debug("Handling event " + str(evt.tp) + " " + str(evt.triangle.type) + " " + str(id(evt.triangle)) + " at time " + "{0:.28g}".format(evt.time))
         # precondition: this triangle has not yet been dealt with before
@@ -734,15 +740,15 @@ def event_loop(queue, skel, pause=False):
 #         check_ktriangles(skel.triangles, NOW)
         if pause:
             visualize(queue, skel, NOW)
-        logging.debug("=" * 80)
-        logging.debug("Immediate / Queue at end of handling event")
-        logging.debug("=" * 80)
-        for i, e in enumerate(immediate):
-            logging.debug("{0:5d} {1}".format(i, e))
-        logging.debug("-" * 80)
-        for i, e in enumerate(queue):
-            logging.debug("{0:5d} {1}".format(i, e))
-        logging.debug("=" * 80)
+#         logging.debug("=" * 80)
+#         logging.debug("Immediate / Queue at end of handling event")
+#         logging.debug("=" * 80)
+#         for i, e in enumerate(immediate):
+#             logging.debug("{0:5d} {1}".format(i, e))
+#         logging.debug("-" * 80)
+#         for i, e in enumerate(queue):
+#             logging.debug("{0:5d} {1}".format(i, e))
+#         logging.debug("=" * 80)
 
 #     if pause:
 #         for t in range(3):
@@ -771,15 +777,15 @@ def visualize(queue, skel, NOW):
                     evt.triangle.is_finite,
                 )
             )
-
+ 
     with open('/tmp/ktri_progress.wkt', 'w') as fh:
         output_triangles_at_T(skel.triangles, NOW, fh)
-
+ 
     with open("/tmp/sknodes_progress.wkt", 'w') as fh:
         fh.write("wkt\n")
         for node in skel.sk_nodes:
             fh.write("POINT({0[0]} {0[1]})\n".format(node.pos))
-
+ 
     with open("/tmp/bisectors_progress.wkt", "w") as bisector_fh:
         bisector_fh.write("wkt\n")
         for kvertex in skel.vertices:
@@ -797,7 +803,7 @@ def visualize(queue, skel, NOW):
             elif kvertex.start_node is not None and kvertex.stop_node is None:
                 start, end = kvertex.start_node.pos, kvertex.position_at(NOW)
                 fh.write("LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3}\n".format(start, end, False, dist(start, end) ))
-
+ 
     with open("/tmp/vertices1_progress.wkt", 'w') as fh1:
         fh1.write("id;wkt\n")
         for kvertex in skel.vertices:

@@ -317,6 +317,28 @@ class TestGrassfire(unittest.TestCase):
         assert len(skel.segments()) == 15
         assert len(skel.sk_nodes) == 10
 
+    def test_bottom_circle_top_square(self):
+        """Bottom half is a circle, top is squarish, leading to parallel 
+        wavefronts.
+        """
+        # bottom circle
+        from math import pi, cos, sin, degrees
+        ring = []
+        pi2 = 2 * pi
+        ct = 6
+        alpha = pi / ct 
+        print degrees(alpha)
+        for i in range(ct+1):
+            ring.append( (cos(pi+i*alpha), sin(pi+i*alpha)))
+        ring.extend([(1, 10), (-1,10)])
+        ring.append(ring[0])
+        conv = ToPointsAndSegments()
+        conv.add_polygon([ring])
+        skel = calc_skel(conv, pause=True, output=True)
+        assert len(skel.segments()) == 20
+        assert len(skel.sk_nodes) == 12
+        positions = [n.pos for n in skel.sk_nodes]
+
 if __name__ == "__main__":
     if False:
         import logging
