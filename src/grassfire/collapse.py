@@ -159,7 +159,7 @@ def compute_event_0triangle(tri, now, sieve):
     t_e_c = []
     for i in indices:
         t_e_c.append(times_edge_collapse[i])
-
+    logging.debug("t e c {}".format(t_e_c))
     time_edge_collapse = sieve(t_e_c, now)
     time_area_collapse = sieve(area_collapse_times(o, d, a), now)
     logging.debug(">> time_edge_collapse: {}".format(time_edge_collapse))
@@ -169,7 +169,22 @@ def compute_event_0triangle(tri, now, sieve):
         # if we do not have a time for either, no collapse will happen
         return None
     elif time_edge_collapse is not None and time_area_collapse is not None:
-        if time_area_collapse < time_edge_collapse:
+        if near_zero(abs(time_area_collapse- time_edge_collapse)):
+            logging.debug("area == edge")
+            time = time_edge_collapse
+            dists = [d.distance2_at(a, time), 
+                     a.distance2_at(o, time), 
+                     o.distance2_at(d, time)]
+            zeros = [near_zero(_) for _ in dists]
+            sides_collapse = zeros.count(True)
+            if sides_collapse == 3:
+                return Event(when=time, tri=tri, side = (0, 1, 2), tp="edge", tri_tp=tri.type)
+            elif sides_collapse == 1:
+                side = zeros.index(True)
+                return Event(when=time, tri=tri, side = (side,), tp="edge", tri_tp=tri.type)
+            else:
+                return None
+        elif time_area_collapse < time_edge_collapse:
             logging.debug("area < edge")
             #
             time = time_area_collapse
@@ -769,8 +784,7 @@ def test_compute_collapse_times():
     KineticTriangle(InfiniteVertex((1., 4.)), 
                     KineticVertex((2., 0.), (-0.5, -0.5)), 
                     KineticVertex((0., 0.), (0.5, -0.5)), None, True, True),
-    #(2.0, "edge")
-    None
+    (2.0, "edge")
     ),
 
     # finite 1-triangle
@@ -853,7 +867,12 @@ def test_compute_collapse_times():
 
     (0,
      KineticTriangle(KineticVertex((-0.9872805569585875, 0.12537065799230004), (-1.024866765183742, -1.1114119702481062)), KineticVertex((-0.8437938978984622, -0.19040991430610052), (21.666935207544306, 44.860914394127434)), KineticVertex((-0.7653348342872799, -0.10537661431275783), (-1.0428319428196307, -0.08857245780155545)), True, True, True),
-     (0.00242630813253, "flip"))
+     (0.00242630813253, "flip")),
+    
+    (0,
+     KineticTriangle(KineticVertex((-0.25, 0.75), (-2.4142135623730945, -0.9999999999999996)), KineticVertex((-0.25, -0.75), (2.4142135623730945, 0.9999999999999996)), KineticVertex((0.25, -0.75), (-2.4142135623730945, 0.9999999999999996)), True, True, True),
+     (0.103553390593274, "edge")
+     )
     ]
     do_test = True
     if do_test:
@@ -927,8 +946,8 @@ def test_solve():
     print solve_quadratic(A, B, C) == [-2.0, -1.0]
 
 def main():
-#     test_compute_collapse_times()
-    test_one_collapse()
+    test_compute_collapse_times()
+#     test_one_collapse()
 
 def test_one_collapse():
     
@@ -951,12 +970,14 @@ def test_one_collapse():
     #tri = KineticTriangle(KineticVertex((-0.9872805569585875, 0.12537065799230004), (-1.024866765183742, -1.1114119702481062)), KineticVertex((-0.8437938978984622, -0.19040991430610052), (21.666935207544306, 44.860914394127434)), KineticVertex((-0.7653348342872799, -0.10537661431275783), (-1.0428319428196307, -0.08857245780155545)), True, True, True)
     
     #tri = KineticTriangle(KineticVertex((141.02031145318313, 15.11765139459854), (-1.09679614706904, 0.8919821935206798)), InfiniteVertex((0.17181892901794138, -0.016845276247151694)), KineticVertex((-0.11765994741487949, 0.576486269356072), (0.892675917072541, 1.09692483546051)), True, None, True)
-    tri = KineticTriangle(KineticVertex((141.02031145318313, 15.11765139459854), (-1.09679614706904, 0.8919821935206798)), InfiniteVertex((0.17181892901794127, -0.016845276247151646)), KineticVertex((-0.11765994741487949, 0.576486269356072), (0.892675917072541, 1.09692483546051)), True, None, True)
+    #tri = KineticTriangle(KineticVertex((141.02031145318313, 15.11765139459854), (-1.09679614706904, 0.8919821935206798)), InfiniteVertex((0.17181892901794127, -0.016845276247151646)), KineticVertex((-0.11765994741487949, 0.576486269356072), (0.892675917072541, 1.09692483546051)), True, None, True)
     #tri = KineticTriangle(KineticVertex((0.37664329535438995, -0.20429813029318875), (-1.0914440709287114, 0.8995592632828218)), KineticVertex((0.37941863862056496, 0.2502008472118177), (-0.8920557213641949, -1.0976424754293432)), KineticVertex((0.2307551855093853, -0.21963555360760362), (-1.0915314233653777, 0.8995177965775215)), True, True, True)
+    
+    tri = KineticTriangle(KineticVertex((-0.25, 0.75), (-2.4142135623730945, -0.9999999999999996)), KineticVertex((-0.25, -0.75), (2.4142135623730945, 0.9999999999999996)), KineticVertex((0.25, -0.75), (-2.4142135623730945, 0.9999999999999996)), True, True, True)
     now = 0. #0.6339745962123428
     evt = compute_collapse_time(tri, now)
 #     print evt
-    times = [0, 0.00242630813252781, 0.6340506109731798, 0.004284474881621788, 0.0022096098886525, 0.22933526207436553]
+    times = [0,]# 0.00242630813252781, 0.6340506109731798, 0.004284474881621788, 0.0022096098886525, 0.22933526207436553]
     for time in sorted(times):
         visualize_collapse(tri, time)
 #         raw_input("paused at " + str(time))

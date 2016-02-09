@@ -978,10 +978,27 @@ def test_infinite3():
 # -------------------
 # within Python console:
 #
+
 from PyQt4.QtCore import QFileSystemWatcher
+
+isDone = True
+ct = 0
+def watch():
+    global isDone, ct
+    if isDone:
+        isDone = False
+        ct += 1
+        iface.mapCanvas().refresh()
+        iface.mapCanvas().saveAsImage("/tmp/image{0:04d}.png".format(ct))
+        isDone = True
+
 watcher = QFileSystemWatcher()
 watcher.addPath( '/tmp/wavefront_edges_progress.wkt' )
-watcher.fileChanged.connect( iface.mapCanvas().refresh )
+watcher.fileChanged.connect( watch )
+
+
+
+
 
 
 from PyQt4.QtCore import QFileSystemWatcher
