@@ -200,8 +200,10 @@ def replace_kvertex(t, v, newv, now, direction, queue):
 
     Returns fan of triangles that were replaced 
     """
+    logging.debug("replace_kvertex, start at: {0}".format(id(t)))
     fan = []
     while t is not None:
+        logging.debug(" @ {}".format(id(t)))
         side = t.vertices.index(v)
         fan.append(t)
         t.vertices[side] = newv
@@ -421,39 +423,107 @@ def handle_fan(fan, pivot, skel, queue, now):
             if n != None:
                 n.neighbours[n.neighbours.index(t)] = None
 
+# def handle_fan_cw(fan, pivot, skel, queue, now):
+#     """Brute force handling of collapsed triangles that form a triangle fan
+#     between two wavefront edges
+#     """
+#     assert len(fan) >= 1
+#     logging.debug("\n\nHANDLING FAN OF TRIANGLES -- CW\n\n")
+#     t = fan[0]
+#     e = t.vertices.index(pivot)
+#     v = t.vertices[e]
+#     kvl = v.left
+#     kvr = v.right
+# 
+#     sk = SkeletonNode(kvl.position_at(now))
+#     skel.sk_nodes.append(sk)
+# 
+#     kv, newly_made = compute_new_kvertex(kvl, kvr.right, now, sk, [kvl, kvr])
+#     assert newly_made
+#     skel.vertices.append(kv)
+#     update_circ(kv, kvl, kvr.right, now)
+
+#     v1 = t.vertices[(e+1) % 3]
+#     v2 = t.vertices[(e+2) % 3]
+#     sk = SkeletonNode(v2.position_at(now))
+#     skel.sk_nodes.append(sk)
+#     v.stops_at = now
+#     v.stop_node = sk
+#     v2.stops_at = now
+#     v2.stop_node = sk
+#     t.stops_at = now
+#     if t.event != None:
+#         logging.debug("Removed: "+str(t.event))
+#         queue.discard(t.event)
+#     for n in t.neighbours:
+#         if n != None:
+#             n.neighbours[n.neighbours.index(t)] = None
+#     kv, newly_made = compute_new_kvertex(v2.left, v1, now, sk, [])
+#     
+#     assert newly_made
+#     skel.vertices.append(kv)
+#     update_circ(kv, v2.left, v1, now)
+#     logging.debug("\n\nHANDLED FAN OF TRIANGLES\n\n")
+#     fan = replace_kvertex(t.neighbours[e], v2, kv, now, ccw, queue)
+#     # FIXME: Untested...
+#     if kv.velocity == (0,0):
+#         handle_fan_ccw(fan, kv, skel, queue, now)
+
+
+
 def handle_fan_cw(fan, pivot, skel, queue, now):
     """Brute force handling of collapsed triangles that form a triangle fan
     between two wavefront edges
     """
-    assert len(fan) == 1
     logging.debug("\n\nHANDLING FAN OF TRIANGLES -- CW\n\n")
+    # FIXME: this does create many duplicate skeleton nodes for now
+    assert len(fan) >= 1
+    t = fan[0]
+    e = t.vertices.index(pivot)
+    v = t.vertices[e]
+    kvl = v.left
+    kvr = v.right
+
+    sk = SkeletonNode(kvl.position_at(now))
+    skel.sk_nodes.append(sk)
+
+    kv, newly_made = compute_new_kvertex(kvl.left, kvr, now, sk, [])
+    assert newly_made
+    skel.vertices.append(kv)
+    update_circ(kv, kvl.left, kvr, now)
+
+    # based on the first triangle
+    # get the vertices we need to deal with
     t = fan[0]
     e = t.vertices.index(pivot)
     v = t.vertices[e]
     v1 = t.vertices[(e+1) % 3]
     v2 = t.vertices[(e+2) % 3]
-    sk = SkeletonNode(v2.position_at(now))
-    skel.sk_nodes.append(sk)
     v.stops_at = now
     v.stop_node = sk
     v2.stops_at = now
     v2.stop_node = sk
-    t.stops_at = now
-    if t.event != None:
-        logging.debug("Removed: "+str(t.event))
-        queue.discard(t.event)
-    for n in t.neighbours:
-        if n != None:
-            n.neighbours[n.neighbours.index(t)] = None
-    kv, newly_made = compute_new_kvertex(v2.left, v1, now, sk, [])
-    assert newly_made
-    skel.vertices.append(kv)
-    update_circ(kv, v2.left, v1, now)
-    logging.debug("\n\nHANDLED FAN OF TRIANGLES\n\n")
-    # FIXME: Untested...
-    if kv.velocity == (0,0):
-        fan = replace_kvertex(t.neighbours[e], v2, kv, now, ccw, queue)
-        handle_fan_ccw(fan, kv, skel, queue, now)
+    v.left = None, now
+    v.right = None, now
+    # check if we have to go recursively
+    fan_new = replace_kvertex(t.neighbours[e], v2, kv, now, ccw, queue)
+    # for all triangles in the fan
+    for t in fan:
+        t.stops_at = now
+        if t.event != None:
+            logging.debug("Removed: "+str(t.event))
+            queue.discard(t.event)
+
+    # make last neighbour None
+    #     n = t.neighbours[(e) % 3]
+    #     if n is not None:
+    #         n.neighbours[n.neighbours.index(t)] = None
+    #     t.neighbours[(e+1) % 3] = None
+
+    if kv.velocity == (0, 0):
+        handle_fan_ccw(fan_new, kv, skel, queue, now)
+
+
 
 def handle_fan_ccw(fan, pivot, skel, queue, now):
     """Brute force handling of collapsed triangles that form a triangle fan
@@ -461,34 +531,52 @@ def handle_fan_ccw(fan, pivot, skel, queue, now):
     """
     logging.debug("\n\nHANDLING FAN OF TRIANGLES -- CCW\n\n")
     # FIXME: this does create many duplicate skeleton nodes for now
-    assert len(fan) == 1
+    assert len(fan) >= 1
+    t = fan[0]
+    e = t.vertices.index(pivot)
+    v = t.vertices[e]
+    kvl = v.left
+    kvr = v.right
+
+    sk = SkeletonNode(kvr.position_at(now))
+    skel.sk_nodes.append(sk)
+
+    kv, newly_made = compute_new_kvertex(kvl, kvr.right, now, sk, [])
+    assert newly_made
+    skel.vertices.append(kv)
+    update_circ(kv, kvl, kvr.right, now)
+
+    # based on the first triangle
+    # get the vertices we need to deal with
+    t = fan[0]
+    e = t.vertices.index(pivot)
+    v = t.vertices[e]
+    v1 = t.vertices[(e+1) % 3]
+    # v2 = t.vertices[(e+2) % 3]
+    v.stops_at = now
+    v.stop_node = sk
+    v1.stops_at = now
+    v1.stop_node = sk
+    v.left = None, now
+    v.right = None, now
+    # check if we have to go recursively
+    fan_new = replace_kvertex(t.neighbours[e], v1, kv, now, cw, queue)
+    # for all triangles in the fan
     for t in fan:
-        e = t.vertices.index(pivot)
-        v = t.vertices[e]
-        v1 = t.vertices[(e+1) % 3]
-        v2 = t.vertices[(e+2) % 3]
-        sk = SkeletonNode(v1.position_at(now))
-        skel.sk_nodes.append(sk)
-        v.stops_at = now
-        v.stop_node = sk
-        v1.stops_at = now
-        v1.stop_node = sk
         t.stops_at = now
         if t.event != None:
             logging.debug("Removed: "+str(t.event))
             queue.discard(t.event)
-        for n in t.neighbours:
-            if n != None:
-                n.neighbours[n.neighbours.index(t)] = None
-        kv, newly_made = compute_new_kvertex(v2, v1.right, now, sk, [])
-        assert newly_made
-        #assert kv.velocity != (0, 0), "Fan collapse produces another infinitely fast vertex"
-        skel.vertices.append(kv)
-        update_circ(kv, v2, v1.right, now)
-        logging.debug("\n\nHANDLED FAN OF TRIANGLES\n\n")
-    if kv.velocity == (0,0):
-        fan = replace_kvertex(t.neighbours[e], v1, kv, now, cw, queue)
-        handle_fan_cw(fan, kv, skel, queue, now)
+
+    # make last neighbour None
+    #     n = t.neighbours[(e) % 3]
+    #     if n is not None:
+    #         n.neighbours[n.neighbours.index(t)] = None
+    #     t.neighbours[(e+1) % 3] = None
+
+    #
+    if kv.velocity == (0, 0):
+        handle_fan_cw(fan_new, kv, skel, queue, now)
 
 def schedule_immediately(tri, now, queue, immediate):
     """Schedule a triangle for immediate processing
@@ -639,6 +727,8 @@ def handle_flip_event(evt, skel, queue):
     t, t_side = evt.triangle, evt.side[0]
     n = t.neighbours[t_side]
     n_side = n.neighbours.index(t)
+    print repr(t), t_side
+    print repr(n), n_side
     flip(t, t_side, n, n_side)
     replace_in_queue(t, now, queue)
     replace_in_queue(n, now, queue)
@@ -707,18 +797,18 @@ def event_loop(queue, skel, pause=False):
             pass
     # -- visualize
     NOW = prev_time = 1e-5
-    if pause:
-        visualize(queue, skel, prev_time)
+#     if pause:
+    visualize(queue, skel, prev_time)
     immediate = deque([])
-#     logging.debug("=" * 80)
-#     logging.debug("Immediate / Queue at start of process")
-#     logging.debug("=" * 80)
-#     for i, e in enumerate(immediate):
-#         logging.debug("{0:5d} {1}".format(i, e))
-#     logging.debug("-" * 80)
-#     for i, e in enumerate(queue):
-#         logging.debug("{0:5d} {1}".format(i, e))
-#     logging.debug("=" * 80)
+    logging.debug("=" * 80)
+    logging.debug("Immediate / Queue at start of process")
+    logging.debug("=" * 80)
+    for i, e in enumerate(immediate):
+        logging.debug("{0:5d} {1}".format(i, e))
+    logging.debug("-" * 80)
+    for i, e in enumerate(queue):
+        logging.debug("{0:5d} {1}".format(i, e))
+    logging.debug("=" * 80)
 
     step = prev = 0.025
     while queue or immediate:
@@ -734,25 +824,24 @@ def event_loop(queue, skel, pause=False):
         else:
             peek = next(iter(queue))
             NOW = peek.time
-#             if pause and False: # visualize progressively
+            if pause and True: # visualize progressively
 #                 if peek.tp == "flip":
 #                     ct = 2
 #                 else:
-#                     ct = 10
-#                 # -- use this for getting progress visualization
-#                 delta = NOW - prev_time
-#                 if near_zero(delta):
-#                     ct = 1
-#                 step_time = delta / ct
-#                 for i in range(ct-1): #ct - 2): # stop 1 step before
-#                     print "."
-#                     prev_time += step_time
-#                     visualize(queue, skel, prev_time + step_time)
-#                     sleep(0.5)
+                ct = 10
+                # -- use this for getting progress visualization
+                delta = NOW - prev_time
+                if near_zero(delta):
+                    ct = 1
+                step_time = delta / ct
+                for i in range(ct-1): #ct - 2): # stop 1 step before
+                    print "."
+                    prev_time += step_time
+                    visualize(queue, skel, prev_time + step_time)
+                    sleep(0.5)
             visualize(queue, skel, NOW)
 #             if NOW > prev:
 #                 visualize(queue, skel, NOW)
-#             sleep(2.0)
 #                 prev += step
             evt = queue.popleft()
             prev_time = NOW
@@ -770,8 +859,8 @@ def event_loop(queue, skel, pause=False):
         elif evt.tp == "split":
             handle_split_event(evt, skel, queue)
 #         check_ktriangles(skel.triangles, NOW)
-        if pause:
-            visualize(queue, skel, NOW)
+        #if pause:
+        visualize(queue, skel, NOW)
         logging.debug("=" * 80)
         logging.debug("Immediate / Queue at end of handling event")
         logging.debug("=" * 80)
@@ -788,6 +877,24 @@ def event_loop(queue, skel, pause=False):
 #             visualize(queue, skel, NOW)
 #             sleep(1.)
     return NOW
+
+
+def test_flip():
+    from grassfire.primitives import KineticTriangle, KineticVertex
+    from grassfire.collapse import visualize_collapse
+    kva, kvb ,kvc = KineticVertex((0.5708300810827899, -0.6522816406336925), (-0.9948599287034132, 0.11497770403631359)), \
+                    KineticVertex((0.5782127143073887, -0.5307110706518996), (-1.0, 0.030335628741145954)), \
+                    KineticVertex((-0.09198148991048387, -0.49721842917109277), (1.0, -0.037586533195308386))
+    kvd = KineticVertex((-0.6334875065519778, -7.690499631410905), (2.5875439988951556, 21.05109956452827)) 
+    a = KineticTriangle(kva, kvb, kvc, 
+                        None, True, None)
+    b = KineticTriangle(kvc, 
+                        kvd, 
+                        kva, None, True, None)
+    a.neighbours[1] = b
+    b.neighbours[1] = a
+    flip(a,1,b,1)
+    visualize_collapse(a, 0.33)
 
 
 def visualize(queue, skel, NOW):
@@ -856,3 +963,6 @@ def visualize(queue, skel, NOW):
                 for side in sides:
                     edges.append(Edge(tri, side))
         output_edges_at_T(edges, NOW, fh)
+
+if __name__ == "__main__":
+    test_flip()

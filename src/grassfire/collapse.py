@@ -542,6 +542,9 @@ def compute_event_inftriangle(tri, now, sieve):
 
 def compute_collapse_time(tri, now=0, sieve=find_gte):
     event = None
+    if tri.stops_at is not None:
+        # we have a triangle that has been stopped already, return None
+        return event
     if tri.is_finite:
         logging.debug("=-=-= finite triangle {} =-=-= ".format(id(tri)))
         logging.debug(repr(tri))

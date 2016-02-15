@@ -3,19 +3,19 @@
   <title></title>
   <layer-tree-group expanded="1" checked="Qt::PartiallyChecked" name="">
     <customproperties/>
-    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="sknodes_progress20150622112720415" name="sknodes_progress">
+    <layer-tree-layer expanded="1" checked="Qt::Checked" id="sknodes_progress20150622112720415" name="sknodes_progress">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="bisectors_progress20150622113032918" name="bisectors_progress">
+    <layer-tree-layer expanded="1" checked="Qt::Checked" id="bisectors_progress20150622113032918" name="bisectors_progress">
+      <customproperties/>
+    </layer-tree-layer>
+    <layer-tree-layer expanded="1" checked="Qt::Checked" id="vertices1_progress20150622110949900" name="vertices1_progress">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Checked" id="wavefront_edges_progress20160120113619595" name="wavefront_edges_progress">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="ktri_progress20150622114729829" name="ktri_progress">
-      <customproperties/>
-    </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="vertices1_progress20150622110949900" name="vertices1_progress">
+    <layer-tree-layer expanded="1" checked="Qt::Checked" id="ktri_progress20150622114729829" name="ktri_progress">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Checked" id="segments_progress20160201102032831" name="segments_progress">
@@ -24,10 +24,10 @@
     <layer-tree-layer expanded="1" checked="Qt::Checked" id="edges20160203144113295" name="edges">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="offsetsr20160118143938236" name="offsetsr">
+    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="offsetsr20160214192315746" name="offsetsr">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="offsetsl20160118143808823" name="offsetsl">
+    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="offsetsl20160214192245408" name="offsetsl">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="skel20160205144338111" name="skel">
@@ -38,10 +38,10 @@
   <mapcanvas>
     <units>meters</units>
     <extent>
-      <xmin>-1.19500347548372687</xmin>
-      <ymin>-1.27982706564144122</ymin>
-      <xmax>1.41542068550699174</xmax>
-      <ymax>1.36422800319460125</ymax>
+      <xmin>-1.4783727982372934</xmin>
+      <ymin>-1.72762566596069367</ymin>
+      <xmax>2.0603566038989154</xmax>
+      <ymax>1.85669428969642847</ymax>
     </extent>
     <rotation>0</rotation>
     <projections>0</projections>
@@ -66,23 +66,28 @@
       <item>vertices1_progress20150622110949900</item>
       <item>sknodes_progress20150622112720415</item>
       <item>ktri_progress20150622114729829</item>
-      <item>offsetsl20160118143808823</item>
-      <item>offsetsr20160118143938236</item>
       <item>wavefront_edges_progress20160120113619595</item>
       <item>segments_progress20160201102032831</item>
       <item>edges20160203144113295</item>
       <item>skel20160205144338111</item>
+      <item>offsetsl20160214192245408</item>
+      <item>offsetsr20160214192315746</item>
     </custom-order>
   </layer-tree-canvas>
   <legend updateDrawingOrder="true">
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="sknodes_progress" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="sknodes_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="sknodes_progress20150622112720415" visible="0"/>
+        <legendlayerfile isInOverview="0" layerid="sknodes_progress20150622112720415" visible="1"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="bisectors_progress" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="bisectors_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="bisectors_progress20150622113032918" visible="0"/>
+        <legendlayerfile isInOverview="0" layerid="bisectors_progress20150622113032918" visible="1"/>
+      </filegroup>
+    </legendlayer>
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="vertices1_progress" showFeatureCount="0">
+      <filegroup open="true" hidden="false">
+        <legendlayerfile isInOverview="0" layerid="vertices1_progress20150622110949900" visible="1"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="wavefront_edges_progress" showFeatureCount="0">
@@ -90,14 +95,9 @@
         <legendlayerfile isInOverview="0" layerid="wavefront_edges_progress20160120113619595" visible="1"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="ktri_progress" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="ktri_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="ktri_progress20150622114729829" visible="0"/>
-      </filegroup>
-    </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="vertices1_progress" showFeatureCount="0">
-      <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="vertices1_progress20150622110949900" visible="1"/>
+        <legendlayerfile isInOverview="0" layerid="ktri_progress20150622114729829" visible="1"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="segments_progress" showFeatureCount="0">
@@ -112,12 +112,12 @@
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="offsetsr" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="offsetsr20160118143938236" visible="0"/>
+        <legendlayerfile isInOverview="0" layerid="offsetsr20160214192315746" visible="0"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="offsetsl" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="offsetsl20160118143808823" visible="0"/>
+        <legendlayerfile isInOverview="0" layerid="offsetsl20160214192245408" visible="0"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="skel" showFeatureCount="0">
@@ -950,8 +950,8 @@
         </edittype>
       </edittypes>
     </maplayer>
-    <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Line" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
-      <id>offsetsl20160118143808823</id>
+    <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Line" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+      <id>offsetsl20160214192245408</id>
       <datasource>file:///tmp/offsetsl.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes</datasource>
       <title></title>
       <abstract></abstract>
@@ -978,7 +978,17 @@
       <map-layer-style-manager current="">
         <map-layer-style name=""/>
       </map-layer-style-manager>
-      <edittypes/>
+      <edittypes>
+        <edittype widgetv2type="TextEdit" name="time">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+        <edittype widgetv2type="TextEdit" name="from">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+        <edittype widgetv2type="TextEdit" name="to">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+      </edittypes>
       <renderer-v2 symbollevels="0" type="singleSymbol">
         <symbols>
           <symbol alpha="1" type="line" name="0">
@@ -989,7 +999,7 @@
               <prop k="customdash_unit" v="MM"/>
               <prop k="draw_inside_polygon" v="0"/>
               <prop k="joinstyle" v="bevel"/>
-              <prop k="line_color" v="80,80,80,255"/>
+              <prop k="line_color" v="156,170,186,255"/>
               <prop k="line_style" v="solid"/>
               <prop k="line_width" v="0.06"/>
               <prop k="line_width_unit" v="MM"/>
@@ -1040,7 +1050,7 @@
         <property key="labeling/fontLimitPixelSize" value="false"/>
         <property key="labeling/fontMaxPixelSize" value="10000"/>
         <property key="labeling/fontMinPixelSize" value="3"/>
-        <property key="labeling/fontSize" value="12"/>
+        <property key="labeling/fontSize" value="11"/>
         <property key="labeling/fontSizeInMapUnits" value="false"/>
         <property key="labeling/fontSizeMapUnitMaxScale" value="0"/>
         <property key="labeling/fontSizeMapUnitMinScale" value="0"/>
@@ -1150,7 +1160,7 @@
       <blendMode>0</blendMode>
       <featureBlendMode>0</featureBlendMode>
       <layerTransparency>0</layerTransparency>
-      <displayfield></displayfield>
+      <displayfield>time</displayfield>
       <label>0</label>
       <labelattributes>
         <label fieldname="" text="Label"/>
@@ -1180,10 +1190,20 @@
       <excludeAttributesWMS/>
       <excludeAttributesWFS/>
       <attributeactions/>
-      <edittypes/>
+      <edittypes>
+        <edittype widgetv2type="TextEdit" name="time">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+        <edittype widgetv2type="TextEdit" name="from">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+        <edittype widgetv2type="TextEdit" name="to">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+      </edittypes>
     </maplayer>
     <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Line" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
-      <id>offsetsr20160118143938236</id>
+      <id>offsetsr20160214192315746</id>
       <datasource>file:///tmp/offsetsr.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes</datasource>
       <title></title>
       <abstract></abstract>
@@ -1210,7 +1230,17 @@
       <map-layer-style-manager current="">
         <map-layer-style name=""/>
       </map-layer-style-manager>
-      <edittypes/>
+      <edittypes>
+        <edittype widgetv2type="TextEdit" name="time">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+        <edittype widgetv2type="TextEdit" name="from">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+        <edittype widgetv2type="TextEdit" name="to">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+      </edittypes>
       <renderer-v2 symbollevels="0" type="singleSymbol">
         <symbols>
           <symbol alpha="1" type="line" name="0">
@@ -1221,7 +1251,7 @@
               <prop k="customdash_unit" v="MM"/>
               <prop k="draw_inside_polygon" v="0"/>
               <prop k="joinstyle" v="bevel"/>
-              <prop k="line_color" v="80,80,80,255"/>
+              <prop k="line_color" v="156,170,186,255"/>
               <prop k="line_style" v="solid"/>
               <prop k="line_width" v="0.06"/>
               <prop k="line_width_unit" v="MM"/>
@@ -1272,7 +1302,7 @@
         <property key="labeling/fontLimitPixelSize" value="false"/>
         <property key="labeling/fontMaxPixelSize" value="10000"/>
         <property key="labeling/fontMinPixelSize" value="3"/>
-        <property key="labeling/fontSize" value="12"/>
+        <property key="labeling/fontSize" value="11"/>
         <property key="labeling/fontSizeInMapUnits" value="false"/>
         <property key="labeling/fontSizeMapUnitMaxScale" value="0"/>
         <property key="labeling/fontSizeMapUnitMinScale" value="0"/>
@@ -1382,7 +1412,7 @@
       <blendMode>0</blendMode>
       <featureBlendMode>0</featureBlendMode>
       <layerTransparency>0</layerTransparency>
-      <displayfield></displayfield>
+      <displayfield>time</displayfield>
       <label>0</label>
       <labelattributes>
         <label fieldname="" text="Label"/>
@@ -1412,7 +1442,17 @@
       <excludeAttributesWMS/>
       <excludeAttributesWFS/>
       <attributeactions/>
-      <edittypes/>
+      <edittypes>
+        <edittype widgetv2type="TextEdit" name="time">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+        <edittype widgetv2type="TextEdit" name="from">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+        <edittype widgetv2type="TextEdit" name="to">
+          <widgetv2config IsMultiline="0" fieldEditable="1" UseHtml="0" labelOnTop="0"/>
+        </edittype>
+      </edittypes>
     </maplayer>
     <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Line" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
       <id>segments_progress20160201102032831</id>
@@ -1516,8 +1556,6 @@
             </layer>
           </symbol>
         </source-symbol>
-        <colorramp type="randomcolors" name="[source]"/>
-        <invertedcolorramp value="0"/>
         <rotation/>
         <sizescale scalemethod="area"/>
       </renderer-v2>
@@ -1796,7 +1834,7 @@
       <attributeactions/>
       <edittypes/>
     </maplayer>
-    <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="0" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Point" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+    <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="0" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Point" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
       <id>sknodes_progress20150622112720415</id>
       <datasource>file:///tmp/sknodes_progress.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes</datasource>
       <title></title>
@@ -1842,7 +1880,7 @@
               <prop k="outline_width_map_unit_scale" v="0,0"/>
               <prop k="outline_width_unit" v="MM"/>
               <prop k="scale_method" v="area"/>
-              <prop k="size" v="3"/>
+              <prop k="size" v="2"/>
               <prop k="size_map_unit_scale" v="0,0"/>
               <prop k="size_unit" v="MM"/>
               <prop k="vertical_anchor_point" v="1"/>
@@ -1861,7 +1899,7 @@
               <prop k="outline_width_map_unit_scale" v="0,0"/>
               <prop k="outline_width_unit" v="MM"/>
               <prop k="scale_method" v="area"/>
-              <prop k="size" v="0.5"/>
+              <prop k="size" v="0.3"/>
               <prop k="size_map_unit_scale" v="0,0"/>
               <prop k="size_unit" v="MM"/>
               <prop k="vertical_anchor_point" v="1"/>
@@ -2562,8 +2600,8 @@
         <value>bisectors_progress20150622113032918</value>
         <value>edges20160203144113295</value>
         <value>ktri_progress20150622114729829</value>
-        <value>offsetsl20160118143808823</value>
-        <value>offsetsr20160118143938236</value>
+        <value>offsetsl20160214192245408</value>
+        <value>offsetsr20160214192315746</value>
         <value>segments_progress20160201102032831</value>
         <value>skel20160205144338111</value>
         <value>sknodes_progress20150622112720415</value>
@@ -2574,8 +2612,8 @@
         <value>disabled</value>
         <value>disabled</value>
         <value>disabled</value>
-        <value>disabled</value>
-        <value>disabled</value>
+        <value>enabled</value>
+        <value>enabled</value>
         <value>disabled</value>
         <value>disabled</value>
         <value>disabled</value>
@@ -2588,8 +2626,8 @@
         <value>0</value>
         <value>0</value>
         <value>0</value>
-        <value>0</value>
-        <value>0</value>
+        <value>2</value>
+        <value>2</value>
         <value>0</value>
         <value>0</value>
         <value>0</value>
@@ -2600,8 +2638,8 @@
         <value>to_vertex_and_segment</value>
         <value>to_vertex_and_segment</value>
         <value>to_vertex_and_segment</value>
-        <value>to_vertex_and_segment</value>
-        <value>to_vertex_and_segment</value>
+        <value>to_vertex</value>
+        <value>to_vertex</value>
         <value>to_vertex_and_segment</value>
         <value>to_vertex_and_segment</value>
         <value>to_vertex_and_segment</value>

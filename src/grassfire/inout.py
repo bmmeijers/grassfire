@@ -77,14 +77,16 @@ def output_offsets(skel, now=1000):
     inc = now / float(ct)
     times = [t*inc for t in range(ct)]
     with open("/tmp/offsetsl.wkt", "w") as fh:
-        fh.write("wkt\n")
+        fh.write("wkt;time;from;to\n")
         for t in times:
             for v in skel.vertices:
                 if (v.starts_at <= t and v.stops_at > t) or \
                     (v.starts_at <= t and v.stops_at is None): 
                     try:
-                        s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(t), 
-                                                                              v.left_at(t).position_at(t))
+                        s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{4}".format(v.position_at(t), 
+                                                                              v.left_at(t).position_at(t),
+                                                                              t,
+                                                                              id(v), id(v.left_at(t)))
                         fh.write(s)
                         fh.write("\n")
                     except AttributeError:
@@ -92,15 +94,17 @@ def output_offsets(skel, now=1000):
                         pass
 
     with open("/tmp/offsetsr.wkt", "w") as fh:
-        fh.write("wkt\n")
+        fh.write("wkt;time;from;to\n")
         for t in times:
             for v in skel.vertices:
                 if v.starts_at <= t and v.stops_at > t or \
                     (v.starts_at <= t and v.stops_at is None):
                 # finite ranges only (not None is filtered out)
                     try:
-                        s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(t), 
-                                                                              v.right_at(t).position_at(t))
+                        s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{4}".format(v.position_at(t), 
+                                                                              v.right_at(t).position_at(t),
+                                                                              t,
+                                                                              id(v), id(v.right_at(t)))
                         fh.write(s)
                         fh.write("\n")
                     except AttributeError:

@@ -327,17 +327,18 @@ class TestGrassfire(unittest.TestCase):
         pi2 = 2 * pi
         ct = 6
         alpha = pi / ct 
-        print degrees(alpha)
         for i in range(ct+1):
             ring.append( (cos(pi+i*alpha), sin(pi+i*alpha)))
         ring.extend([(1, 10), (-1,10)])
         ring.append(ring[0])
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
-        skel = calc_skel(conv, pause=True, output=True)
+        skel = calc_skel(conv, pause=False, output=False)
         assert len(skel.segments()) == 20
         assert len(skel.sk_nodes) == 12
+        # geometric embedding
         positions = [n.pos for n in skel.sk_nodes]
+        assert frozenset(positions) == frozenset([(-3.3399458158564173e-17, -1.0), (-0.18181818181818182, 1.0), (-0.18181818181818182, -0.8181818181818182), (-0.090909090909091, -0.9756409825062615), (0.15745916432444335, -0.9090909090909091), (0.18181818181818182, 1.0), (0.18181818181818182, -0.8181818181818182), (-0.15745916432444343, -0.9090909090909091), (0.09090909090909079, -0.9756409825062616), (1.4901620439059292e-16, -0.8181818181818185), (1.0547467917351273e-17, -0.7942450004386554), (0.0, 0.8181818181818182)])
 
 if __name__ == "__main__":
     if False:
