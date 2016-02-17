@@ -164,6 +164,7 @@ def compute_new_kvertex(v1, v2, now, sk_node, V):
             assert not (near_zero(abs(p2[0] - sk_node.pos[0])) and \
                         near_zero(abs(p2[1] - sk_node.pos[1])))
         velo = bisector(p1, sk_node.pos, p2)
+        assert velo is not None
         logging.debug("velo vector" + str(velo))
         # compute position at t=0, rotate bisector 180 degrees
         # and get the position 
@@ -477,51 +478,51 @@ def handle_fan_cw(fan, pivot, skel, queue, now):
     """
     logging.debug("\n\nHANDLING FAN OF TRIANGLES -- CW\n\n")
     # FIXME: this does create many duplicate skeleton nodes for now
-    assert len(fan) >= 1
-    t = fan[0]
-    e = t.vertices.index(pivot)
-    v = t.vertices[e]
-    kvl = v.left
-    kvr = v.right
-
-    sk = SkeletonNode(kvl.position_at(now))
-    skel.sk_nodes.append(sk)
-
-    kv, newly_made = compute_new_kvertex(kvl.left, kvr, now, sk, [])
-    assert newly_made
-    skel.vertices.append(kv)
-    update_circ(kv, kvl.left, kvr, now)
-
-    # based on the first triangle
-    # get the vertices we need to deal with
-    t = fan[0]
-    e = t.vertices.index(pivot)
-    v = t.vertices[e]
-    v1 = t.vertices[(e+1) % 3]
-    v2 = t.vertices[(e+2) % 3]
-    v.stops_at = now
-    v.stop_node = sk
-    v2.stops_at = now
-    v2.stop_node = sk
-    v.left = None, now
-    v.right = None, now
-    # check if we have to go recursively
-    fan_new = replace_kvertex(t.neighbours[e], v2, kv, now, ccw, queue)
-    # for all triangles in the fan
-    for t in fan:
-        t.stops_at = now
-        if t.event != None:
-            logging.debug("Removed: "+str(t.event))
-            queue.discard(t.event)
-
-    # make last neighbour None
-    #     n = t.neighbours[(e) % 3]
-    #     if n is not None:
-    #         n.neighbours[n.neighbours.index(t)] = None
-    #     t.neighbours[(e+1) % 3] = None
-
-    if kv.velocity == (0, 0):
-        handle_fan_ccw(fan_new, kv, skel, queue, now)
+    if len(fan) >= 1:
+        t = fan[0]
+        e = t.vertices.index(pivot)
+        v = t.vertices[e]
+        kvl = v.left
+        kvr = v.right
+    
+        sk = SkeletonNode(kvl.position_at(now))
+        skel.sk_nodes.append(sk)
+    
+        kv, newly_made = compute_new_kvertex(kvl.left, kvr, now, sk, [])
+        assert newly_made
+        skel.vertices.append(kv)
+        update_circ(kv, kvl.left, kvr, now)
+    
+        # based on the first triangle
+        # get the vertices we need to deal with
+        t = fan[0]
+        e = t.vertices.index(pivot)
+        v = t.vertices[e]
+        v1 = t.vertices[(e+1) % 3]
+        v2 = t.vertices[(e+2) % 3]
+        v.stops_at = now
+        v.stop_node = sk
+        v2.stops_at = now
+        v2.stop_node = sk
+        v.left = None, now
+        v.right = None, now
+        # check if we have to go recursively
+        fan_new = replace_kvertex(t.neighbours[e], v2, kv, now, ccw, queue)
+        # for all triangles in the fan
+        for t in fan:
+            t.stops_at = now
+            if t.event != None:
+                logging.debug("Removed: "+str(t.event))
+                queue.discard(t.event)
+    
+        # make last neighbour None
+        #     n = t.neighbours[(e) % 3]
+        #     if n is not None:
+        #         n.neighbours[n.neighbours.index(t)] = None
+        #     t.neighbours[(e+1) % 3] = None
+    
+        if kv.velocity == (0, 0):
+            handle_fan_ccw(fan_new, kv, skel, queue, now)
 
 
 
@@ -531,52 +532,52 @@ def handle_fan_ccw(fan, pivot, skel, queue, now):
     """
     logging.debug("\n\nHANDLING FAN OF TRIANGLES -- CCW\n\n")
     # FIXME: this does create many duplicate skeleton nodes for now
-    assert len(fan) >= 1
-    t = fan[0]
-    e = t.vertices.index(pivot)
-    v = t.vertices[e]
-    kvl = v.left
-    kvr = v.right
-
-    sk = SkeletonNode(kvr.position_at(now))
-    skel.sk_nodes.append(sk)
-
-    kv, newly_made = compute_new_kvertex(kvl, kvr.right, now, sk, [])
-    assert newly_made
-    skel.vertices.append(kv)
-    update_circ(kv, kvl, kvr.right, now)
-
-    # based on the first triangle
-    # get the vertices we need to deal with
-    t = fan[0]
-    e = t.vertices.index(pivot)
-    v = t.vertices[e]
-    v1 = t.vertices[(e+1) % 3]
-    # v2 = t.vertices[(e+2) % 3]
-    v.stops_at = now
-    v.stop_node = sk
-    v1.stops_at = now
-    v1.stop_node = sk
-    v.left = None, now
-    v.right = None, now
-    # check if we have to go recursively
-    fan_new = replace_kvertex(t.neighbours[e], v1, kv, now, cw, queue)
-    # for all triangles in the fan
-    for t in fan:
-        t.stops_at = now
-        if t.event != None:
-            logging.debug("Removed: "+str(t.event))
-            queue.discard(t.event)
-
-    # make last neighbour None
-    #     n = t.neighbours[(e) % 3]
-    #     if n is not None:
-    #         n.neighbours[n.neighbours.index(t)] = None
-    #     t.neighbours[(e+1) % 3] = None
-
-    #
-    if kv.velocity == (0, 0):
-        handle_fan_cw(fan_new, kv, skel, queue, now)
+    if len(fan) >= 1:
+        t = fan[0]
+        e = t.vertices.index(pivot)
+        v = t.vertices[e]
+        kvl = v.left
+        kvr = v.right
+    
+        sk = SkeletonNode(kvr.position_at(now))
+        skel.sk_nodes.append(sk)
+    
+        kv, newly_made = compute_new_kvertex(kvl, kvr.right, now, sk, [])
+        assert newly_made
+        skel.vertices.append(kv)
+        update_circ(kv, kvl, kvr.right, now)
+    
+        # based on the first triangle
+        # get the vertices we need to deal with
+        t = fan[0]
+        e = t.vertices.index(pivot)
+        v = t.vertices[e]
+        v1 = t.vertices[(e+1) % 3]
+        # v2 = t.vertices[(e+2) % 3]
+        v.stops_at = now
+        v.stop_node = sk
+        v1.stops_at = now
+        v1.stop_node = sk
+        v.left = None, now
+        v.right = None, now
+        # check if we have to go recursively
+        fan_new = replace_kvertex(t.neighbours[e], v1, kv, now, cw, queue)
+        # for all triangles in the fan
+        for t in fan:
+            t.stops_at = now
+            if t.event != None:
+                logging.debug("Removed: "+str(t.event))
+                queue.discard(t.event)
+    
+        # make last neighbour None
+        #     n = t.neighbours[(e) % 3]
+        #     if n is not None:
+        #         n.neighbours[n.neighbours.index(t)] = None
+        #     t.neighbours[(e+1) % 3] = None
+    
+        #
+        if kv.velocity == (0, 0):
+            handle_fan_cw(fan_new, kv, skel, queue, now)
 
 def schedule_immediately(tri, now, queue, immediate):
     """Schedule a triangle for immediate processing
@@ -824,7 +825,7 @@ def event_loop(queue, skel, pause=False):
         else:
             peek = next(iter(queue))
             NOW = peek.time
-            if pause and True: # visualize progressively
+            if pause and False: # visualize progressively
 #                 if peek.tp == "flip":
 #                     ct = 2
 #                 else:
