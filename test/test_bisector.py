@@ -72,7 +72,8 @@ class TestCollapsedBisector(unittest.TestCase):
     def test_exactly_0degs(self):
         """If points fold back from p0 via p1 to p2 should raise an error
         """
-        self.assertRaises(ValueError, bisector, (1,0), (0,0), (1,0))
+        bi = bisector((1,0), (0,0), (1,0))
+        assert bi is None
 
 
 if __name__ == '__main__':
