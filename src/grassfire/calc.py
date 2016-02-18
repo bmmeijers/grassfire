@@ -8,7 +8,7 @@ from operator import add, sub, mul, truediv
 from math import pi, atan2, degrees, hypot, sin, sqrt
 from pprint import pprint
 from tri.delaunay import orient2d
-import cmath
+import warnings
 import logging
 
 def get_unique_times(times):
@@ -285,9 +285,18 @@ def bisector(p0, p1, p2):
     s = scaling_factor(p0, p1, p2)
     if s is None:
 #         return None
-        return 0., 0.
+        #res = 1e8, 1e8
+        return None
         # raise ValueError("Infinite speed")
-    return vector_mul_scalar(v, s)
+    else:
+        res = vector_mul_scalar(v, s)
+    # assume there is a problem if a vertex starts to move rather fast
+    for i in range(2):
+        # assert res[i] < 100, res
+        if abs(res[i]) > 5000:
+            warnings.warn("fast moving vertex: {}".format(res))
+            return None
+    return res
 
 
 def bisector_unit(p0, p1, p2): #1.0):

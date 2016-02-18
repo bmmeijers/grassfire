@@ -367,8 +367,8 @@ def compute_event_1triangle(tri, now, sieve):
                      o.distance2_at(d, time)]
             tp = "edge"
             zeros = [near_zero(dist) for dist in dists]
+            assert zeros.count(True) == 1, zeros
             sides = [zeros.index(True)]
-            assert len(sides) == 1
             return Event(when=time, tri=tri, side=sides, tp=tp, tri_tp=tri.type)
         elif time_vertex_crash < time_edge_collapse:
             # wavefront edge is split
@@ -965,8 +965,8 @@ def test_solve():
     print solve_quadratic(A, B, C) == [-2.0, -1.0]
 
 def main():
-    test_compute_collapse_times()
-#     test_one_collapse()
+#     test_compute_collapse_times()
+    test_one_collapse()
 
 def test_one_collapse():
     
@@ -993,16 +993,44 @@ def test_one_collapse():
     #tri = KineticTriangle(KineticVertex((0.37664329535438995, -0.20429813029318875), (-1.0914440709287114, 0.8995592632828218)), KineticVertex((0.37941863862056496, 0.2502008472118177), (-0.8920557213641949, -1.0976424754293432)), KineticVertex((0.2307551855093853, -0.21963555360760362), (-1.0915314233653777, 0.8995177965775215)), True, True, True)
     
     #tri = KineticTriangle(KineticVertex((-0.25, 0.75), (-2.4142135623730945, -0.9999999999999996)), KineticVertex((-0.25, -0.75), (2.4142135623730945, 0.9999999999999996)), KineticVertex((0.25, -0.75), (-2.4142135623730945, 0.9999999999999996)), True, True, True)
-    now = 0.01 #0.6339745962123428
+    now = 0.002600700409522507545317937527 #0.6339745962123428
 
     #1-triangle that should flip around 0.020895678!
-    tri = KineticTriangle(KineticVertex((-0.2514204545452013, -0.43678977272891734), (-1.1213425200822953, 0.8653503174771875)), KineticVertex((-0.39342794594029157, 0.34274872190648226), (1.1112498367417047, -0.7879730785326)), KineticVertex((-0.39346590909065293, 0.3430397727259427), (1.119825823231893, -0.8537223082927444)), None, True, True)
-    evt = compute_collapse_time(tri, now)
+    #tri = KineticTriangle(KineticVertex((-0.2514204545452013, -0.43678977272891734), (-1.1213425200822953, 0.8653503174771875)), KineticVertex((-0.39342794594029157, 0.34274872190648226), (1.1112498367417047, -0.7879730785326)), KineticVertex((-0.39346590909065293, 0.3430397727259427), (1.119825823231893, -0.8537223082927444)), None, True, True)
+    
+    # 3 triangle
+    #tri = KineticTriangle(KineticVertex((-0.06470325747434853, 0.9393128067817449), (-751.3804511683907, -92.08373772229857)), KineticVertex((-0.15305667112892424, 0.9286033020967511), (0.13089117026866653, -0.9914538059429173)), KineticVertex((-0.1655510932619798, 0.9268183846485595), None), None, None, None)
+    
+    tri = KineticTriangle(KineticVertex((0.7357954545456874, 0.5205965909077572), (-0.06580574964558804, 1.0)), KineticVertex((0.7187500000000678, 0.6555397727259362), (-1.134058711515635, 0.8363956756001568)), KineticVertex((0.7385820808969821, 0.5209649380691426), (-1.1372964684886577, 0.8583661693455334)), True, True, None)
+#     evt = compute_collapse_time(tri, now)
 #     print evt
-    times = [0, 0.01, 0.02]# 0.00242630813252781, 0.6340506109731798, 0.004284474881621788, 0.0022096098886525, 0.22933526207436553]
+    times = [0, 0.00260070040952, 0.003, 0.00331220899663, 0.004, 0.005, 0.135395668325]# 0.00242630813252781, 0.6340506109731798, 0.004284474881621788, 0.0022096098886525, 0.22933526207436553]
     for time in sorted(times):
         visualize_collapse(tri, time)
         raw_input("paused at " + str(time))
+
+# import zmq
+# context = zmq.Context()
+# zmq_socket = context.socket(zmq.PUSH)
+# zmq_socket.bind("tcp://127.0.0.1:5557")
+# zmq_socket.send_string("update")
+
+# import zmq
+# iface.mapCanvas().setCachingEnabled(False)
+#  
+# def do():
+#     context = zmq.Context()
+#     rec = context.socket(zmq.PULL)
+#     rec.connect("tcp://127.0.0.1:5557")
+#      
+#     while True:
+#         work = rec.recv_string()
+#         iface.mapCanvas().refresh()
+#         yield
+# 
+# for item in do():
+#     print "."
+
 
 if __name__ == "__main__":
     # -- logging

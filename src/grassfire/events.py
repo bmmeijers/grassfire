@@ -201,6 +201,11 @@ def replace_kvertex(t, v, newv, now, direction, queue):
 
     Returns fan of triangles that were replaced 
     """
+    if t is not None:
+        with open("/tmp/replace.wkt", "w") as fh:
+            #output_triangles_at_T([t], now, fh)
+            fh.write("id;time;wkt;n0;n1;n2;v0;v1;v2;finite;info\n")
+            fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), t.str_at(now), [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.is_finite, t.info, now))
     logging.debug("replace_kvertex, start at: {0}".format(id(t)))
     fan = []
     while t is not None:
@@ -484,15 +489,13 @@ def handle_fan_cw(fan, pivot, skel, queue, now):
         v = t.vertices[e]
         kvl = v.left
         kvr = v.right
-    
         sk = SkeletonNode(kvl.position_at(now))
         skel.sk_nodes.append(sk)
-    
         kv, newly_made = compute_new_kvertex(kvl.left, kvr, now, sk, [])
         assert newly_made
         skel.vertices.append(kv)
         update_circ(kv, kvl.left, kvr, now)
-    
+
         # based on the first triangle
         # get the vertices we need to deal with
         t = fan[0]
@@ -502,10 +505,17 @@ def handle_fan_cw(fan, pivot, skel, queue, now):
         v2 = t.vertices[(e+2) % 3]
         v.stops_at = now
         v.stop_node = sk
+#         v1.stops_at = now
+#         v1.stop_node = sk
         v2.stops_at = now
         v2.stop_node = sk
         v.left = None, now
         v.right = None, now
+        ###
+#         v1.left = None, now
+#         v1.right = None, now
+#         v2.left = None, now
+#         v2.right = None, now
         # check if we have to go recursively
         fan_new = replace_kvertex(t.neighbours[e], v2, kv, now, ccw, queue)
         # for all triangles in the fan
@@ -530,9 +540,10 @@ def handle_fan_ccw(fan, pivot, skel, queue, now):
     """Brute force handling of collapsed triangles that form a triangle fan
     between two wavefront edges
     """
-    logging.debug("\n\nHANDLING FAN OF TRIANGLES -- CCW\n\n")
+    
     # FIXME: this does create many duplicate skeleton nodes for now
     if len(fan) >= 1:
+        logging.debug("\n\nHANDLING FAN OF TRIANGLES -- CCW\n\n")
         t = fan[0]
         e = t.vertices.index(pivot)
         v = t.vertices[e]
@@ -578,6 +589,8 @@ def handle_fan_ccw(fan, pivot, skel, queue, now):
         #
         if kv.velocity == (0, 0):
             handle_fan_cw(fan_new, kv, skel, queue, now)
+    else:
+        logging.debug("HANDLING FAN OF TRIANGLES -- CCW (immediate return)")
 
 def schedule_immediately(tri, now, queue, immediate):
     """Schedule a triangle for immediate processing
@@ -812,7 +825,9 @@ def event_loop(queue, skel, pause=False):
     logging.debug("=" * 80)
 
     step = prev = 0.025
+    ct = 0
     while queue or immediate:
+        ct += 1
 #         if parallel:
 #             evt = parallel.popleft()
 #             # print edge, direction, now
