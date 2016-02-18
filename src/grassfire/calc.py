@@ -286,7 +286,7 @@ def bisector(p0, p1, p2):
     if s is None:
         return None
         # return 0., 0.
-        # raise ValueError("Infinite speed")
+#         raise ValueError("Infinite speed")
     return vector_mul_scalar(v, s)
 
 

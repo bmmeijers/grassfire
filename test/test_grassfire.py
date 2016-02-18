@@ -16,7 +16,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == (7+6), len(skel.segments())
         assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
- 
+  
     def test_quad(self):
         """Quad"""
         ring = [(1,0), (0, 5), (1,10), (2, 5), (1,0)]
@@ -25,21 +25,21 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.sk_nodes) == 5, len(skel.segments())
         assert len(skel.segments()) == (4+4), len(skel.sk_nodes)
- 
+  
     def test_diamant(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(-1,0), (0,-1), (1,0), (0,5), (-1,0)]])
         skel = calc_skel(conv)
         assert len(skel.segments()) == 8, len(skel.segments())
         assert len(skel.sk_nodes) == 5, len(skel.sk_nodes)
- 
+  
     def test_simple_poly(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0, 0), (22,0), (14,10), (2,8), (0, 6.5), (0,0)]])
         skel = calc_skel(conv)
         assert len(skel.segments()) == 12
         assert len(skel.sk_nodes) == 8
- 
+  
     def test_simple_infinite(self):
         """1 segment with terminal vertices at convex hull
         """
@@ -52,7 +52,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 4
         assert len(skel.sk_nodes) == 2
- 
+  
     def test_two_teeth(self):
         conv = ToPointsAndSegments()
         polygon = [[(-2,-1), (-1,0), (1,0), (1.5,-.5), (1.2,.7), 
@@ -61,7 +61,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 22
         assert len(skel.sk_nodes) == 15
- 
+  
     def test_triangle(self):
         conv = ToPointsAndSegments()
         conv.add_point((10,0))
@@ -73,7 +73,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 6
         assert len(skel.sk_nodes) == 4
- 
+  
     def test_quad(self):
         conv = ToPointsAndSegments()
         conv.add_point((8,2))
@@ -98,7 +98,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == (8+4+8)
         assert len(skel.sk_nodes) == 13
- 
+  
     def test_squarish(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(0,1), (1,0), (2,0), (3,1), (3,2), (2,3), (1,3), (0,2), (0,1)]])
@@ -121,7 +121,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == (9+15)
         assert len(skel.sk_nodes) == 16
- 
+  
     def test_poly(self):
         """Simple polygon with small dent"""
         conv = ToPointsAndSegments()
@@ -137,10 +137,10 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv) 
         assert len(skel.segments()) == 13+8
         assert len(skel.sk_nodes) == 14
- 
+  
     def test_sharp_v(self):
         """Sharp V-shaped polyline
-   
+    
         Tests collapse of 2 triangle and handling of
         collapse of spoke
         """
@@ -168,7 +168,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 11
         assert len(skel.sk_nodes) == 6
- 
+  
     def test_cocirculair_2(self):
         """2 segments with terminal vertices at convex hull
         """
@@ -208,7 +208,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 17
         assert len(skel.sk_nodes) == 10
- 
+  
     def test_cocirculair_3(self):
         """
         """
@@ -274,7 +274,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 45
         assert len(skel.sk_nodes) == 26, len(skel.sk_nodes)
-  
+
     def test_infinite3(self):
         """3 segments with terminal vertices at convex hull
         """
@@ -289,23 +289,6 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv)
         assert len(skel.segments()) == 18
         assert len(skel.sk_nodes) == 10
- 
-    def test_rocket(self):
-        """Two 2-triangles collapse at same time, sharing one vertex, that
-        should lead to 1 new skeleton node and only 1 new kinetic vertex
-        (3 original vertices are stopped, with 2 at same processing step)
-        """
-        ###################################################
-        # No parallel edges, but simultaneous event, 
-        # leading to infinite fast vertex, if not careful
-        ###################################################
-        conv = ToPointsAndSegments()
-        polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.),
-                    (1., 0.), (-.1,3), (0.,10.)]]
-        conv.add_polygon(polygon)
-        skel = calc_skel(conv)
-        assert len(skel.segments()) == 7+6
-        assert len(skel.sk_nodes) == 8
 
     def test_rocket2(self):
         """Contains zero triangle to flip ...
@@ -317,28 +300,38 @@ class TestGrassfire(unittest.TestCase):
         assert len(skel.segments()) == 15
         assert len(skel.sk_nodes) == 10
 
-    def test_bottom_circle_top_square(self):
-        """Bottom half is a circle, top is squarish, leading to parallel 
-        wavefronts.
-        """
-        # bottom circle
-        from math import pi, cos, sin, degrees
-        ring = []
-        pi2 = 2 * pi
-        ct = 6
-        alpha = pi / ct 
-        for i in range(ct+1):
-            ring.append( (cos(pi+i*alpha), sin(pi+i*alpha)))
-        ring.extend([(1, 10), (-1,10)])
-        ring.append(ring[0])
+    def test_simple_house(self):
+        s = """{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+                                                                                   
+"features": [
+{ "type": "Feature", "properties": { "id": 204 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.0834448906737, 0.288710397143 ], [ -0.0986166889782, 0.387773315484 ] ] } },
+{ "type": "Feature", "properties": { "id": 206 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0861222668452, 0.298527443105 ], [ 0.08255243195, 0.373493975902 ] ] } },
+{ "type": "Feature", "properties": { "id": 208 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0950468540831, 0.375278893351 ], [ 0.08255243195, 0.373493975902 ] ] } },
+{ "type": "Feature", "properties": { "id": 210 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0950468540831, 0.375278893351 ], [ 0.0932619366354, 0.410084783578 ] ] } },
+{ "type": "Feature", "properties": { "id": 213 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.0986166889782, 0.387773315484 ], [ 0.0932619366354, 0.410084783578 ] ] } },
+{ "type": "Feature", "properties": { "id": 256 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.08255243195, 0.278893351181 ], [ -0.0834448906737, 0.288710397143 ] ] } },
+{ "type": "Feature", "properties": { "id": 261 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0861222668452, 0.298527443105 ], [ -0.08255243195, 0.278893351181 ] ] } }
+]
+}
+"""
+        import json
+        x = json.loads(s)
+        # parse segments from geo-json
+        segments = []
+        for y in x['features']:
+            segments.append(tuple(map(tuple, y['geometry']['coordinates'])))
+        # convert to triangulation input
         conv = ToPointsAndSegments()
-        conv.add_polygon([ring])
-        skel = calc_skel(conv, pause=False, output=False)
-        assert len(skel.segments()) == 20
-        assert len(skel.sk_nodes) == 12
-        # geometric embedding
-        positions = [n.pos for n in skel.sk_nodes]
-        assert frozenset(positions) == frozenset([(-3.3399458158564173e-17, -1.0), (-0.18181818181818182, 1.0), (-0.18181818181818182, -0.8181818181818182), (-0.090909090909091, -0.9756409825062615), (0.15745916432444335, -0.9090909090909091), (0.18181818181818182, 1.0), (0.18181818181818182, -0.8181818181818182), (-0.15745916432444343, -0.9090909090909091), (0.09090909090909079, -0.9756409825062616), (1.4901620439059292e-16, -0.8181818181818185), (1.0547467917351273e-17, -0.7942450004386554), (0.0, 0.8181818181818182)])
+        for line in segments:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        # skeletonize / offset
+        skel = calc_skel(conv)
+        assert len(skel.segments()) == 18
+        assert len(skel.sk_nodes) == 12, len(skel.sk_nodes)
 
 if __name__ == "__main__":
     if False:

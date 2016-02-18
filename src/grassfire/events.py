@@ -123,73 +123,73 @@ def compute_new_kvertex(v1, v2, now, sk_node, V):
     p1 = v1.position_at(now)
     p2 = v2.position_at(now)
     # a side has zero length
-    degenerate1 = near_zero(abs(p1[0] - sk_node.pos[0])) and \
-                    near_zero(abs(p1[1] - sk_node.pos[1]))
-    degenerate2 = near_zero(abs(p2[0] - sk_node.pos[0])) and \
-                    near_zero(abs(p2[1] - sk_node.pos[1]))
-    degenerate3 = near_zero(abs(p1[0] - p2[0])) and \
-                    near_zero(abs(p1[1] - p2[1]))
-    logging.debug("{} ; {} ; {}".format(sk_node.pos, p1, p2))
-    degenerate4 = orient2d(p1, p2, sk_node.pos)
-
-    logging.debug("degeneracies: 1. {}, 2. {}, 3. {}, 4. {}".format(degenerate1, degenerate2, degenerate3, degenerate4))
-    # if degenerate1 == True or degenerate2 == True
-    # then we also have degenerate4 == True
-    # p1.sk-------------p2
-    # p2.sk-------------p1
-    # we do not have a parallel wavefront, per se (although it could)
-    # --> rocket test case shows that we have simultaneous collapse
-    #     where multiple triangles do collapse at same time
-
-    # if we have:
-    # sk-------p1.--.p2 collinear, so: 
-    # degenerate1 == False and degenerate2 == False and degenerate4 == True
-    # --> we have for sure 2 parallel wavefronts collapsing
-    #     3 points are collinear
-
-    if (degenerate1 or degenerate2) and (degenerate1 != degenerate2):
-        if degenerate1:
-            logging.debug("Updated p1")
-            p1 = v1.left.position_at(now)
-            assert not (near_zero(abs(p1[0] - sk_node.pos[0])) and \
-                        near_zero(abs(p1[1] - sk_node.pos[1])))
-#            could be:
-#             while (near_zero(abs(p1[0] - sk_node.pos[0])) and \
-#                    near_zero(abs(p1[1] - sk_node.pos[1]))):
-#                 v1 = v1.left
-#                 p1 = v1.position_at(now)
-        elif degenerate2:
-            logging.debug("Updated p2")
-            p2 = v2.right.position_at(now)
-            assert not (near_zero(abs(p2[0] - sk_node.pos[0])) and \
-                        near_zero(abs(p2[1] - sk_node.pos[1])))
-        velo = bisector(p1, sk_node.pos, p2)
-        logging.debug("velo vector" + str(velo))
+#     degenerate1 = near_zero(abs(p1[0] - sk_node.pos[0])) and \
+#                     near_zero(abs(p1[1] - sk_node.pos[1]))
+#     degenerate2 = near_zero(abs(p2[0] - sk_node.pos[0])) and \
+#                     near_zero(abs(p2[1] - sk_node.pos[1]))
+#     degenerate3 = near_zero(abs(p1[0] - p2[0])) and \
+#                     near_zero(abs(p1[1] - p2[1]))
+#     logging.debug("{} ; {} ; {}".format(sk_node.pos, p1, p2))
+#     degenerate4 = orient2d(p1, p2, sk_node.pos)
+# 
+#     logging.debug("degeneracies: 1. {}, 2. {}, 3. {}, 4. {}".format(degenerate1, degenerate2, degenerate3, degenerate4))
+#     # if degenerate1 == True or degenerate2 == True
+#     # then we also have degenerate4 == True
+#     # p1.sk-------------p2
+#     # p2.sk-------------p1
+#     # we do not have a parallel wavefront, per se (although it could)
+#     # --> rocket test case shows that we have simultaneous collapse
+#     #     where multiple triangles do collapse at same time
+# 
+#     # if we have:
+#     # sk-------p1.--.p2 collinear, so: 
+#     # degenerate1 == False and degenerate2 == False and degenerate4 == True
+#     # --> we have for sure 2 parallel wavefronts collapsing
+#     #     3 points are collinear
+# 
+#     if (degenerate1 or degenerate2) and (degenerate1 != degenerate2):
+#         if degenerate1:
+#             logging.debug("Updated p1")
+#             p1 = v1.left.position_at(now)
+#             assert not (near_zero(abs(p1[0] - sk_node.pos[0])) and \
+#                         near_zero(abs(p1[1] - sk_node.pos[1])))
+# #            could be:
+# #             while (near_zero(abs(p1[0] - sk_node.pos[0])) and \
+# #                    near_zero(abs(p1[1] - sk_node.pos[1]))):
+# #                 v1 = v1.left
+# #                 p1 = v1.position_at(now)
+#         elif degenerate2:
+#             logging.debug("Updated p2")
+#             p2 = v2.right.position_at(now)
+#             assert not (near_zero(abs(p2[0] - sk_node.pos[0])) and \
+#                         near_zero(abs(p2[1] - sk_node.pos[1])))
+#         velo = bisector(p1, sk_node.pos, p2)
+#         logging.debug("velo vector" + str(velo))
+#         # compute position at t=0, rotate bisector 180 degrees
+#         # and get the position 
+#         negvelo = rotate180(velo)
+#         pos_at_t0 = (sk_node.pos[0] + negvelo[0] * now,
+#                      sk_node.pos[1] + negvelo[1] * now)
+# 
+#     elif (degenerate1 and degenerate2 and degenerate3):# or degenerate4:
+#         # 3 sides of triangle formed by the 3 kinetic vertices completely
+#         # collapsed
+#         pos_at_t0 = sk_node.pos
+#         velo = (0., 0.)
+#         logging.debug("INFINITELY FAST VERTEX")
+#     else:
+    velo = bisector(p1, sk_node.pos, p2)
+    if velo == None:
+        logging.debug("Infinitely fast vertex")
+        velo = (0,0)
+        pos_at_t0 = sk_node.pos
+    else:
+        logging.debug("Normal computation, velocity vector: {}".format(velo))
         # compute position at t=0, rotate bisector 180 degrees
         # and get the position 
         negvelo = rotate180(velo)
         pos_at_t0 = (sk_node.pos[0] + negvelo[0] * now,
                      sk_node.pos[1] + negvelo[1] * now)
-
-    elif (degenerate1 and degenerate2 and degenerate3):# or degenerate4:
-        # 3 sides of triangle formed by the 3 kinetic vertices completely
-        # collapsed
-        pos_at_t0 = sk_node.pos
-        velo = (0., 0.)
-        logging.debug("INFINITELY FAST VERTEX")
-    else:
-        velo = bisector(p1, sk_node.pos, p2)
-        if velo == None:
-            logging.debug("Infinitely fast vertex")
-            velo = (0,0)
-            pos_at_t0 = sk_node.pos
-        else:
-            logging.debug("Normal computation, velocity vector: {}".format(velo))
-            # compute position at t=0, rotate bisector 180 degrees
-            # and get the position 
-            negvelo = rotate180(velo)
-            pos_at_t0 = (sk_node.pos[0] + negvelo[0] * now,
-                         sk_node.pos[1] + negvelo[1] * now)
     kv.origin = pos_at_t0
     kv.velocity = velo
 #     assert kv.velocity != (0.,0.)
@@ -294,6 +294,7 @@ def handle_edge_event(evt, skel, queue, immediate):
     t.stops_at = now
     # 
     if are_parallel:
+        raise NotImplementedError("parallel collapse")
         v = kv.position_at(now)
         kvl = kv.left.position_at(now)
         kvr = kv.right.position_at(now)
@@ -399,7 +400,7 @@ def handle_fan(fan, pivot, skel, queue, now):
     between two wavefront edges
     """
     logging.debug("\n\nHANDLE FAN OF TRIANGLES that just collapses\n\n")
-    assert len(fan) == 1
+#     assert len(fan) == 1
     for t in fan:
         e = t.vertices.index(pivot)
         v = t.vertices[e]
@@ -646,6 +647,8 @@ def handle_split_event(evt, skel, queue):
     fan_a = replace_kvertex(a, v, va, now, cw, queue)
     # we "remove" the triangle itself
     t.stops_at = now
+    if are_parallel_va or are_parallel_vb:
+        raise NotImplementedError("parallel collapse")
     if are_parallel_va:
         logging.debug("Handling fan for Va")
         v = va.position_at(now)
@@ -727,8 +730,6 @@ def handle_flip_event(evt, skel, queue):
     t, t_side = evt.triangle, evt.side[0]
     n = t.neighbours[t_side]
     n_side = n.neighbours.index(t)
-    print repr(t), t_side
-    print repr(n), n_side
     flip(t, t_side, n, n_side)
     replace_in_queue(t, now, queue)
     replace_in_queue(n, now, queue)

@@ -293,7 +293,17 @@ def compute_event_1triangle(tri, now, sieve):
     logging.debug("time vertex crash " + str(time_vertex_crash))
     if time_edge_collapse is None and time_vertex_crash is None:
         # -- No edge collapse time and no vertex crash time
-        return None
+        time = sieve(solve_quadratic(*area_collapse_time_coeff(*tri.vertices)), now)
+        if time is None:
+            return None
+        else:
+            # we assume a flip event because no edge, nor vertex crash time
+            dists = [d.distance2_at(a, time),
+                     a.distance2_at(o, time),
+                     o.distance2_at(d, time)]
+            sides = (dists.index(max(dists)),)
+            return Event(when=time, tri=tri, side=sides, tp="flip", tri_tp=tri.type)
+
     elif time_edge_collapse is None and time_vertex_crash is not None:
         # -- Only vertex crash time
         # check if longest edge is wavefront edge, then we are sure that 
@@ -875,7 +885,11 @@ def test_compute_collapse_times():
     (0,
      KineticTriangle(KineticVertex((-0.25, 0.75), (-2.4142135623730945, -0.9999999999999996)), KineticVertex((-0.25, -0.75), (2.4142135623730945, 0.9999999999999996)), KineticVertex((0.25, -0.75), (-2.4142135623730945, 0.9999999999999996)), True, True, True),
      (0.103553390593274, "edge")
-     )
+     ),
+    (0.01,
+     KineticTriangle(KineticVertex((-0.2514204545452013, -0.43678977272891734), (-1.1213425200822953, 0.8653503174771875)), KineticVertex((-0.39342794594029157, 0.34274872190648226), (1.1112498367417047, -0.7879730785326)), KineticVertex((-0.39346590909065293, 0.3430397727259427), (1.119825823231893, -0.8537223082927444)), None, True, True),
+     (0.019994907, "flip")
+     ),
     ]
     do_test = True
     if do_test:
