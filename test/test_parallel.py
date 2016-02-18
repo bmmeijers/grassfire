@@ -1,0 +1,870 @@
+import unittest
+ 
+from tri import ToPointsAndSegments
+from grassfire import calc_skel
+
+
+
+class TestParallelEvents(unittest.TestCase):
+    def setUp(self):
+       pass
+
+    def test_bottom_circle_top_square(self):
+        """Bottom half is a circle, top is squarish, leading to parallel 
+        wavefronts.
+        """
+        # bottom circle
+        from math import pi, cos, sin, degrees
+        ring = []
+        pi2 = 2 * pi
+        ct = 6
+        alpha = pi / ct 
+        for i in range(ct+1):
+            ring.append( (cos(pi+i*alpha), sin(pi+i*alpha)))
+        ring.extend([(1, 10), (-1,10)])
+        ring.append(ring[0])
+        conv = ToPointsAndSegments()
+        conv.add_polygon([ring])
+        skel = calc_skel(conv, pause=False, output=False)
+        assert len(skel.segments()) == 20
+        assert len(skel.sk_nodes) == 12
+        # geometric embedding
+        positions = [n.pos for n in skel.sk_nodes]
+        assert frozenset(positions) == frozenset([(-3.3399458158564173e-17, -1.0), (-0.18181818181818182, 1.0), (-0.18181818181818182, -0.8181818181818182), (-0.090909090909091, -0.9756409825062615), (0.15745916432444335, -0.9090909090909091), (0.18181818181818182, 1.0), (0.18181818181818182, -0.8181818181818182), (-0.15745916432444343, -0.9090909090909091), (0.09090909090909079, -0.9756409825062616), (1.4901620439059292e-16, -0.8181818181818185), (1.0547467917351273e-17, -0.7942450004386554), (0.0, 0.8181818181818182)])
+# 
+    def test_rocket(self):
+        """Two 2-triangles collapse at same time, sharing one vertex, that
+        should lead to 1 new skeleton node and only 1 new kinetic vertex
+        (3 original vertices are stopped, with 2 at same processing step)
+        """
+        ###################################################
+        # No parallel edges, but simultaneous event, 
+        # leading to infinite fast vertex, if not careful
+        ###################################################
+        conv = ToPointsAndSegments()
+        polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.),
+                    (1., 0.), (-.1,3), (0.,10.)]]
+        conv.add_polygon(polygon)
+        skel = calc_skel(conv, output=False, pause=False)
+        assert len(skel.segments()) == 7+6
+        assert len(skel.sk_nodes) == 8
+# 
+# 
+    def test_koch_rec2(self):
+        ring = [(0.0, 0.0), (0.16666666666666663, 0.28867513459481287), (-1.1102230246251565e-16, 0.5773502691896257), (0.3333333333333332, 0.5773502691896258), (0.4999999999999998, 0.8660254037844388), (0.33333333333333304, 1.1547005383792517), (-2.7755575615628914e-16, 1.1547005383792517), (0.16666666666666635, 1.4433756729740645), (-3.885780586188048e-16, 1.7320508075688774), (0.3333333333333329, 1.7320508075688776), (0.4999999999999995, 2.0207259421636907), (0.6666666666666663, 1.732050807568878), (0.9999999999999996, 1.7320508075688783), (1.166666666666666, 2.020725942163691), (0.9999999999999993, 2.309401076758504), (1.3333333333333326, 2.309401076758504), (1.4999999999999991, 2.598076211353317), (1.6666666666666656, 2.309401076758504), (1.999999999999999, 2.309401076758504), (1.8333333333333321, 2.020725942163691), (1.9999999999999987, 1.7320508075688783), (2.333333333333332, 1.7320508075688783), (2.499999999999999, 2.020725942163691), (2.6666666666666656, 1.7320508075688783), (2.999999999999999, 1.7320508075688783), (2.833333333333332, 1.4433756729740654), (2.9999999999999987, 1.1547005383792526), (2.666666666666665, 1.1547005383792526), (2.4999999999999982, 0.8660254037844397), (2.6666666666666647, 0.5773502691896268), (2.9999999999999982, 0.5773502691896267), (2.8333333333333313, 0.2886751345948139), (2.999999999999998, 9.992007221626409e-16), (2.6666666666666643, 1.0400222821342193e-15), (2.4999999999999973, -0.2886751345948117), (2.333333333333331, 1.1657341758564144e-15), (1.9999999999999976, 1.2065557358279928e-15), (1.8333333333333308, -0.28867513459481153), (1.9999999999999973, -0.5773502691896245), (1.666666666666664, -0.5773502691896243), (1.4999999999999973, -0.866025403784437), (1.3333333333333308, -0.5773502691896242), (0.9999999999999976, -0.5773502691896242), (1.1666666666666643, -0.2886751345948113), (0.9999999999999976, 1.4988010832439613e-15), (0.6666666666666643, 1.5396226432155397e-15), (0.4999999999999975, -0.2886751345948112), (0.33333333333333093, 1.6653345369377348e-15), (0, 0)]
+        conv = ToPointsAndSegments()
+        conv.add_polygon([ring])
+        skel = calc_skel(conv, pause=False, output=False)#, pause=False, output=False)
+# 
+    def test_koch_rec3(self):
+        ring = [(0.0, 0.0), (0.05555555555555554, 0.09622504486493763), (-4.163336342344337e-17, 0.19245008972987523), (0.11111111111111106, 0.1924500897298753), (0.16666666666666657, 0.2886751345948129), (0.111111111111111, 0.3849001794597505), (-1.1102230246251565e-16, 0.3849001794597505), (0.05555555555555543, 0.4811252243246882), (-1.5265566588595902e-16, 0.5773502691896257), (0.11111111111111095, 0.5773502691896257), (0.16666666666666646, 0.6735753140545634), (0.22222222222222207, 0.5773502691896258), (0.33333333333333315, 0.5773502691896258), (0.3888888888888887, 0.6735753140545635), (0.3333333333333331, 0.769800358919501), (0.4444444444444442, 0.769800358919501), (0.4999999999999997, 0.8660254037844387), (0.44444444444444414, 0.9622504486493764), (0.33333333333333304, 0.9622504486493764), (0.38888888888888856, 1.058475493514314), (0.333333333333333, 1.1547005383792515), (0.22222222222222188, 1.1547005383792515), (0.16666666666666627, 1.058475493514314), (0.11111111111111074, 1.1547005383792515), (-3.608224830031759e-16, 1.1547005383792515), (0.05555555555555518, 1.250925583244189), (-4.0245584642661925e-16, 1.3471506281091266), (0.1111111111111107, 1.3471506281091266), (0.16666666666666624, 1.443375672974064), (0.11111111111111066, 1.5396007178390017), (-4.440892098500626e-16, 1.5396007178390017), (0.055555555555555095, 1.6358257627039392), (-4.85722573273506e-16, 1.7320508075688767), (0.11111111111111062, 1.7320508075688767), (0.16666666666666613, 1.8282758524338143), (0.22222222222222174, 1.7320508075688767), (0.3333333333333328, 1.7320508075688767), (0.38888888888888834, 1.8282758524338143), (0.33333333333333276, 1.9245008972987518), (0.44444444444444386, 1.9245008972987518), (0.4999999999999994, 2.0207259421636894), (0.555555555555555, 1.9245008972987518), (0.6666666666666661, 1.9245008972987518), (0.6111111111111106, 1.8282758524338143), (0.6666666666666662, 1.7320508075688767), (0.7777777777777772, 1.7320508075688767), (0.8333333333333328, 1.8282758524338143), (0.8888888888888884, 1.7320508075688767), (0.9999999999999996, 1.7320508075688767), (1.0555555555555551, 1.8282758524338143), (0.9999999999999996, 1.9245008972987518), (1.1111111111111107, 1.9245008972987518), (1.1666666666666663, 2.0207259421636894), (1.1111111111111107, 2.116950987028627), (0.9999999999999996, 2.116950987028627), (1.0555555555555551, 2.2131760318935645), (0.9999999999999996, 2.309401076758502), (1.1111111111111107, 2.309401076758502), (1.1666666666666663, 2.4056261216234396), (1.2222222222222219, 2.309401076758502), (1.333333333333333, 2.309401076758502), (1.3888888888888886, 2.4056261216234396), (1.333333333333333, 2.501851166488377), (1.4444444444444442, 2.501851166488377), (1.4999999999999998, 2.5980762113533147), (1.5555555555555554, 2.501851166488377), (1.6666666666666665, 2.501851166488377), (1.611111111111111, 2.4056261216234396), (1.6666666666666665, 2.309401076758502), (1.7777777777777777, 2.309401076758502), (1.8333333333333333, 2.4056261216234396), (1.8888888888888888, 2.309401076758502), (2.0, 2.309401076758502), (1.9444444444444444, 2.2131760318935645), (2.0, 2.116950987028627), (1.8888888888888888, 2.116950987028627), (1.8333333333333333, 2.0207259421636894), (1.8888888888888888, 1.9245008972987518), (2.0, 1.9245008972987518), (1.9444444444444444, 1.8282758524338143), (2.0, 1.7320508075688767), (2.111111111111111, 1.7320508075688767), (2.166666666666667, 1.8282758524338143), (2.2222222222222223, 1.7320508075688767), (2.3333333333333335, 1.7320508075688767), (2.3888888888888893, 1.8282758524338143), (2.333333333333334, 1.9245008972987518), (2.444444444444445, 1.9245008972987518), (2.500000000000001, 2.0207259421636894), (2.5555555555555562, 1.9245008972987518), (2.6666666666666674, 1.9245008972987518), (2.6111111111111116, 1.8282758524338143), (2.666666666666667, 1.7320508075688767), (2.777777777777778, 1.7320508075688767), (2.833333333333334, 1.8282758524338143), (2.8888888888888893, 1.7320508075688767), (3.0000000000000004, 1.7320508075688767), (2.9444444444444446, 1.6358257627039392), (3.0, 1.5396007178390017), (2.888888888888889, 1.5396007178390017), (2.833333333333333, 1.443375672974064), (2.8888888888888884, 1.3471506281091266), (2.9999999999999996, 1.3471506281091266), (2.9444444444444438, 1.250925583244189), (2.999999999999999, 1.1547005383792515), (2.888888888888888, 1.1547005383792515), (2.833333333333332, 1.058475493514314), (2.777777777777777, 1.1547005383792515), (2.6666666666666656, 1.1547005383792515), (2.61111111111111, 1.058475493514314), (2.666666666666665, 0.9622504486493763), (2.555555555555554, 0.9622504486493763), (2.4999999999999982, 0.8660254037844386), (2.5555555555555536, 0.7698003589195009), (2.6666666666666647, 0.7698003589195009), (2.611111111111109, 0.6735753140545633), (2.6666666666666643, 0.5773502691896256), (2.7777777777777755, 0.5773502691896256), (2.8333333333333313, 0.6735753140545632), (2.8888888888888866, 0.5773502691896255), (2.999999999999998, 0.5773502691896255), (2.944444444444442, 0.4811252243246879), (2.9999999999999973, 0.38490017945975025), (2.888888888888886, 0.38490017945975025), (2.8333333333333304, 0.28867513459481264), (2.8888888888888857, 0.19245008972987498), (2.999999999999997, 0.19245008972987493), (2.944444444444441, 0.09622504486493733), (2.9999999999999964, -3.191891195797325e-16), (2.8888888888888853, -3.055819329225397e-16), (2.8333333333333295, -0.0962250448649379), (2.777777777777774, -2.636779683484747e-16), (2.666666666666663, -2.500707816912819e-16), (2.611111111111107, -0.09622504486493784), (2.6666666666666625, -0.1924500897298755), (2.5555555555555514, -0.19245008972987546), (2.4999999999999956, -0.28867513459481303), (2.44444444444444, -0.1924500897298754), (2.333333333333329, -0.1924500897298754), (2.3888888888888844, -0.09622504486493777), (2.3333333333333286, -1.6653345369377348e-16), (2.2222222222222174, -1.5292626703658066e-16), (2.1666666666666616, -0.09622504486493774), (2.1111111111111063, -1.1102230246251565e-16), (1.9999999999999951, -9.741511580532284e-17), (1.9444444444444395, -0.09622504486493769), (1.9999999999999951, -0.19245008972987537), (1.888888888888884, -0.19245008972987532), (1.8333333333333284, -0.2886751345948129), (1.888888888888884, -0.3849001794597506), (1.9999999999999951, -0.3849001794597507), (1.9444444444444393, -0.48112522432468824), (1.9999999999999947, -0.577350269189626), (1.8888888888888835, -0.5773502691896258), (1.833333333333328, -0.6735753140545634), (1.7777777777777724, -0.5773502691896257), (1.6666666666666612, -0.5773502691896257), (1.6111111111111056, -0.6735753140545633), (1.6666666666666612, -0.7698003589195009), (1.55555555555555, -0.7698003589195008), (1.4999999999999944, -0.8660254037844384), (1.4444444444444389, -0.7698003589195007), (1.3333333333333277, -0.7698003589195007), (1.3888888888888833, -0.6735753140545631), (1.3333333333333277, -0.5773502691896255), (1.2222222222222165, -0.5773502691896255), (1.166666666666661, -0.6735753140545631), (1.1111111111111054, -0.5773502691896254), (0.9999999999999942, -0.5773502691896254), (1.0555555555555498, -0.48112522432468774), (0.9999999999999942, -0.38490017945975014), (1.1111111111111054, -0.3849001794597501), (1.166666666666661, -0.2886751345948124), (1.1111111111111054, -0.19245008972987482), (0.9999999999999942, -0.19245008972987482), (1.0555555555555498, -0.09622504486493719), (0.9999999999999942, 4.163336342344337e-16), (0.8888888888888831, 4.299408208916265e-16), (0.8333333333333275, -0.09622504486493716), (0.7777777777777719, 4.718447854656915e-16), (0.6666666666666607, 4.854519721228843e-16), (0.6111111111111052, -0.0962250448649371), (0.6666666666666606, -0.19245008972987476), (0.5555555555555496, -0.1924500897298747), (0.499999999999994, -0.2886751345948123), (0.4444444444444385, -0.19245008972987468), (0.3333333333333274, -0.19245008972987468), (0.3888888888888829, -0.09622504486493705), (0.3333333333333273, 5.551115123125783e-16), (0.22222222222221621, 5.687186989697711e-16), (0.1666666666666606, -0.09622504486493702), (0.11111111111110508, 6.106226635438361e-16), (0, 0)]
+        conv = ToPointsAndSegments()
+        conv.add_polygon([ring])
+        skel = calc_skel(conv, pause=False, output=False)#, pause=False, output=False)
+# 
+    def test_handle_fan_just_collapse(self):
+        import json
+        s = """{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+                                                                                        
+"features": [
+        
+{ "type": "Feature", "properties": { "id": 140092307709904.000000, "side": 1 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.95871967752, -0.627450761189 ], [ -0.98800624377, -0.432206986189 ] ] } },
+{ "type": "Feature", "properties": { "id": 140092307712976.000000, "side": 2 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.98800624377, -0.432206986189 ], [ -0.985872786033, -0.431940303972 ] ] } },
+{ "type": "Feature", "properties": { "id": 140092307713104.000000, "side": 1 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.993971487578, -0.378572900681 ], [ -1.02090042121, -0.181094054061 ] ] } },
+{ "type": "Feature", "properties": { "id": 140092307782672.000000, "side": 1 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.985872786033, -0.431940303972 ], [ -0.991522629252, -0.37826679339 ] ] } },
+{ "type": "Feature", "properties": { "id": 140092307782672.000000, "side": 2 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.991522629252, -0.37826679339 ], [ -0.993971487578, -0.378572900681 ] ] } },
+        
+{ "type": "Feature", "properties": { "id": 140092307713104.000000, "side": 1 }, "geometry": { "type": "LineString", "coordinates": [ [ -1.02090042121, -0.181094054061 ], [5, 0] ] } },
+{ "type": "Feature", "properties": { "id": 140092307709904.000000, "side": 1 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.95871967752, -0.627450761189 ], [5,0]] } }
+]
+}"""
+        x = json.loads(s)
+        # parse segments from geo-json
+        segments = []
+        for y in x['features']:
+            segments.append(tuple(map(tuple, y['geometry']['coordinates'])))
+        # convert to triangulation input
+        conv = ToPointsAndSegments()
+        for line in segments:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        # skeletonize / offset
+        skel = calc_skel(conv, pause=False, output=False)
+# 
+# 
+# 
+    def test_goes_church(self):
+        """ Church in Goes, Singelstraat """
+        import json
+        s = """{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+                                                                                         
+"features": [
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51076.45, 391503.5 ], [ 51075.45, 391503.4 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51075.45, 391503.4 ], [ 51075.25, 391504.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51075.25, 391504.65 ], [ 51073.85, 391504.45 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51085.65, 391504.8 ], [ 51084.55, 391504.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51076.25, 391504.9 ], [ 51076.45, 391503.5 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51073.85, 391504.45 ], [ 51073.7, 391505.55 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51090.35, 391507.3 ], [ 51086.8, 391506.85 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51091.2, 391506.4 ], [ 51090.4, 391506.4 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51086.8, 391506.5 ], [ 51085.5, 391506.3 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51091.1, 391507.45 ], [ 51091.2, 391506.4 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51086.8, 391506.85 ], [ 51086.8, 391506.5 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51090.4, 391506.4 ], [ 51090.35, 391507.3 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51084.55, 391504.7 ], [ 51084.45, 391506.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51084.45, 391506.05 ], [ 51076.25, 391504.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51073.7, 391505.55 ], [ 51075.0, 391505.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51085.5, 391506.3 ], [ 51085.65, 391504.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51092.6, 391507.7 ], [ 51091.1, 391507.45 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51046.9, 391511.9 ], [ 51046.75, 391512.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51046.75, 391512.9 ], [ 51047.95, 391513.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51048.55, 391511.0 ], [ 51048.2, 391510.95 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51048.2, 391510.95 ], [ 51048.05, 391512.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51054.55, 391511.9 ], [ 51053.55, 391511.75 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51100.15, 391508.6 ], [ 51099.65, 391508.5 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51049.9, 391510.95 ], [ 51048.95, 391510.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51072.95, 391510.0 ], [ 51072.75, 391511.5 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51074.4, 391510.2 ], [ 51072.95, 391510.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51048.95, 391510.8 ], [ 51048.55, 391511.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51050.6, 391511.7 ], [ 51049.9, 391510.95 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51072.75, 391511.5 ], [ 51074.2, 391511.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51075.0, 391505.7 ], [ 51074.4, 391510.2 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51050.45, 391512.5 ], [ 51050.6, 391511.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51053.55, 391511.75 ], [ 51053.4, 391512.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51048.05, 391512.05 ], [ 51046.9, 391511.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51054.4, 391513.05 ], [ 51054.55, 391511.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51053.4, 391512.9 ], [ 51050.45, 391512.5 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51064.5, 391513.4 ], [ 51063.45, 391513.25 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51059.6, 391512.7 ], [ 51058.55, 391512.55 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51058.55, 391512.55 ], [ 51058.4, 391513.6 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51059.45, 391513.8 ], [ 51059.6, 391512.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51058.4, 391513.6 ], [ 51054.4, 391513.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51046.4, 391515.7 ], [ 51046.3, 391516.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51046.9, 391520.8 ], [ 51045.7, 391520.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51110.65, 391520.65 ], [ 51109.95, 391520.25 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.35, 391521.0 ], [ 51109.95, 391520.25 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51108.15, 391520.45 ], [ 51109.35, 391521.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51045.55, 391521.75 ], [ 51046.7, 391521.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51045.7, 391520.65 ], [ 51045.55, 391521.75 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51110.6, 391524.7 ], [ 51109.85, 391521.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51110.65, 391520.65 ], [ 51109.85, 391521.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51110.6, 391524.7 ], [ 51111.85, 391524.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51111.75, 391526.2 ], [ 51111.85, 391524.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51111.75, 391526.2 ], [ 51110.6, 391526.1 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51110.6, 391526.1 ], [ 51110.45, 391527.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51111.5, 391527.8 ], [ 51110.45, 391527.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51111.4, 391528.95 ], [ 51110.55, 391528.85 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51111.5, 391527.8 ], [ 51111.4, 391528.95 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51047.95, 391513.05 ], [ 51047.55, 391515.85 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51073.75, 391514.95 ], [ 51072.2, 391514.75 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51072.2, 391514.75 ], [ 51072.05, 391515.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51099.65, 391508.5 ], [ 51098.0, 391514.6 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51091.75, 391514.2 ], [ 51092.6, 391507.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51074.2, 391511.7 ], [ 51073.75, 391514.95 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51098.5, 391519.3 ], [ 51100.15, 391508.6 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51063.45, 391513.25 ], [ 51063.3, 391514.3 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51064.35, 391514.55 ], [ 51064.5, 391513.4 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51063.3, 391514.3 ], [ 51059.45, 391513.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51069.45, 391514.15 ], [ 51068.45, 391514.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51098.0, 391514.6 ], [ 51091.75, 391514.2 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51069.3, 391515.3 ], [ 51069.45, 391514.15 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51068.45, 391514.05 ], [ 51068.3, 391515.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51068.3, 391515.05 ], [ 51064.35, 391514.55 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51072.05, 391515.65 ], [ 51069.3, 391515.3 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51047.55, 391515.85 ], [ 51046.4, 391515.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51047.45, 391516.8 ], [ 51046.9, 391520.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51046.3, 391516.65 ], [ 51047.45, 391516.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51108.1, 391519.3 ], [ 51106.75, 391519.2 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51106.75, 391519.2 ], [ 51106.6, 391520.2 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51106.6, 391520.2 ], [ 51098.5, 391519.3 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51108.1, 391519.3 ], [ 51108.15, 391520.45 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51043.6, 391535.0 ], [ 51043.5, 391536.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51043.5, 391536.05 ], [ 51044.6, 391536.25 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51043.1, 391538.6 ], [ 51042.95, 391539.55 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51044.35, 391540.9 ], [ 51044.5, 391541.35 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51044.5, 391541.35 ], [ 51045.45, 391541.45 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51049.25, 391541.65 ], [ 51050.35, 391541.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51044.05, 391539.7 ], [ 51043.9, 391540.85 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51042.95, 391539.55 ], [ 51044.05, 391539.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51046.5, 391540.15 ], [ 51049.45, 391540.55 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51043.9, 391540.85 ], [ 51044.35, 391540.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51046.4, 391540.75 ], [ 51046.5, 391540.15 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51045.45, 391541.45 ], [ 51046.4, 391540.75 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51049.45, 391540.55 ], [ 51049.25, 391541.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51050.35, 391541.8 ], [ 51050.5, 391540.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51059.15, 391543.1 ], [ 51060.25, 391543.25 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51064.3, 391542.75 ], [ 51064.15, 391543.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51065.3, 391542.95 ], [ 51068.15, 391543.55 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51065.15, 391544.05 ], [ 51065.3, 391542.95 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51064.15, 391543.9 ], [ 51065.15, 391544.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51068.0, 391544.5 ], [ 51069.5, 391544.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51108.5, 391543.9 ], [ 51109.45, 391543.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51068.15, 391543.55 ], [ 51068.0, 391544.5 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51108.5, 391543.9 ], [ 51108.4, 391546.1 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51108.4, 391546.1 ], [ 51109.15, 391546.15 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51069.5, 391544.7 ], [ 51069.1, 391547.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51069.1, 391547.8 ], [ 51067.65, 391547.6 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.0, 391547.5 ], [ 51109.15, 391546.15 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51108.25, 391541.55 ], [ 51109.6, 391542.3 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51055.45, 391541.45 ], [ 51059.35, 391541.95 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51054.35, 391541.25 ], [ 51054.2, 391542.35 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51055.3, 391542.5 ], [ 51055.45, 391541.45 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51108.25, 391541.55 ], [ 51108.35, 391539.35 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51050.5, 391540.7 ], [ 51054.35, 391541.25 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51054.2, 391542.35 ], [ 51055.3, 391542.5 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51059.35, 391541.95 ], [ 51059.15, 391543.1 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51060.25, 391543.25 ], [ 51060.35, 391542.2 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.6, 391542.3 ], [ 51109.45, 391543.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51060.35, 391542.2 ], [ 51064.3, 391542.75 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.35, 391537.05 ], [ 51110.0, 391537.15 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51044.6, 391536.25 ], [ 51044.25, 391538.75 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.9, 391538.3 ], [ 51110.0, 391537.15 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51044.25, 391538.75 ], [ 51043.1, 391538.6 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.9, 391538.3 ], [ 51109.85, 391538.6 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.85, 391538.6 ], [ 51108.35, 391539.35 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.8, 391533.55 ], [ 51110.55, 391533.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51044.25, 391530.85 ], [ 51045.35, 391531.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51045.35, 391531.0 ], [ 51044.8, 391535.15 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.2, 391532.6 ], [ 51109.8, 391533.55 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51044.4, 391529.85 ], [ 51044.25, 391530.85 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51045.6, 391530.05 ], [ 51044.4, 391529.85 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.2, 391532.6 ], [ 51109.55, 391530.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51046.7, 391521.9 ], [ 51045.6, 391530.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51110.55, 391528.85 ], [ 51109.55, 391530.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51110.55, 391533.8 ], [ 51110.35, 391534.85 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51044.8, 391535.15 ], [ 51043.6, 391535.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.65, 391534.95 ], [ 51110.35, 391534.85 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.35, 391537.05 ], [ 51109.65, 391534.95 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51066.75, 391553.8 ], [ 51066.6, 391555.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51088.2, 391551.9 ], [ 51094.7, 391552.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51076.9, 391557.8 ], [ 51078.05, 391557.95 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51067.95, 391555.2 ], [ 51067.8, 391556.55 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51069.1, 391555.35 ], [ 51077.1, 391556.6 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51068.8, 391549.25 ], [ 51068.2, 391554.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51111.85, 391555.05 ], [ 51103.45, 391553.75 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51068.2, 391554.0 ], [ 51066.75, 391553.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51087.65, 391557.55 ], [ 51088.2, 391551.9 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51066.6, 391555.0 ], [ 51067.95, 391555.2 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51068.9, 391556.7 ], [ 51069.1, 391555.35 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51067.8, 391556.55 ], [ 51068.9, 391556.7 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51078.25, 391556.65 ], [ 51087.65, 391557.55 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51077.1, 391556.6 ], [ 51076.9, 391557.8 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51078.05, 391557.95 ], [ 51078.25, 391556.65 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51104.05, 391549.0 ], [ 51104.15, 391549.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51067.65, 391547.6 ], [ 51067.45, 391549.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51095.35, 391547.85 ], [ 51104.05, 391549.0 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51109.0, 391547.5 ], [ 51113.35, 391548.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51067.45, 391549.05 ], [ 51068.8, 391549.25 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51094.7, 391552.0 ], [ 51095.35, 391547.85 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51111.85, 391555.05 ], [ 51113.35, 391548.05 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 51104.15, 391549.0 ], [ 51103.45, 391553.75 ] ] } }
+]
+}"""
+        x = json.loads(s)
+        # parse segments from geo-json
+        segments = []
+        for y in x['features']:
+            segments.append(tuple(map(tuple, y['geometry']['coordinates'])))
+        # convert to triangulation input
+        conv = ToPointsAndSegments()
+        for line in segments:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        # skeletonize / offset
+        skel = calc_skel(conv, pause=False, output=False)
+   
+   
+  
+    def test_goes(self):
+        segments = (
+( ( 51076.45, 391503.5 ), ( 51075.45, 391503.4 ) ),
+( ( 51075.45, 391503.4 ), ( 51075.25, 391504.65 ) ),
+( ( 51075.25, 391504.65 ), ( 51073.85, 391504.45 ) ),
+( ( 51085.65, 391504.8 ), ( 51084.55, 391504.7 ) ),
+( ( 51076.25, 391504.9 ), ( 51076.45, 391503.5 ) ),
+( ( 51073.85, 391504.45 ), ( 51073.7, 391505.55 ) ),
+( ( 51090.35, 391507.3 ), ( 51086.8, 391506.85 ) ),
+( ( 51091.2, 391506.4 ), ( 51090.4, 391506.4 ) ),
+( ( 51086.8, 391506.5 ), ( 51085.5, 391506.3 ) ),
+( ( 51091.1, 391507.45 ), ( 51091.2, 391506.4 ) ),
+( ( 51086.8, 391506.85 ), ( 51086.8, 391506.5 ) ),
+( ( 51090.4, 391506.4 ), ( 51090.35, 391507.3 ) ),
+( ( 51084.55, 391504.7 ), ( 51084.45, 391506.05 ) ),
+( ( 51084.45, 391506.05 ), ( 51076.25, 391504.9 ) ),
+( ( 51073.7, 391505.55 ), ( 51075.0, 391505.7 ) ),
+( ( 51085.5, 391506.3 ), ( 51085.65, 391504.8 ) ),
+( ( 51092.6, 391507.7 ), ( 51091.1, 391507.45 ) ),
+( ( 51046.9, 391511.9 ), ( 51046.75, 391512.9 ) ),
+( ( 51046.75, 391512.9 ), ( 51047.95, 391513.05 ) ),
+( ( 51102.4, 391509.15 ), ( 51100.15, 391508.6 ) ),
+( ( 51103.9, 391510.2 ), ( 51102.4, 391509.15 ) ),
+( ( 51048.55, 391511.0 ), ( 51048.2, 391510.95 ) ),
+( ( 51048.2, 391510.95 ), ( 51048.05, 391512.05 ) ),
+( ( 51054.55, 391511.9 ), ( 51053.55, 391511.75 ) ),
+( ( 51100.15, 391508.6 ), ( 51099.65, 391508.5 ) ),
+( ( 51049.9, 391510.95 ), ( 51048.95, 391510.8 ) ),
+( ( 51072.95, 391510.0 ), ( 51072.75, 391511.5 ) ),
+( ( 51074.4, 391510.2 ), ( 51072.95, 391510.0 ) ),
+( ( 51048.95, 391510.8 ), ( 51048.55, 391511.0 ) ),
+( ( 51050.6, 391511.7 ), ( 51049.9, 391510.95 ) ),
+( ( 51072.75, 391511.5 ), ( 51074.2, 391511.7 ) ),
+( ( 51075.0, 391505.7 ), ( 51074.4, 391510.2 ) ),
+( ( 51050.45, 391512.5 ), ( 51050.6, 391511.7 ) ),
+( ( 51053.55, 391511.75 ), ( 51053.4, 391512.9 ) ),
+( ( 51048.05, 391512.05 ), ( 51046.9, 391511.9 ) ),
+( ( 51054.4, 391513.05 ), ( 51054.55, 391511.9 ) ),
+( ( 51053.4, 391512.9 ), ( 51050.45, 391512.5 ) ),
+( ( 51064.5, 391513.4 ), ( 51063.45, 391513.25 ) ),
+( ( 51059.6, 391512.7 ), ( 51058.55, 391512.55 ) ),
+( ( 51058.55, 391512.55 ), ( 51058.4, 391513.6 ) ),
+( ( 51059.45, 391513.8 ), ( 51059.6, 391512.7 ) ),
+( ( 51058.4, 391513.6 ), ( 51054.4, 391513.05 ) ),
+( ( 51046.4, 391515.7 ), ( 51046.3, 391516.65 ) ),
+( ( 51046.9, 391520.8 ), ( 51045.7, 391520.65 ) ),
+( ( 51110.65, 391520.65 ), ( 51109.95, 391520.25 ) ),
+( ( 51109.35, 391521.0 ), ( 51109.95, 391520.25 ) ),
+( ( 51108.15, 391520.45 ), ( 51109.35, 391521.0 ) ),
+( ( 51045.55, 391521.75 ), ( 51046.7, 391521.9 ) ),
+( ( 51045.7, 391520.65 ), ( 51045.55, 391521.75 ) ),
+( ( 51110.6, 391524.7 ), ( 51109.85, 391521.7 ) ),
+( ( 51110.65, 391520.65 ), ( 51109.85, 391521.7 ) ),
+( ( 51110.6, 391524.7 ), ( 51111.85, 391524.9 ) ),
+( ( 51111.75, 391526.2 ), ( 51111.85, 391524.9 ) ),
+( ( 51111.75, 391526.2 ), ( 51110.6, 391526.1 ) ),
+( ( 51110.6, 391526.1 ), ( 51110.45, 391527.65 ) ),
+( ( 51111.5, 391527.8 ), ( 51110.45, 391527.65 ) ),
+( ( 51111.4, 391528.95 ), ( 51110.55, 391528.85 ) ),
+( ( 51111.5, 391527.8 ), ( 51111.4, 391528.95 ) ),
+( ( 51047.95, 391513.05 ), ( 51047.55, 391515.85 ) ),
+( ( 51073.75, 391514.95 ), ( 51072.2, 391514.75 ) ),
+( ( 51072.2, 391514.75 ), ( 51072.05, 391515.65 ) ),
+( ( 51099.65, 391508.5 ), ( 51098.0, 391514.6 ) ),
+( ( 51091.75, 391514.2 ), ( 51092.6, 391507.7 ) ),
+( ( 51109.4, 391514.1 ), ( 51103.9, 391510.2 ) ),
+( ( 51074.2, 391511.7 ), ( 51073.75, 391514.95 ) ),
+( ( 51103.9, 391510.2 ), ( 51102.45, 391519.7 ) ),
+( ( 51098.5, 391519.3 ), ( 51100.15, 391508.6 ) ),
+( ( 51063.45, 391513.25 ), ( 51063.3, 391514.3 ) ),
+( ( 51064.35, 391514.55 ), ( 51064.5, 391513.4 ) ),
+( ( 51063.3, 391514.3 ), ( 51059.45, 391513.8 ) ),
+( ( 51069.45, 391514.15 ), ( 51068.45, 391514.05 ) ),
+( ( 51098.0, 391514.6 ), ( 51091.75, 391514.2 ) ),
+( ( 51069.3, 391515.3 ), ( 51069.45, 391514.15 ) ),
+( ( 51068.45, 391514.05 ), ( 51068.3, 391515.05 ) ),
+( ( 51068.3, 391515.05 ), ( 51064.35, 391514.55 ) ),
+( ( 51072.05, 391515.65 ), ( 51069.3, 391515.3 ) ),
+( ( 51047.55, 391515.85 ), ( 51046.4, 391515.7 ) ),
+( ( 51117.5, 391516.3 ), ( 51109.4, 391514.1 ) ),
+( ( 51047.45, 391516.8 ), ( 51046.9, 391520.8 ) ),
+( ( 51046.3, 391516.65 ), ( 51047.45, 391516.8 ) ),
+( ( 51108.1, 391519.3 ), ( 51106.75, 391519.2 ) ),
+( ( 51102.45, 391519.7 ), ( 51098.5, 391519.3 ) ),
+( ( 51106.75, 391519.2 ), ( 51106.6, 391520.2 ) ),
+( ( 51106.6, 391520.2 ), ( 51098.5, 391519.3 ) ),
+( ( 51108.1, 391519.3 ), ( 51108.15, 391520.45 ) ),
+( ( 51043.6, 391535.0 ), ( 51043.5, 391536.05 ) ),
+( ( 51043.5, 391536.05 ), ( 51044.6, 391536.25 ) ),
+( ( 51043.1, 391538.6 ), ( 51042.95, 391539.55 ) ),
+( ( 51044.35, 391540.9 ), ( 51044.5, 391541.35 ) ),
+( ( 51044.5, 391541.35 ), ( 51045.45, 391541.45 ) ),
+( ( 51049.25, 391541.65 ), ( 51050.35, 391541.8 ) ),
+( ( 51044.05, 391539.7 ), ( 51043.9, 391540.85 ) ),
+( ( 51042.95, 391539.55 ), ( 51044.05, 391539.7 ) ),
+( ( 51046.5, 391540.15 ), ( 51049.45, 391540.55 ) ),
+( ( 51043.9, 391540.85 ), ( 51044.35, 391540.9 ) ),
+( ( 51046.4, 391540.75 ), ( 51046.5, 391540.15 ) ),
+( ( 51045.45, 391541.45 ), ( 51046.4, 391540.75 ) ),
+( ( 51049.45, 391540.55 ), ( 51049.25, 391541.65 ) ),
+( ( 51050.35, 391541.8 ), ( 51050.5, 391540.7 ) ),
+( ( 51059.15, 391543.1 ), ( 51060.25, 391543.25 ) ),
+( ( 51064.3, 391542.75 ), ( 51064.15, 391543.9 ) ),
+( ( 51065.3, 391542.95 ), ( 51068.15, 391543.55 ) ),
+( ( 51065.15, 391544.05 ), ( 51065.3, 391542.95 ) ),
+( ( 51064.15, 391543.9 ), ( 51065.15, 391544.05 ) ),
+( ( 51068.0, 391544.5 ), ( 51069.5, 391544.7 ) ),
+( ( 51108.5, 391543.9 ), ( 51109.45, 391543.65 ) ),
+( ( 51068.15, 391543.55 ), ( 51068.0, 391544.5 ) ),
+( ( 51108.5, 391543.9 ), ( 51108.4, 391546.1 ) ),
+( ( 51108.4, 391546.1 ), ( 51109.15, 391546.15 ) ),
+( ( 51069.5, 391544.7 ), ( 51069.1, 391547.8 ) ),
+( ( 51069.1, 391547.8 ), ( 51067.65, 391547.6 ) ),
+( ( 51109.0, 391547.5 ), ( 51109.15, 391546.15 ) ),
+( ( 51108.25, 391541.55 ), ( 51109.6, 391542.3 ) ),
+( ( 51055.45, 391541.45 ), ( 51059.35, 391541.95 ) ),
+( ( 51054.35, 391541.25 ), ( 51054.2, 391542.35 ) ),
+( ( 51055.3, 391542.5 ), ( 51055.45, 391541.45 ) ),
+( ( 51108.25, 391541.55 ), ( 51108.35, 391539.35 ) ),
+( ( 51050.5, 391540.7 ), ( 51054.35, 391541.25 ) ),
+( ( 51054.2, 391542.35 ), ( 51055.3, 391542.5 ) ),
+( ( 51059.35, 391541.95 ), ( 51059.15, 391543.1 ) ),
+( ( 51060.25, 391543.25 ), ( 51060.35, 391542.2 ) ),
+( ( 51109.6, 391542.3 ), ( 51109.45, 391543.65 ) ),
+( ( 51060.35, 391542.2 ), ( 51064.3, 391542.75 ) ),
+( ( 51109.35, 391537.05 ), ( 51110.0, 391537.15 ) ),
+( ( 51044.6, 391536.25 ), ( 51044.25, 391538.75 ) ),
+( ( 51109.9, 391538.3 ), ( 51110.0, 391537.15 ) ),
+( ( 51044.25, 391538.75 ), ( 51043.1, 391538.6 ) ),
+( ( 51114.7, 391538.3 ), ( 51109.9, 391538.3 ) ),
+( ( 51109.9, 391538.3 ), ( 51109.85, 391538.6 ) ),
+( ( 51109.85, 391538.6 ), ( 51108.35, 391539.35 ) ),
+( ( 51109.8, 391533.55 ), ( 51110.55, 391533.8 ) ),
+( ( 51044.25, 391530.85 ), ( 51045.35, 391531.0 ) ),
+( ( 51045.35, 391531.0 ), ( 51044.8, 391535.15 ) ),
+( ( 51109.2, 391532.6 ), ( 51109.8, 391533.55 ) ),
+( ( 51044.4, 391529.85 ), ( 51044.25, 391530.85 ) ),
+( ( 51045.6, 391530.05 ), ( 51044.4, 391529.85 ) ),
+( ( 51109.2, 391532.6 ), ( 51109.55, 391530.0 ) ),
+( ( 51116.0, 391529.6 ), ( 51117.5, 391516.3 ) ),
+( ( 51046.7, 391521.9 ), ( 51045.6, 391530.05 ) ),
+( ( 51116.0, 391529.6 ), ( 51111.4, 391528.95 ) ),
+( ( 51110.55, 391528.85 ), ( 51109.55, 391530.0 ) ),
+( ( 51110.55, 391533.8 ), ( 51110.35, 391534.85 ) ),
+( ( 51044.8, 391535.15 ), ( 51043.6, 391535.0 ) ),
+( ( 51109.65, 391534.95 ), ( 51110.35, 391534.85 ) ),
+( ( 51109.35, 391537.05 ), ( 51109.65, 391534.95 ) ),
+( ( 51114.7, 391538.3 ), ( 51116.0, 391529.6 ) ),
+( ( 51066.75, 391553.8 ), ( 51066.6, 391555.0 ) ),
+( ( 51088.2, 391551.9 ), ( 51094.7, 391552.0 ) ),
+( ( 51076.9, 391557.8 ), ( 51078.05, 391557.95 ) ),
+( ( 51067.95, 391555.2 ), ( 51067.8, 391556.55 ) ),
+( ( 51069.1, 391555.35 ), ( 51077.1, 391556.6 ) ),
+( ( 51068.8, 391549.25 ), ( 51068.2, 391554.0 ) ),
+( ( 51103.45, 391553.75 ), ( 51098.5, 391553.45 ) ),
+( ( 51098.5, 391553.45 ), ( 51089.3, 391553.25 ) ),
+( ( 51111.85, 391555.05 ), ( 51103.45, 391553.75 ) ),
+( ( 51068.2, 391554.0 ), ( 51066.75, 391553.8 ) ),
+( ( 51087.65, 391557.55 ), ( 51088.2, 391551.9 ) ),
+( ( 51066.6, 391555.0 ), ( 51067.95, 391555.2 ) ),
+( ( 51068.9, 391556.7 ), ( 51069.1, 391555.35 ) ),
+( ( 51067.8, 391556.55 ), ( 51068.9, 391556.7 ) ),
+( ( 51078.25, 391556.65 ), ( 51087.65, 391557.55 ) ),
+( ( 51077.1, 391556.6 ), ( 51076.9, 391557.8 ) ),
+( ( 51078.05, 391557.95 ), ( 51078.25, 391556.65 ) ),
+( ( 51087.2, 391561.25 ), ( 51087.05, 391561.25 ) ),
+( ( 51081.65, 391563.15 ), ( 51076.55, 391562.45 ) ),
+( ( 51087.05, 391561.25 ), ( 51086.5, 391565.2 ) ),
+( ( 51081.4, 391564.6 ), ( 51081.65, 391563.15 ) ),
+( ( 51091.3, 391562.6 ), ( 51110.1, 391565.85 ) ),
+( ( 51090.45, 391566.55 ), ( 51091.3, 391562.6 ) ),
+( ( 51086.5, 391565.2 ), ( 51081.4, 391564.6 ) ),
+( ( 51086.95, 391565.15 ), ( 51086.5, 391565.2 ) ),
+( ( 51082.6, 391559.55 ), ( 51076.75, 391559.15 ) ),
+( ( 51097.45, 391558.95 ), ( 51110.95, 391561.1 ) ),
+( ( 51097.3, 391561.2 ), ( 51097.45, 391558.95 ) ),
+( ( 51110.95, 391561.1 ), ( 51111.85, 391555.05 ) ),
+( ( 51089.3, 391553.25 ), ( 51088.35, 391559.85 ) ),
+( ( 51082.6, 391560.75 ), ( 51082.6, 391559.55 ) ),
+( ( 51097.3, 391561.2 ), ( 51087.45, 391559.75 ) ),
+( ( 51087.45, 391559.75 ), ( 51087.2, 391561.25 ) ),
+( ( 51088.35, 391559.85 ), ( 51097.3, 391561.2 ) ),
+( ( 51097.3, 391561.2 ), ( 51091.7, 391560.75 ) ),
+( ( 51087.05, 391561.25 ), ( 51082.6, 391560.75 ) ),
+( ( 51110.1, 391565.85 ), ( 51110.95, 391561.1 ) ),
+( ( 51076.75, 391559.15 ), ( 51076.55, 391562.45 ) ),
+( ( 51091.3, 391562.6 ), ( 51091.7, 391560.75 ) ),
+( ( 51090.35, 391567.35 ), ( 51090.45, 391566.55 ) ),
+( ( 51076.55, 391562.45 ), ( 51076.15, 391568.75 ) ),
+( ( 51086.95, 391565.15 ), ( 51086.45, 391570.2 ) ),
+( ( 51076.15, 391568.75 ), ( 51076.1, 391568.75 ) ),
+( ( 51090.35, 391567.35 ), ( 51089.95, 391570.5 ) ),
+( ( 51076.1, 391568.75 ), ( 51076.05, 391569.9 ) ),
+( ( 51086.45, 391570.2 ), ( 51076.15, 391568.75 ) ),
+( ( 51087.95, 391576.1 ), ( 51085.1, 391575.7 ) ),
+( ( 51089.85, 391575.1 ), ( 51092.4, 391575.6 ) ),
+( ( 51092.4, 391575.6 ), ( 51093.3, 391575.75 ) ),
+( ( 51089.85, 391575.1 ), ( 51089.55, 391576.15 ) ),
+( ( 51085.1, 391575.7 ), ( 51085.05, 391576.15 ) ),
+( ( 51093.3, 391575.75 ), ( 51093.2, 391576.45 ) ),
+( ( 51087.95, 391576.1 ), ( 51089.55, 391576.15 ) ),
+( ( 51087.0, 391586.5 ), ( 51085.3, 391586.1 ) ),
+( ( 51085.45, 391582.4 ), ( 51085.3, 391586.1 ) ),
+( ( 51093.2, 391576.45 ), ( 51107.7, 391580.05 ) ),
+( ( 51089.8, 391579.75 ), ( 51088.55, 391579.45 ) ),
+( ( 51075.55, 391575.6 ), ( 51074.7, 391581.15 ) ),
+( ( 51107.7, 391580.05 ), ( 51108.5, 391575.3 ) ),
+( ( 51085.05, 391576.15 ), ( 51084.85, 391580.35 ) ),
+( ( 51106.9, 391584.05 ), ( 51107.7, 391580.05 ) ),
+( ( 51092.55, 391580.45 ), ( 51089.8, 391579.75 ) ),
+( ( 51085.55, 391580.45 ), ( 51084.85, 391580.35 ) ),
+( ( 51088.0, 391583.7 ), ( 51088.55, 391579.45 ) ),
+( ( 51085.55, 391580.45 ), ( 51085.45, 391582.4 ) ),
+( ( 51106.9, 391584.05 ), ( 51092.55, 391580.45 ) ),
+( ( 51074.7, 391581.15 ), ( 51085.45, 391582.4 ) ),
+( ( 51088.0, 391583.7 ), ( 51088.45, 391579.8 ) ),
+( ( 51074.7, 391581.15 ), ( 51073.85, 391586.8 ) ),
+( ( 51088.45, 391579.8 ), ( 51087.0, 391586.5 ) ),
+( ( 51087.4, 391589.05 ), ( 51105.0, 391593.9 ) ),
+( ( 51102.3, 391606.85 ), ( 51101.4, 391606.7 ) ),
+( ( 51070.95, 391611.35 ), ( 51071.65, 391611.45 ) ),
+( ( 51070.95, 391611.35 ), ( 51076.6, 391612.05 ) ),
+( ( 51071.65, 391611.45 ), ( 51076.6, 391612.05 ) ),
+( ( 51101.1, 391615.45 ), ( 51102.3, 391606.85 ) ),
+( ( 51078.65, 391612.35 ), ( 51079.55, 391612.45 ) ),
+( ( 51076.6, 391612.05 ), ( 51078.65, 391612.35 ) ),
+( ( 51076.6, 391612.05 ), ( 51079.55, 391612.45 ) ),
+( ( 51079.55, 391612.45 ), ( 51079.5, 391612.75 ) ),
+( ( 51079.5, 391612.75 ), ( 51086.0, 391613.6 ) ),
+( ( 51086.0, 391613.6 ), ( 51094.7, 391614.7 ) ),
+( ( 51094.7, 391614.7 ), ( 51094.7, 391614.6 ) ),
+( ( 51094.7, 391614.6 ), ( 51101.1, 391615.45 ) ),
+( ( 51102.45, 391599.2 ), ( 51102.45, 391599.15 ) ),
+( ( 51102.45, 391599.15 ), ( 51088.2, 391597.3 ) ),
+( ( 51073.05, 391594.15 ), ( 51086.35, 391595.85 ) ),
+( ( 51088.2, 391597.3 ), ( 51073.0, 391595.3 ) ),
+( ( 51086.35, 391595.85 ), ( 51087.4, 391589.05 ) ),
+( ( 51101.4, 391606.7 ), ( 51102.45, 391599.15 ) ),
+( ( 51101.4, 391606.7 ), ( 51102.45, 391599.2 ) ),
+( ( 51073.0, 391595.3 ), ( 51070.95, 391611.35 ) ),
+( ( 51088.2, 391597.3 ), ( 51086.0, 391613.6 ) ),
+( ( 51073.85, 391586.8 ), ( 51073.8, 391587.25 ) ),
+( ( 51079.75, 391588.0 ), ( 51073.8, 391587.25 ) ),
+( ( 51079.75, 391588.0 ), ( 51079.7, 391587.55 ) ),
+( ( 51088.0, 391583.7 ), ( 51087.5, 391588.2 ) ),
+( ( 51106.1, 391588.25 ), ( 51088.0, 391583.7 ) ),
+( ( 51106.1, 391588.25 ), ( 51106.9, 391584.05 ) ),
+( ( 51105.0, 391593.9 ), ( 51106.1, 391588.25 ) ),
+( ( 51073.8, 391587.25 ), ( 51073.05, 391594.15 ) ),
+( ( 51079.7, 391587.55 ), ( 51087.5, 391588.2 ) ),
+( ( 51087.4, 391589.05 ), ( 51087.5, 391588.2 ) ),
+( ( 51092.9, 391572.65 ), ( 51093.15, 391571.25 ) ),
+( ( 51109.3, 391570.6 ), ( 51110.1, 391565.85 ) ),
+( ( 51076.05, 391569.9 ), ( 51075.6, 391575.05 ) ),
+( ( 51109.3, 391570.6 ), ( 51090.35, 391567.35 ) ),
+( ( 51093.15, 391571.25 ), ( 51089.95, 391570.5 ) ),
+( ( 51108.5, 391575.3 ), ( 51109.3, 391570.6 ) ),
+( ( 51075.6, 391575.05 ), ( 51075.55, 391575.6 ) ),
+( ( 51092.9, 391572.65 ), ( 51108.5, 391575.3 ) ),
+( ( 51092.4, 391575.6 ), ( 51092.9, 391572.65 ) ),
+( ( 51085.05, 391576.15 ), ( 51075.6, 391575.05 ) ),
+( ( 51104.05, 391549.0 ), ( 51104.15, 391549.0 ) ),
+( ( 51067.65, 391547.6 ), ( 51067.45, 391549.05 ) ),
+( ( 51095.35, 391547.85 ), ( 51104.05, 391549.0 ) ),
+( ( 51109.0, 391547.5 ), ( 51113.35, 391548.05 ) ),
+( ( 51113.35, 391548.05 ), ( 51114.7, 391538.3 ) ),
+( ( 51067.45, 391549.05 ), ( 51068.8, 391549.25 ) ),
+( ( 51094.7, 391552.0 ), ( 51095.35, 391547.85 ) ),
+( ( 51111.85, 391555.05 ), ( 51113.35, 391548.05 ) ),
+( ( 51104.15, 391549.0 ), ( 51103.45, 391553.75 ) )
+)
+        conv = ToPointsAndSegments()
+        for line in segments:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        print conv.points
+        skel = calc_skel(conv, pause=False, output=False)
+   
+   
+    def test_capital_T(self):
+        """Capital T, has more than one triangle in parallel fan"""
+        #    T
+        ring = [(15.5055, 28.7004), (20.8063, 28.7004), (20.8063, 44.1211), (26.7445, 44.1211), (26.7445, 47.8328), (9.5668, 47.8328), (9.5668, 44.1211), (15.5055, 44.1211), (15.5055, 28.7004)]
+        conv = ToPointsAndSegments()
+        conv.add_polygon([ring])
+        skel = calc_skel(conv, pause=False, output=False)#, pause=False, output=False)
+
+
+
+
+    def test_half_U(self):
+        """Misses event, and has disconnected vertex"""
+        polys = [
+        [(38.3852, 32.0156), (39.2659501953, 32.0912681641), 
+         (42.1678701172, 35.1549208984), 
+         (42.2309, 35.9922), (42.2309, 47.834), 
+         (47.5316, 47.834), (47.5316, 35.7273), 
+         (47.4732092773, 34.7657740479), 
+         (47.3213726562, 33.8784173828),  
+         (38.3852, 32.0156)],
+        ]
+        conv = ToPointsAndSegments()
+        for ring in polys:
+            conv.add_polygon([ring])
+        skel = calc_skel(conv, pause=False, output=False)#, pause=False, output=False)
+   
+   
+    def test_tudelft_logo(self):
+        polys = [
+#          # flame
+#         [(28.2387, 57.1504), (27.7545962891, 57.0337472656), (27.2828078125, 56.993484375), (26.8394935547, 57.0375167969), (26.4408125, 57.17375), (26.1029236328, 57.4100894531), (25.8419859375, 57.754440625), (25.6741583984, 58.2147089844), (25.6156, 58.7988), (25.6856849121, 59.2881812744), (25.8839386719, 59.7683330078), (26.1934848145, 60.2400170654), (26.597446875, 60.7039953125), (27.6211128906, 61.6118818359), (28.819925, 62.4980875), (30.0588714844, 63.3687072266), (31.202940625, 64.2298359375), (32.1171207031, 65.0875685547), (32.4458111816, 65.5170659912), (32.6664, 65.948), (32.8248125, 66.6851625), (32.7710109375, 66.9061765625), (32.6176, 66.9805), (32.5208703125, 66.9222546875), (32.4679125, 66.7729125), (32.3706484375, 66.5442390625), (32.141, 66.248), (31.1034759766, 65.3984353516), (29.9355515625, 64.7423015625), (28.6692482422, 64.2321388672), (27.3365875, 63.8204875), (24.6002796875, 63.1028796875), (23.2606755859, 62.7020037109), (21.9828, 62.2098), (20.9997419922, 61.7483013672), (19.7656484375, 61.0788734375), (18.4207775391, 60.1820806641), (17.1053875, 59.0384875), (16.5025784912, 58.3680671631), (15.9597365234, 57.6286583984), (15.4943938721, 56.8178317627), (15.1240828125, 55.9331578125), (14.8663356201, 54.9722071045), (14.7386845703, 53.9325501953), (14.7586619385, 52.8117576416), (14.9438, 51.6074), (15.122925, 50.8023), (15.252640625, 50.40393125), (15.3949, 50.2336), (15.5243578125, 50.3437421875), (15.5897375, 50.6433625), (15.6117, 51.6262), (15.6561465332, 52.3362411621), (15.8000691406, 52.9857136719), (16.031892334, 53.5809723145), (16.340040625, 54.128371875), (17.1390105469, 55.1050128906), (18.104375, 55.966475), (20.163871875, 57.547215625), (21.0727964844, 58.3681707031), (21.7777, 59.2773), (22.104725, 59.739675), (22.2554875, 59.862834375), (22.3512, 59.8191), (22.3023, 59.3027), (22.0503148438, 58.5393394531), (21.6885625, 57.836665625), (20.851325, 56.570375), (20.4836242188, 55.9852566406), (20.221725, 55.417821875), (20.1195195312, 54.8573199219), (20.2309, 54.293), (20.6030839844, 53.7075248047), (21.082534375, 53.4021359375), (21.6320488281, 53.3341009766), (22.214425, 53.4606875), (22.7924605469, 53.7391630859), (23.328953125, 54.1267953125), (23.7867003906, 54.5808517578), (24.1285, 55.0586), (24.368925, 55.470225), (24.465971875, 55.57165625), (24.5609, 55.5859), (24.6368625, 55.3106625), (24.5941, 54.791), (24.2621640625, 53.2469984375), (23.7833125, 51.9836375), (23.4592181641, 51.4272880859), (23.0629046875, 50.9052078125), (22.0063, 49.916), (21.566953125, 49.6562546875), (21.130475, 49.4675625), (20.815009375, 49.2970390625), (20.7395761719, 49.2020642578), (20.7387, 49.0918), (20.9814125, 49.0273125), (21.4195, 49.0469), (22.2465202881, 49.156970874), (23.0534919922, 49.3736341797), (23.8374688721, 49.6869346924), (24.5955046875, 50.0869171875), (26.0219681641, 51.1071072266), (27.3093125, 52.3545625), (28.4339677734, 53.7496412109), (29.3723640625, 55.2127015625), (30.1009314453, 56.6641017578), (30.5961, 58.0242), (30.6886375, 58.3597625), (30.6215, 58.5781), (30.509940625, 58.5979578125), (30.381, 58.5274875), (30.0922, 58.2668), (29.2161125, 57.616425), (28.2387, 57.1504)],
+#    T
+#         [(15.5055, 28.7004), (20.8063, 28.7004), (20.8063, 44.1211), (26.7445, 44.1211), (26.7445, 47.8328), (9.5668, 47.8328), (9.5668, 44.1211), (15.5055, 44.1211), (15.5055, 28.7004)],
+# #    U
+        [(38.3852, 32.0156), (39.2659501953, 32.0912681641), (40.0374453125, 32.3105390625), (40.6971646484, 32.6618123047), (41.2425875, 33.1334875), (41.6711931641, 33.7139642578), (41.9804609375, 34.3916421875), (42.1678701172, 35.1549208984), (42.2309, 35.9922), (42.2309, 47.834), (47.5316, 47.834), (47.5316, 35.7273), (47.4732092773, 34.7657740479), (47.3213726562, 33.8784173828), (47.081449707, 33.063555542), (46.7588, 32.3195140625), (46.3587831055, 31.6446184814), (45.8867585938, 31.0371943359), (45.3480860352, 30.4955671631), (44.748125, 30.0180625), (44.0922350586, 29.6030058838), (43.3857757812, 29.2487228516), (41.8425875, 28.7157796875), (40.1614367187, 28.4058373047), (38.3852, 28.3055), (36.6090451172, 28.4058373047), (34.9279234375, 28.7157796875), (33.3847244141, 29.2487228516), (32.6782488525, 29.6030058838), (32.0223375, 30.0180625), (31.4223515381, 30.4955671631), (30.8836521484, 31.0371943359), (30.4116005127, 31.6446184814), (30.0115578125, 32.3195140625), (29.6888852295, 33.063555542), (29.4489439453, 33.8784173828), (29.2970951416, 34.7657740479), (29.2387, 35.7273), (29.2387, 47.834), (34.5395, 47.834), (34.5395, 35.9922), (34.6025257812, 35.1549208984), (34.789925, 34.3916421875), (35.0991804687, 33.7139642578), (35.527775, 33.1334875), (36.0731914062, 32.6618123047), (36.7329125, 32.3105390625), (37.5044210937, 32.0912681641), (38.3852, 32.0156)],
+#         # D -- exterior
+#         [(55.4875, 45.5563), (59.4066, 45.5563), (60.2057835693, 45.5178564697), 
+#          (60.9454076172, 45.4051830078), (61.6265759033, 45.2222653076), 
+#          (62.2503921875, 44.9730890625), (62.8179602295, 44.6616399658), 
+#          (63.3303837891, 44.2919037109), (64.1942125, 43.3935125), 
+#          (64.8507083984, 42.3098009766), (65.3087015625, 41.0726546875), 
+#          (65.5770220703, 39.7139591797), (65.6645, 38.2656), 
+#          (65.5770220703, 36.8175103516), (65.3087015625, 35.4592765625), 
+#          (64.8507083984, 34.2227138672), (64.1942125, 33.1396375), 
+#          (63.3303837891, 32.2418626953), (62.8179602295, 31.8724056396), 
+#          (62.2503921875, 31.5612046875), (61.6265759033, 31.3122367432), 
+#          (60.9454076172, 31.1294787109), (60.2057835693, 31.0169074951), 
+#          (59.4066, 30.9785), (55.4875, 30.9785), 
+#          (55.4875, 45.5563)],
+#         # D -- interior
+#         [ 
+#          (52.8324, 28.7004), (59.4059, 28.7004), 
+#          (60.8560672363, 28.7788331543), 
+#          (62.1440332031, 29.0031808594), 
+#          (63.2792692871, 29.3570154785), (64.271246875, 29.823909375), (65.1294373535, 30.3874349121), (65.8633121094, 31.0311644531), (66.4823425293, 31.7386703613), (66.996, 32.493525), (67.4137559082, 33.2793007324), (67.7450816406, 34.0795699219), (68.186328125, 35.657878125), (68.3955105469, 37.0970285156), (68.4484, 38.2656), (68.3955105469, 39.4344525391), (68.186328125, 40.8740328125), (67.7450816406, 42.4528623047), (67.4137559082, 43.2534084717), (66.996, 44.0394625), (66.4823425293, 44.7945895752), (65.8633121094, 45.5023548828), (65.1294373535, 46.1463236084), (64.271246875, 46.7100609375), (63.2792692871, 47.1771320557), (62.1440332031, 47.5311021484), (60.8560672363, 47.7555364014), (59.4059, 47.834), (52.8324, 47.834), (52.8324, 28.7004)]
+        # e
+        # e -- outershell
+        #[(82.9195, 34.8762), (82.9195, 36.123), (82.8224828125, 37.4505816406), (82.53454375, 38.658784375), (82.0603515625, 39.7298449219), (81.404575, 40.646), (80.5718828125, 41.3894863281), (79.56694375, 41.942540625), (78.3944265625, 42.2873996094), (77.059, 42.4063),(76.2952375244, 42.3687171631), (75.5838064453, 42.2585341797), (74.9242850342, 42.0795993408), (74.3162515625, 41.8357609375), (73.7592843018, 41.5308672607), (73.2529615234, 41.1687666016), (72.3905625, 40.2883375), (71.7256806641, 39.2252599609), (71.2549421875, 38.0103203125), (70.9749732422, 36.6743048828), (70.8824, 35.248), (70.9637001953, 33.823009375), (71.2144078125, 32.50744375), (71.6447333984, 31.3261375), (72.2648875, 30.303925), (73.0850806641, 29.465640625), (73.5733826904, 29.1232322266), (74.1155234375, 28.83611875), (74.7127792236, 28.6074044922), (75.3664263672, 28.44019375), (76.848, 28.3027), (77.9991910156, 28.3734771484), (79.058021875, 28.5858296875), (80.0117917969, 28.9397892578), (80.8478, 29.4353875), (81.5533457031, 30.0726560547), (82.115728125, 30.8516265625), (82.5222464844, 31.7723306641), (82.7602, 32.8348), (80.1098, 32.8348), (79.9671755859, 32.1632625), (79.7567359375, 31.59635), (79.4750064453, 31.1294125), (79.1185125, 30.7578), (78.6837794922, 30.4768625), (78.1673328125, 30.28195), (77.5656978516, 30.1684125), (76.8754, 30.1316), (75.9894021484, 30.2347720703), (75.2544671875, 30.5276953125), (74.6604455078, 30.9854802734), (74.1971875, 31.5832375), (73.8545435547, 32.2960775391), (73.6223640625, 33.0991109375), (73.4904994141, 33.9674482422), (73.4488, 34.8762), (82.9195, 34.8762), (82.9195, 34.8762)],
+        # e -- innershell
+        #[(73.5055, 36.6262), (73.5694832031, 37.3917933594), (73.744890625, 38.118946875), (74.0270464844, 38.7880457031),  (74.411275, 39.379475), (74.8929003906, 39.8736199219), (75.467246875, 40.250865625), (76.1296386719, 40.4915972656), (76.8754, 40.5762), (77.7209189453, 40.4999767578), (78.4335015625, 40.2795953125), (79.0193740234, 39.9274880859), (79.4847625, 39.4560875), (79.8358931641, 38.8778259766), (80.0789921875, 38.2051359375), (80.2202857422, 37.4504498047), (80.266, 36.6262), (73.5055, 36.6262)],
+       
+        # l
+        #[(85.973, 28.6992), (88.49331, 28.6992), (88.49331, 47.834), (85.973, 47.834), (85.973, 28.6992), (85.973, 28.6992)],
+        #f
+        #[(96.3883, 28.7004), (96.3883, 40.2512), (99.4605, 40.2512), (99.4605, 42.0027), (96.3883, 42.0027), (96.3883, 44.1512), (96.4229054688, 44.6702857422), (96.52635625, 45.0817171875), (96.6981039062, 45.3973431641), (96.9376, 45.6290125), (97.2442960938, 45.7885740234), (97.61764375, 45.8878765625), (98.5621, 45.9531), (99.8336, 45.875), (99.8336, 47.9656), (98.9403125, 48.1487), (98.0309, 48.2313), (97.1673613281, 48.1749609375), (96.374484375, 48.004725), (95.6659777344, 47.7187640625), (95.05555, 47.31525), (94.5569097656, 46.7923546875), (94.183765625, 46.14825), (93.9498261719, 45.3811078125), (93.8688, 44.4891), (93.8688, 42.0027), (91.273, 42.0027), (91.273, 40.2512), (93.8688, 40.2512), (93.8688, 28.7004), (96.3883, 28.7004)],
+        # t
+#          [(100.908, 42.0027), (100.908, 40.2512), (103.188, 40.2512), (103.188, 31.7734), (103.250359375, 30.4847203125), (103.393189453, 29.8978896484), (103.668125, 29.3748875), (104.118419922, 28.9348306641), (104.787328125, 28.5968359375), (105.718103516, 28.3800201172), (106.954, 28.3035), (107.811, 28.3438375), (108.677, 28.4609), (108.677, 30.3953), (107.35, 30.2371), (106.713328125, 30.322746875), (106.191125, 30.58245), (105.837859375, 31.020353125), (105.708, 31.6406), (105.708, 40.2512), (108.782, 40.2512), (108.782, 42.0027), (105.708, 42.0027), (105.708, 45.634), (103.188, 44.8391), (103.188, 42.0012), (100.908, 42.0027)],
+        ]
+        conv = ToPointsAndSegments()
+        for ring in polys:
+            conv.add_polygon([ring])
+        skel = calc_skel(conv, pause=False, output=False)#, pause=False, output=False)
+        assert len(skel.segments()) == 981
+        assert len(skel.sk_nodes) == 732, len(skel.sk_nodes)
+   
+   
+   
+   
+##############################################################################
+# PARALLEL EDGES IN THE INPUT, leading to problems 
+# (e.g. nodes not on correct location)
+##############################################################################
+    
+    def test_cshape(self):
+        """Parallel c-shape wavefront"""
+        conv = ToPointsAndSegments()
+        l0 = [(0.0, 0.0), (0.0, 3)]
+        l1 = [(0, 3), (5,3)]
+        l2 = [(0,0), (5,0)]
+        for line in l0, l1, l2:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        skel = calc_skel(conv,
+                         pause=False,
+                         output=False)
+        assert len(skel.segments()) == 10
+        assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+   
+    def test_flipped_cshape(self):
+        """Parallel c-shape wavefront"""
+        conv = ToPointsAndSegments()
+        l0 = [(5, 0.0), (5, 3)]
+        l1 = [(0, 3), (5,3)]
+        l2 = [(0,0), (5,0)]
+        for line in l0, l1, l2:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        skel = calc_skel(conv,
+                         pause=False,
+                         output=False)
+        assert len(skel.segments()) == 10
+        assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+   
+    def test_cshape_bottom(self):
+        """Parallel c-shape wavefront with longer segment on bottom"""
+        conv = ToPointsAndSegments()
+        l0 = [(0.0, 0.0), (0.0, 3)]
+        l1 = [(0, 3), (5,3)]
+        l2 = [(0,0), (10,0)]
+        for line in l0, l1, l2:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        skel = calc_skel(conv, pause=False, output=False)
+        assert len(skel.segments()) == 10
+        assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+   
+   
+    def test_cshape_top(self):
+        """Parallel c-shape wavefront with longer segment on top"""
+        # FIXME: missing piece of wavefront, after handling parallel fan
+        conv = ToPointsAndSegments()
+        l0 = [(0.0, 0.0), (0.0, 3)]
+        l1 = [(0, 3), (10,3)]
+        l2 = [(0,0), (5,0)]
+        for line in l0, l1, l2:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        skel = calc_skel(conv, pause=False, output=False)
+        assert len(skel.segments()) == 10
+        assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+        # geometric embedding
+        positions = [n.pos for n in skel.sk_nodes]
+        assert frozenset(positions) == frozenset([(0.0, -0.3), (1.0, 0.3), (-1.0, 0.3), (-1.0, -0.3), (-0.7, 0.0), (0.3, 0.0)])
+   
+   
+    def test_rect_extra_pt(self):
+        """"Rectangle with extra point on straight (180 degrees) edge """
+        conv = ToPointsAndSegments()
+        polygon = [[(0, 0), (0., 10), (15,10), (15,0.), (2., 0.), (0,0)]]
+        conv.add_polygon(polygon)
+        skel = calc_skel(conv, pause=False, output=False)
+        assert len(skel.segments()) == 12
+        assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
+  
+    def test_2parallel_eq(self):
+        """2 parallel wavefront having equal size"""
+        conv = ToPointsAndSegments()
+        l0 = [(0, 0), (3,0)]
+        l1 = [(0, 1), (3,1)]
+        for line in l0, l1:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        skel = calc_skel(conv, pause=False, output=False)
+    
+    def test_2parallel_not_eq(self):
+        """2 parallel wavefront having different size"""
+        conv = ToPointsAndSegments()
+        l0 = [(0, 0), (3,0)]
+        l1 = [(1, 1), (2,1)]
+        for line in l0, l1:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        skel = calc_skel(conv, pause=False, output=False)
+   
+    def test_2parallel_not_eq2(self):
+        """2 parallel wavefront having different size, other one above"""
+        conv = ToPointsAndSegments()
+        l0 = [(0, 0), (3,0)]
+        l1 = [(1, -1), (2,-1)]
+        for line in l0, l1:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        skel = calc_skel(conv, pause=False, output=False)
+   
+    
+   
+   
+    def test_cross(self):
+        # FIXME: Multiple skeleton nodes, because of fan that just collapses
+        ring = [(0,0), (10, 0), (10,-10), (15, -10), (15,0), (25,0), (25,5), (15,5), (15,15), (10,15), (10,5), (0,5), (0,0)]
+        conv = ToPointsAndSegments()
+        conv.add_polygon([ring])
+        skel = calc_skel(conv, pause=False, output=False)
+        # FIXME: are the following numbers correct?
+        assert len(skel.segments()) == 16+12, len(skel.segments())
+        assert len(skel.sk_nodes) == 17, len(skel.sk_nodes)
+   
+   
+    def test_parallelogram(self):
+        """Parallelogram with parallel wavefronts collapsing"""
+        conv = ToPointsAndSegments()
+        conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
+        skel = calc_skel(conv, pause=False, output=False)
+        positions = [n.pos for n in skel.sk_nodes]
+        assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+        assert len(skel.segments()) == 9, len(skel.segments())
+   
+   
+   
+    def test_multiple_parallel(self):
+        """Parallelogram with parallel wavefronts collapsing"""
+        # FIXME: Multiple skeleton nodes, because of fan that just collapses
+        conv = ToPointsAndSegments()
+        conv.add_polygon([[(0,0), (1,0), (2,0), (3,0), (4,0), (5,0),
+                           (5,1), (4,1), (3,1), (2,1), (1,1), (0, 1), (0,0)
+                           ]])
+        skel = calc_skel(conv, pause=False, output=False)
+        assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+        assert len(skel.segments()) == 9, len(skel.segments())
+   
+   
+    def test_multiple_parallel2(self):
+        """Parallelogram with parallel wavefronts collapsing"""
+        conv = ToPointsAndSegments()
+        conv.add_polygon([[(0,0), (2,0), (4,0), (5,0),
+                           (5,1), (3,1), (1,1), (0, 1), (0,0)
+                           ]])
+        skel = calc_skel(conv, pause=False, output=False)
+        assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+        assert len(skel.segments()) == 9, len(skel.segments())
+   
+   
+   
+##############################################################################
+# ...
+##############################################################################
+    
+# 
+   
+    def test_3tris(self):
+        conv = ToPointsAndSegments()
+        polygons = [
+                    [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
+                    [[(1,0.5), (2,0.5), (1.5,1), (1,0.5)]],
+                    [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
+                    ]
+#         polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.), (1., 0.), (-.1,3), (0.,10.)]]
+        for polygon in polygons:
+            conv.add_polygon(polygon)
+        skel = calc_skel(conv, pause=False, output=False)
+        assert len(skel.segments()) == 24
+        assert len(skel.sk_nodes) == 16
+   
+    
+    def test_3tris_handle_cw_ccw(self):
+        """Splitting and then handle the fan
+        """
+        conv = ToPointsAndSegments()
+        polygons = [
+                    [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
+                    [[(1,3), (2,3), (1.5,3.5), (1,3)]],
+                    [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
+                    ]
+        for polygon in polygons:
+            conv.add_polygon(polygon)
+        skel = calc_skel(conv, pause=False, output=False)
+        assert len(skel.segments()) == 24
+        assert len(skel.sk_nodes) == 16
+   
+   
+    def test_3tris_split_handle(self):
+        """One side that should just use handle and other side should handle_ccw
+        """
+        conv = ToPointsAndSegments()
+        polygons = [
+                    [[(1,0), (2,0), (1.5,-0.5), (1,0)]],
+                    [[(1,3), (2,3), (1.5,3.5), (1,3)]],
+                    [[(3,0), (4,0), (3.5,-0.5), (3,0)]],
+                    ]
+        for polygon in polygons:
+            conv.add_polygon(polygon)
+        skel = calc_skel(conv, pause=False, output=False)
+        assert len(skel.segments()) == 24
+        assert len(skel.sk_nodes) == 16
+
+if __name__ == "__main__":
+    if False:
+        import logging
+        import sys
+        root = logging.getLogger()
+        root.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(logging.DEBUG)
+#         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter('%(asctime)s - %(message)s')
+        ch.setFormatter(formatter)
+        root.addHandler(ch)
+ 
+    unittest.main(verbosity=2)

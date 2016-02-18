@@ -798,8 +798,8 @@ def event_loop(queue, skel, pause=False):
             pass
     # -- visualize
     NOW = prev_time = 1e-5
-#     if pause:
-    visualize(queue, skel, prev_time)
+    if pause:
+        visualize(queue, skel, prev_time)
     immediate = deque([])
     logging.debug("=" * 80)
     logging.debug("Immediate / Queue at start of process")
@@ -810,9 +810,10 @@ def event_loop(queue, skel, pause=False):
     for i, e in enumerate(queue):
         logging.debug("{0:5d} {1}".format(i, e))
     logging.debug("=" * 80)
-
+    ct = 0
     step = prev = 0.025
     while queue or immediate:
+        ct += 1
 #         if parallel:
 #             evt = parallel.popleft()
 #             # print edge, direction, now
@@ -840,7 +841,7 @@ def event_loop(queue, skel, pause=False):
                     prev_time += step_time
                     visualize(queue, skel, prev_time + step_time)
                     sleep(0.5)
-            visualize(queue, skel, NOW)
+                visualize(queue, skel, NOW)
 #             if NOW > prev:
 #                 visualize(queue, skel, NOW)
 #                 prev += step
@@ -860,8 +861,8 @@ def event_loop(queue, skel, pause=False):
         elif evt.tp == "split":
             handle_split_event(evt, skel, queue)
 #         check_ktriangles(skel.triangles, NOW)
-        #if pause:
-        visualize(queue, skel, NOW)
+        if pause:
+            visualize(queue, skel, NOW)
         logging.debug("=" * 80)
         logging.debug("Immediate / Queue at end of handling event")
         logging.debug("=" * 80)

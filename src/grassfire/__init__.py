@@ -26,11 +26,12 @@ def calc_skel(conv, pause=False, output=False):
     # (so that we know after the construction what each node represents)
 #     pts = conv.points
     dt = triangulate(pts, None, conv.segments)
-    with open("/tmp/edges.wkt", "w") as fh:
-        fh.write("id;wkt\n")
-        edgeit = FiniteEdgeIterator(dt, constraints_only=True)
-        for j, edge in enumerate(edgeit):
-            fh.write("{0};LINESTRING({1[0][0]} {1[0][1]}, {1[1][0]} {1[1][1]})\n".format(j, edge.segment))
+    if output:
+        with open("/tmp/edges.wkt", "w") as fh:
+            fh.write("id;wkt\n")
+            edgeit = FiniteEdgeIterator(dt, constraints_only=True)
+            for j, edge in enumerate(edgeit):
+                fh.write("{0};LINESTRING({1[0][0]} {1[0][1]}, {1[1][0]} {1[1][1]})\n".format(j, edge.segment))
     # step 2 -- copy over triangles and deal with 
     # - terminal 1-vertices (add triangle)
     # - infinite triangles
