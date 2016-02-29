@@ -250,10 +250,12 @@ def outward_unit_p1(p0, p1, p2):
     """
     # pre-condition, the 3 points do not lie at same location
     assert p0 != p1 != p2
-    u = map(sub, p0, p1)
-    v = map(sub, p2, p1)
-    u = normalize(u)
-    v = normalize(v)
+    assert not (near_zero(abs(p0[0] - p1[0])) and near_zero(abs(p0[1] - p1[1]))), "{} {}".format(p0, p1)
+    assert not (near_zero(abs(p1[0] - p2[0])) and near_zero(abs(p1[1] - p2[1]))), "{} {}".format(p1, p2)
+    assert not (near_zero(abs(p2[0] - p0[0])) and near_zero(abs(p2[1] - p0[1]))), "{} {}".format(p2, p0)
+    #
+    u = normalize(vector(p0, p1)) # map(sub, p0, p1)
+    v = normalize(vector(p2, p1)) # map(sub, p2, p1)
     return u, v
 
 # def angle(u, v):
@@ -271,18 +273,24 @@ def outward_unit_p1(p0, p1, p2):
 #         r += 2 * pi
 #     return r
 
-def bisector(p0, p1, p2):
-    """Scaled bisector so that intersection point from segment p0-p1 and p1-p2
+def bisector(left, middle, right):
+    """Scaled bisector so that intersection point from segment left-middle and middle-right
     lies 1 unit away from these segments.
 
     In case the vertex should have an infinite speed this method raises a
     ValueError.
     """
+    if (near_zero(abs(left[0] - middle[0])) and near_zero(abs(left[1] - middle[1]))) or \
+        (near_zero(abs(middle[0] - right[0])) and near_zero(abs(middle[1] - right[1]))) or \
+        (near_zero(abs(right[0] - left[0])) and near_zero(abs(right[1] - left[1]))):
+        return None
     # FIXME: 
     # should we do something with points that are collinear 
     # and therefore get 'infinite' speed?
-    v = bisector_unit(p0, p1, p2)
-    s = scaling_factor(p0, p1, p2)
+    v = bisector_unit(left, middle, right)
+    #print "v", v
+    s = scaling_factor(left, middle, right)
+    #print "s", s
     if s is None:
         return None
         # return 0., 0.
@@ -304,17 +312,18 @@ def bisector_unit(p0, p1, p2): #1.0):
     r = tuple([item * .5 for item in map(add, u, v)])
     bi = None
     # collinear / near collinear
-    if r == (0., 0.):
+    if near_zero(r[0]) and near_zero(r[1]): #r == (0., 0.):
         # r == (0,0) means they cancel out
         # hence vectors are pointing away from each other
         # print "collinear, opposite direction vectors!"
         v = vector(p2, p0)
         return normalize(rotate90ccw(v))
-    elif z == 0.:
-        # when that does not hold but z == 0 (no area covered)
+    elif near_zero(z):# == 0: # 
+        # when that does not hold but z ~== 0 (no area covered)
         # we have vectors pointing in same direction!
-        # print "collinear, similar direction vectors!"
-        return normalize(vector(p1, p0))
+        # print "collinear, similar direction vectors!", u, v
+        tmp = vector(end=p0, start=p1)
+        return normalize(tmp)
     elif z < 0: 
         # points make turn to right
         bi = -r[0], -r[1]
@@ -352,8 +361,8 @@ def scaling_factor(p0, p1, p2):
     It returns None if the angle between the given points is 0 (folding back)
     """
     alpha = angle(p0, p1, p2) *.5
-    logging.debug("alpha = {}".format(alpha))
-    if near_zero(alpha): # is_close(0, alpha):
+    logging.debug("alpha = {} [in degrees = {}]".format(alpha, degrees(alpha)))
+    if near_zero(alpha) or near_zero(sin(alpha)): # is_close(0, alpha):
         return None
     else:
         return 1. / sin(alpha)
@@ -381,6 +390,12 @@ def bisector_vectors(linearring):
 #    pprint(vecs)
     return vecs
 
+def _velo_test():
+    p1 = (0.9982203125443153, -0.2125698403244565)
+    p2 = (1.011633106649351, -0.21256984032445647)
+    sk_node_pos = (0.7087339402705702, -0.2125698403244565)
+    velo = bisector(p1, sk_node_pos, p2)
+    print velo
 
 def _test():
     from math import sqrt
@@ -393,7 +408,7 @@ def _test():
 
 if __name__ == "__main__":
 #     _test()
-    _test()
+    _velo_test()
 #
 #u, v = (-1, 1), (-1, -1)
 #print degrees(angle(u, v))

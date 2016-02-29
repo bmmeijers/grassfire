@@ -53,12 +53,11 @@ class KineticVertex(object):
     __slots__ = ("origin", "velocity", 
                  "starts_at", "stops_at",
                  "start_node", "stop_node",
-                 "_left", "_right"
+                 "_left", "_right", "id"
                  )
     def __init__(self, origin=None, velocity=None):
         self.origin = origin
         self.velocity = velocity
-
         # next / prev pos
         # while looking in direction of bisector, see which 
         # kinetic vertex you see on the left, and which on the right
@@ -72,6 +71,7 @@ class KineticVertex(object):
         # Skeleton nodes
         self.start_node = None
         self.stop_node = None
+        self.id = id(self)
 
     def __str__(self):
         # FIXXME: make other method (dependent on time as argument)
