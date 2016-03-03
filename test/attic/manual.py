@@ -1014,12 +1014,14 @@ isDone = True
 
 def watch():
     global isDone
+    print "watch() called"
     if isDone:
+        print "refreshing"
         isDone = False
         iface.mapCanvas().refresh()
         isDone = True
 
-watcher.addPath( '/tmp/wavefront_edges_progress.wkt' )
+watcher.addPath( '/tmp/signal' )
 watcher.fileChanged.connect( watch )
 
 

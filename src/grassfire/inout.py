@@ -75,7 +75,7 @@ def output_offsets(skel, now=1000):
     now = 10
     ct = 1000
     inc = now / float(ct)
-    times = [t*inc for t in range(ct)]
+    times = [0.05] #[t*inc for t in range(ct)]
     with open("/tmp/offsetsl.wkt", "w") as fh:
         fh.write("wkt;time;from;to\n")
         for t in times:

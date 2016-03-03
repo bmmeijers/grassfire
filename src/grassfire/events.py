@@ -206,6 +206,7 @@ def replace_kvertex(t, v, newv, now, direction, queue):
     logging.debug("replace_kvertex, start at: {0}".format(id(t)))
     fan = []
     while t is not None:
+        assert t.stops_at is None, "{}: {}".format(id(t), [id(n) for n in t.neighbours])
         logging.debug(" @ {}".format(id(t)))
         side = t.vertices.index(v)
         fan.append(t)
@@ -230,6 +231,7 @@ def replace_inffast_kvertex(t, v, newv, now, direction, queue):
     fan = []
     vertices = []
     while t is not None:
+        assert t.stops_at is None, id(t)
         logging.debug(" @ {}".format(id(t)))
         side = t.vertices.index(v)
         fan.append(t)
@@ -271,11 +273,34 @@ def replace_in_queue(t, now, queue):
         logging.debug("no new events".format(e))
         return
 
-def update_circ(kv, v1, v2, now):
+# def update_circ(kv, v1, v2, now):
+#     """Update neighbour list of kinetic vertices (this is a circular list going
+#     around the wavefront edges
+#     """
+#     raise ValueError("update circ disabled")
+#     # FIXME:
+#     # Would it not be better to have just one side updated
+#     # and call method twice? --> fits better with parallel wavefront handling
+#     # update_circ(v_left, v_right, now):
+#     #    v_left.right = v_right, now
+#     #    v_right.left = v_left, now
+#     #
+# 
+#     # update circular list:
+#     #               <-----v2
+#     #    <----- kv ----->       
+#     # v1 ---->    
+#     kv.left = v1, now
+#     kv.right = v2, now
+#     #
+#     v1.right = kv, now
+#     v2.left = kv, now
+
+
+def update_circ(v_left, v_right, now):
     """Update neighbour list of kinetic vertices (this is a circular list going
     around the wavefront edges
     """
-
     # FIXME:
     # Would it not be better to have just one side updated
     # and call method twice? --> fits better with parallel wavefront handling
@@ -285,14 +310,10 @@ def update_circ(kv, v1, v2, now):
     #
 
     # update circular list:
-    #               <-----v2
-    #    <----- kv ----->       
-    # v1 ---->    
-    kv.left = v1, now
-    kv.right = v2, now
-    #
-    v1.right = kv, now
-    v2.left = kv, now
+    #               <-----v_right
+    # v_left ----->       
+    v_left.right = v_right, now
+    v_right.left = v_left, now
 
 def at_same_location(V, now):
     """Checks whether all vertices are more or less at same location of first 
@@ -323,14 +344,23 @@ def handle_edge_event(evt, skel, queue, immediate):
     if newly_made:
         skel.sk_nodes.append(sk_node)
     # replace 2 vertices with new kinetic vertex
-    kv, newly_made = compute_new_kvertex(v1.left, v2.right, now, sk_node, (v1, v2))
+    v1tmp = v1
+    v2tmp = v2
+    while at_same_location([v1tmp, v1tmp.left], now):
+        v1tmp = v1tmp.left
+    while at_same_location([v2tmp, v2tmp.right], now):
+        v2tmp = v2tmp.right
+    # for determining the new kinetic vertex we 
+    kv, newly_made = compute_new_kvertex(v1tmp.left, v2tmp.right, now, sk_node, (v1, v2))
     if newly_made:
         skel.vertices.append(kv)
     are_parallel = (kv.velocity == (0, 0))
     if are_parallel:
         logging.debug("Parallel wavefronts detected -- INFINITELY FAST VERTEX GENERATED")
     # update circular list
-    update_circ(kv, v1.left, v2.right, now)
+    update_circ(v1.left, kv, now)
+    update_circ(kv, v2.right, now)
+    # update_circ(kv, v1.left, v2.right, now)
 
     # with new api:
     # update_circ(v1.left, kv, now)
@@ -372,20 +402,22 @@ def handle_edge_event(evt, skel, queue, immediate):
             schedule_immediately(n, now, queue, immediate)
     # we "remove" the triangle itself
     t.stops_at = now
-    visualize(queue, skel, now)
+#     visualize(queue, skel, now)
     if are_parallel:
         # update the circular list here again
-        print ""
-        print "vertices_a"
-        print "-" * 10
-        for v in vertices_a: # to the right
-            print id(v), repr(v)
-        print ""
-        print "vertices_b"
-        print "-" * 10
-        for v in vertices_b: # to the left
-            print id(v), repr(v)
-        print "-" * 10
+#         print ""
+#         print "vertices_a"
+#         print "-" * 10
+#         for v in vertices_a: # to the right
+#             print id(v), repr(v)
+#         print ""
+#         print "vertices_b"
+#         print "-" * 10
+#         for v in vertices_b: # to the left
+#             print id(v), repr(v)
+#         print "-" * 10
+        if fan_a and fan_b:
+            raise NotImplementedError("case where we have 2 fans, should be concatenated")
 
         # stop all vertices in parallel fan
         for v in chain(vertices_a, vertices_b):
@@ -395,16 +427,20 @@ def handle_edge_event(evt, skel, queue, immediate):
         # update circular list
         if vertices_a:
             v_right = vertices_a[-1].right
-        else:
-            v_right = kv.right
+            update_circ(kv, v_right, now)
+#         else:
+#             v_right = kv.right
         if vertices_b:
             v_left = vertices_b[-1].left
-        else:
-            v_left = kv.left
-        update_circ(kv, v_left, v_right, now)
+            update_circ(v_left, kv, now)
+#         else:
+#             v_left = kv.left
+#         # update_circ(kv, v_left, v_right, now)
+#         update_circ(v_left, kv, now)
+#         update_circ(kv, v_right, now)
 
         # visualize outcome
-        visualize(queue, skel, now)
+#         visualize(queue, skel, now)
 #         if fan_a:
 #             fan = fan_a
 #         else:
@@ -427,12 +463,17 @@ def handle_edge_event(evt, skel, queue, immediate):
         d1 = dist2(v, pkvl)
         d2 = dist2(v, pkvr)
         if near_zero(d1 - d2):
+            # FIXME 
+            # we can have both fan_a and fan_b
+            # somehow we can concatenate them
+            # but maybe we need to reverse one or the other
             if fan_a:
                 fan = fan_a
             else:
                 fan = fan_b
             handle_fan(fan, kv, skel, queue, now)
         else:
+#             raise ValueError("not yet updated")
             # either one of the collapsed fans has length
             if fan_a:
                 assert len(fan_b) == 0
@@ -609,7 +650,7 @@ def handle_fan(fan, pivot, skel, queue, now):
             if n != None:
                 n.neighbours[n.neighbours.index(t)] = None
         # FIXME: do we need to schedule adjacent triangle here to prevent out of sync processing?
-    visualize(queue, skel, now)
+#     visualize(queue, skel, now)
     logging.debug("handled fan")
 
 # def handle_fan_cw(fan, pivot, skel, queue, now):
@@ -666,6 +707,8 @@ def handle_fan_cw(fan, pivot, skel, queue, now):
     """
     logging.debug("\n\nHANDLING FAN OF TRIANGLES -- CW\n\n")
     # FIXME: this does create many duplicate skeleton nodes for now
+    if len(fan) == 0:
+        return
     assert len(fan) >= 1
     t = fan[0]
     e = t.vertices.index(pivot)
@@ -679,7 +722,8 @@ def handle_fan_cw(fan, pivot, skel, queue, now):
     kv, newly_made = compute_new_kvertex(kvl.left, kvr, now, sk, [])
     assert newly_made
     skel.vertices.append(kv)
-    update_circ(kv, kvl.left, kvr, now)
+    update_circ(kvl.left, kv, now)
+    update_circ(kv, kvr, now)
 
     # based on the first triangle
     # get the vertices we need to deal with
@@ -708,6 +752,9 @@ def handle_fan_cw(fan, pivot, skel, queue, now):
     #     if n is not None:
     #         n.neighbours[n.neighbours.index(t)] = None
     #     t.neighbours[(e+1) % 3] = None
+        for n in t.neighbours:
+            if n is not None:
+                n.neighbours[n.neighbours.index(t)] = None
 
     if kv.velocity == (0, 0):
         handle_fan_ccw(fan_new, kv, skel, queue, now)
@@ -720,6 +767,8 @@ def handle_fan_ccw(fan, pivot, skel, queue, now):
     """
     logging.debug("\n\nHANDLING FAN OF TRIANGLES -- CCW\n\n")
     # FIXME: this does create many duplicate skeleton nodes for now
+    if len(fan) == 0:
+        return
     assert len(fan) >= 1
     t = fan[0]
     e = t.vertices.index(pivot)
@@ -733,7 +782,8 @@ def handle_fan_ccw(fan, pivot, skel, queue, now):
     kv, newly_made = compute_new_kvertex(kvl, kvr.right, now, sk, [])
     assert newly_made
     skel.vertices.append(kv)
-    update_circ(kv, kvl, kvr.right, now)
+    update_circ(kvl, kv,  now)
+    update_circ(kv, kvr.right, now)
 
     # based on the first triangle
     # get the vertices we need to deal with
@@ -756,6 +806,9 @@ def handle_fan_ccw(fan, pivot, skel, queue, now):
         if t.event != None:
             logging.debug("Removed: "+str(t.event))
             queue.discard(t.event)
+        for n in t.neighbours:
+            if n is not None:
+                n.neighbours[n.neighbours.index(t)] = None
 
     # make last neighbour None
     #     n = t.neighbours[(e) % 3]
@@ -823,50 +876,56 @@ def handle_split_event(evt, skel, queue, immediate):
     if newly_made:
         skel.vertices.append(va)
     # split circular list into 2 lists here
-    update_circ(vb, v.left, v2, now)
-    update_circ(va, v1, v.right, now)
+    #update_circ(vb, v.left, v2, now)
+    update_circ(v.left, vb, now)
+    update_circ(vb, v2, now)
+
+    #update_circ(va, v1, v.right, now)
+    update_circ(v1, va, now)
+    update_circ(va, v.right, now)
+
     # updates (triangle fan) at neighbour 1
     b = t.neighbours[(e+1)%3]
     b.neighbours[b.neighbours.index(t)] = None
     if are_parallel_vb:
-        fan_b = replace_inffast_kvertex(b, v, vb, now, ccw, queue)
+        fan_b, vertices = replace_inffast_kvertex(b, v, vb, now, ccw, queue)
     else:
         fan_b = replace_kvertex(b, v, vb, now, ccw, queue)
     # updates (triangle fan) at neighbour 2
     a = t.neighbours[(e+2)%3]
     a.neighbours[a.neighbours.index(t)] = None
     if are_parallel_va:
-        fan_a = replace_inffast_kvertex(a, v, va, now, cw, queue)
+        fan_a, vertices = replace_inffast_kvertex(a, v, va, now, cw, queue)
     else:
         fan_a = replace_kvertex(a, v, va, now, cw, queue)
     # we "remove" the triangle itself
     t.stops_at = now
     if are_parallel_va or are_parallel_vb:
-        raise NotImplementedError("parallel collapse")
-#     if are_parallel_va:
-#         logging.debug("Handling fan for Va")
-#         v = va.position_at(now)
-#         kvl = va.left.position_at(now)
-#         kvr = va.right.position_at(now)
-#         d1 = dist2(v, kvl)
-#         d2 = dist2(v, kvr)
-#         print near_zero(d1-d2), "close to zero?"
-#         if near_zero(d1-d2):
-#             handle_fan(fan_a, va, skel, queue, now)
-#         else:
-#             handle_fan_cw(fan_a, va, skel, queue, now)
-#     if are_parallel_vb:
-#         logging.debug("Handling fan for Vb")
-#         v = vb.position_at(now)
-#         kvl = vb.left.position_at(now)
-#         kvr = vb.right.position_at(now)
-#         d1 = dist2(v, kvl)
-#         d2 = dist2(v, kvr)
-#         print near_zero(d1-d2), "close to zero?"
-#         if near_zero(d1-d2):
-#             handle_fan(fan_b, vb, skel, queue, now)
-#         else:
-#             handle_fan_ccw(fan_b, vb, skel, queue, now)
+#         raise NotImplementedError("parallel collapse")
+        if are_parallel_va:
+            logging.debug("Handling fan for Va")
+            v = va.position_at(now)
+            kvl = va.left.position_at(now)
+            kvr = va.right.position_at(now)
+            d1 = dist2(v, kvl)
+            d2 = dist2(v, kvr)
+            print near_zero(d1-d2), "close to zero?"
+            if near_zero(d1-d2):
+                handle_fan(fan_a, va, skel, queue, now)
+            else:
+                handle_fan_cw(fan_a, va, skel, queue, now)
+        if are_parallel_vb:
+            logging.debug("Handling fan for Vb")
+            v = vb.position_at(now)
+            kvl = vb.left.position_at(now)
+            kvr = vb.right.position_at(now)
+            d1 = dist2(v, kvl)
+            d2 = dist2(v, kvr)
+            print near_zero(d1-d2), "close to zero?"
+            if near_zero(d1-d2):
+                handle_fan(fan_b, vb, skel, queue, now)
+            else:
+                handle_fan_ccw(fan_b, vb, skel, queue, now)
 
 # def handle_parallel_fan(edge, direction, now, queue):
 #     """Handles fan of triangles collapsing
@@ -1020,7 +1079,7 @@ def event_loop(queue, skel, pause=False):
         else:
             peek = next(iter(queue))
             NOW = peek.time
-            if pause and True: # visualize progressively
+            if pause and False: # visualize progressively
 #                 if peek.tp == "flip":
 #                     ct = 2
 #                 else:
@@ -1035,8 +1094,14 @@ def event_loop(queue, skel, pause=False):
                     prev_time += step_time
                     visualize(queue, skel, prev_time + step_time)
                     sleep(0.5)
-            if pause:
+            if pause and (ct % 5) == 0:
                 visualize(queue, skel, NOW)
+                
+                import os, random
+                #with open("/tmp/signal", "w") as fh:
+                #    fh.write("{}".format(random.randint(0,1000)))
+                os.system("touch /tmp/signal")
+                sleep(2.)
 #             if NOW > prev:
 #                 visualize(queue, skel, NOW)
 #                 prev += step
@@ -1071,7 +1136,8 @@ def event_loop(queue, skel, pause=False):
 #     if pause:
 #         for t in range(3):
 #             NOW += t
-#             visualize(queue, skel, NOW)
+    if pause:
+        visualize(queue, skel, NOW)
 #             sleep(1.)
     return NOW
 

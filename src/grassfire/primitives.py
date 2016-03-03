@@ -79,9 +79,9 @@ class KineticVertex(object):
         # 4.281470022378475
         return "{0[0]} {0[1]} ".format(self.position_at(time))
 
-    def __repr__(self):
-        """ """
-        return "KineticVertex({0}, {1})".format(self.origin, self.velocity)
+#    def __repr__(self):
+#        """ """
+        #return "KineticVertex({0}, {1})".format(self.origin, self.velocity)
 
     def distance2(self, other):
         """Cartesian distance *squared* to other point """

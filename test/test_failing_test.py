@@ -77,17 +77,17 @@ class TestWrongOffsetsButPassingTests(unittest.TestCase):
 #         # skeletonize / offset
 #         skel = calc_skel(conv, pause=True, output=True)
 # # 
-#     def test_tiny_v(self):
-#        # MISSES AN EVENT SOMEHOW
-#         """Tiny V at bottom of square, does miss an event"""
-#         conv = ToPointsAndSegments()
-#         polygon = [[(-10, 0), (-10., 100.), (100.,100.), (100.,0.), (2., 0.), (1,-1), (0,0), (-10,0)]]
-#         conv.add_polygon(polygon)
-#         skel = calc_skel(conv, pause=False, output=True)
-#         assert len(skel.segments()) == (10+7)
-#         positions = [n.pos for n in skel.sk_nodes]
-# #         additional: 
-# #        check if last node geerated internally is at (50,50)
+    def test_tiny_v(self):
+       # MISSES AN EVENT SOMEHOW
+        """Tiny V at bottom of square, does miss an event"""
+        conv = ToPointsAndSegments()
+        polygon = [[(-10, 0), (-10., 100.), (100.,100.), (100.,0.), (2., 0.), (1,-1), (0,0), (-10,0)]]
+        conv.add_polygon(polygon)
+        skel = calc_skel(conv, pause=False, output=True)
+        assert len(skel.segments()) == (10+7)
+        positions = [n.pos for n in skel.sk_nodes]
+#         additional: 
+#        check if last node geerated internally is at (50,50)
 # 
 #     def test_missing_event(self):
 #         """ Misses the event at the right side of the C"""

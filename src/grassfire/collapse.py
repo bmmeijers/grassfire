@@ -59,7 +59,7 @@ def vertex_crash_time(org, dst, apx):
         # wavefront does not have length:
         # we assume the two velocity vectors are perpendicular
         # as this then should be a 1-terminal vertex
-        assert dot(org.velocity, dst.velocity) == 0
+#         assert dot(org.velocity, dst.velocity) == 0
         # we add them and we normalize to get a unit vector
         n = normalize(map(add, org.velocity, dst.velocity))
     else:
