@@ -39,12 +39,6 @@ Maintainers
 - `Martijn Meijers <https://bitbucket.org/bmmeijers>`_
 
 
-Contributors
-------------
-
-- `Radan Šuba <https://bitbucket.org/radan/>`_
-
-
 License
 -------
 
