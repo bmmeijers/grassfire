@@ -3,28 +3,28 @@
   <title></title>
   <layer-tree-group expanded="1" checked="Qt::PartiallyChecked" name="">
     <customproperties/>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="bisectors_progress20150622113032918" name="bisectors_progress">
+    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="bisectors_progress20150622113032918" name="bisectors_progress">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="vertices1_progress20160219102407465" name="vertices1_progress">
+    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="vertices1_progress20160219102407465" name="vertices1_progress">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="sknodes_progress20150622112720415" name="sknodes_progress">
+    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="sknodes_progress20150622112720415" name="sknodes_progress">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="wavefront_edges_progress20160120113619595" name="wavefront_edges_progress">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="ktri_progress20150622114729829" name="ktri_progress">
+    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="ktri_progress20150622114729829" name="ktri_progress">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="segments_progress20160201102032831" name="segments_progress">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="edges20160203144113295" name="edges">
+    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="edges20160203144113295" name="edges">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="offsetsr20160214192315746" name="offsetsr">
+    <layer-tree-layer expanded="1" checked="Qt::Checked" id="offsetsr20160214192315746" name="offsetsr">
       <customproperties/>
     </layer-tree-layer>
     <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="offsetsl20160214192245408" name="offsetsl">
@@ -41,10 +41,10 @@
   <mapcanvas>
     <units>meters</units>
     <extent>
-      <xmin>0.03194304334653786</xmin>
-      <ymin>-1.2782770394195242</ymin>
-      <xmax>0.53637475629609177</xmax>
-      <ymax>0.82172296057720162</ymax>
+      <xmin>-1.05146552285832451</xmin>
+      <ymin>-2.45008898474412717</ymin>
+      <xmax>1.80458250415013088</xmax>
+      <ymax>1.81086615617408575</ymax>
     </extent>
     <rotation>0</rotation>
     <projections>0</projections>
@@ -79,19 +79,19 @@
     </custom-order>
   </layer-tree-canvas>
   <legend updateDrawingOrder="true">
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="bisectors_progress" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="bisectors_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="bisectors_progress20150622113032918" visible="1"/>
+        <legendlayerfile isInOverview="0" layerid="bisectors_progress20150622113032918" visible="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="vertices1_progress" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="vertices1_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="vertices1_progress20160219102407465" visible="1"/>
+        <legendlayerfile isInOverview="0" layerid="vertices1_progress20160219102407465" visible="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="sknodes_progress" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="sknodes_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="sknodes_progress20150622112720415" visible="1"/>
+        <legendlayerfile isInOverview="0" layerid="sknodes_progress20150622112720415" visible="0"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="wavefront_edges_progress" showFeatureCount="0">
@@ -99,9 +99,9 @@
         <legendlayerfile isInOverview="0" layerid="wavefront_edges_progress20160120113619595" visible="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="ktri_progress" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="ktri_progress" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="ktri_progress20150622114729829" visible="1"/>
+        <legendlayerfile isInOverview="0" layerid="ktri_progress20150622114729829" visible="0"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="segments_progress" showFeatureCount="0">
@@ -109,14 +109,14 @@
         <legendlayerfile isInOverview="0" layerid="segments_progress20160201102032831" visible="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="edges" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="edges" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="edges20160203144113295" visible="1"/>
+        <legendlayerfile isInOverview="0" layerid="edges20160203144113295" visible="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="offsetsr" showFeatureCount="0">
+    <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="offsetsr" showFeatureCount="0">
       <filegroup open="true" hidden="false">
-        <legendlayerfile isInOverview="0" layerid="offsetsr20160214192315746" visible="0"/>
+        <legendlayerfile isInOverview="0" layerid="offsetsr20160214192315746" visible="1"/>
       </filegroup>
     </legendlayer>
     <legendlayer drawingOrder="-1" open="true" checked="Qt::Unchecked" name="offsetsl" showFeatureCount="0">
@@ -642,7 +642,7 @@
         </edittype>
       </edittypes>
     </maplayer>
-    <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Polygon" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+    <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Polygon" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
       <id>ktri_progress20150622114729829</id>
       <datasource>file:///tmp/ktri_progress.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes</datasource>
       <title></title>
@@ -704,8 +704,8 @@
       </edittypes>
       <renderer-v2 attr="finite" symbollevels="0" type="categorizedSymbol">
         <categories>
-          <category render="false" symbol="0" value="False" label="False"/>
-          <category render="true" symbol="1" value="True" label="True"/>
+          <category render="true" symbol="0" value="False" label="False"/>
+          <category render="false" symbol="1" value="True" label="True"/>
           <category render="true" symbol="2" value="" label=""/>
         </categories>
         <symbols>
@@ -801,7 +801,7 @@
         <property key="labeling/distInMapUnits" value="false"/>
         <property key="labeling/distMapUnitMaxScale" value="0"/>
         <property key="labeling/distMapUnitMinScale" value="0"/>
-        <property key="labeling/enabled" value="true"/>
+        <property key="labeling/enabled" value="false"/>
         <property key="labeling/fieldName" value="id"/>
         <property key="labeling/fontBold" value="true"/>
         <property key="labeling/fontCapitals" value="0"/>
@@ -1236,7 +1236,7 @@
         </edittype>
       </edittypes>
     </maplayer>
-    <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Line" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+    <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Line" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
       <id>offsetsr20160214192315746</id>
       <datasource>file:///tmp/offsetsr.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes</datasource>
       <title></title>
@@ -1285,8 +1285,8 @@
               <prop k="customdash_unit" v="MM"/>
               <prop k="draw_inside_polygon" v="0"/>
               <prop k="joinstyle" v="bevel"/>
-              <prop k="line_color" v="156,170,186,255"/>
-              <prop k="line_style" v="solid"/>
+              <prop k="line_color" v="0,0,0,255"/>
+              <prop k="line_style" v="dash"/>
               <prop k="line_width" v="0.06"/>
               <prop k="line_width_unit" v="MM"/>
               <prop k="offset" v="0"/>
@@ -2547,7 +2547,7 @@
       <attributeactions/>
       <edittypes/>
     </maplayer>
-    <maplayer minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="0" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Point" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+    <maplayer minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="0" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" geometry="Point" simplifyMaxScale="1" type="vector" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
       <id>vertices1_progress20160219102407465</id>
       <datasource>file:///tmp/vertices1_progress.wkt?type=csv&amp;delimiter=%5Ct;&amp;wktField=wkt&amp;spatialIndex=yes&amp;subsetIndex=no&amp;watchFile=yes</datasource>
       <title></title>
@@ -2639,7 +2639,7 @@
         <property key="labeling/distInMapUnits" value="false"/>
         <property key="labeling/distMapUnitMaxScale" value="0"/>
         <property key="labeling/distMapUnitMinScale" value="0"/>
-        <property key="labeling/enabled" value="true"/>
+        <property key="labeling/enabled" value="false"/>
         <property key="labeling/fieldName" value="concat(id,'\n⇦ ', leftid, '\n⇨ ', rightid)"/>
         <property key="labeling/fontBold" value="false"/>
         <property key="labeling/fontCapitals" value="0"/>

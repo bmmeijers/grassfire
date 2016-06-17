@@ -364,6 +364,8 @@ def compute_event_1triangle(tri, now, sieve):
                      o.distance2_at(d, time)]
             tp = "edge"
             zeros = [near_zero(dist) for dist in dists]
+            if True not in zeros:
+                return None
             sides = [zeros.index(True)]
             assert len(sides) == 1
             return Event(when=time, tri=tri, side=sides, tp=tp, tri_tp=tri.type)
@@ -512,6 +514,7 @@ def compute_event_inftriangle(tri, now, sieve):
                 # collapsing edge!
                 return Event(when=time, tri=tri, side=(side,), tp="edge", tri_tp=tri.type)
             else:
+                return None
                 raise ValueError('problem?')
 #                 tp = "edge"
 #                 return Event(when=time, tri=tri, side=(side,), tp=tp)

@@ -581,7 +581,8 @@ def handle_fan(fan, pivot, skel, queue, now):
     """
     logging.debug("\n\nHANDLE FAN OF TRIANGLES that just collapses\n\n")
 #     assert len(fan) == 1
-
+    if len(fan) == 0:
+        return
     assert len(fan) > 0
     t = fan[-1]
     
@@ -755,6 +756,8 @@ def handle_fan_cw(fan, pivot, skel, queue, now):
         for n in t.neighbours:
             if n is not None:
                 n.neighbours[n.neighbours.index(t)] = None
+                if n not in fan:
+                    replace_in_queue(n, now, queue)
 
     if kv.velocity == (0, 0):
         handle_fan_ccw(fan_new, kv, skel, queue, now)
@@ -809,6 +812,8 @@ def handle_fan_ccw(fan, pivot, skel, queue, now):
         for n in t.neighbours:
             if n is not None:
                 n.neighbours[n.neighbours.index(t)] = None
+                if n not in fan:
+                    replace_in_queue(n, now, queue)
 
     # make last neighbour None
     #     n = t.neighbours[(e) % 3]
@@ -982,6 +987,7 @@ def handle_flip_event(evt, skel, queue):
     assert len(evt.side) == 1
     t, t_side = evt.triangle, evt.side[0]
     n = t.neighbours[t_side]
+    assert n is not None
     n_side = n.neighbours.index(t)
     flip(t, t_side, n, n_side)
     replace_in_queue(t, now, queue)
@@ -1094,9 +1100,8 @@ def event_loop(queue, skel, pause=False):
                     prev_time += step_time
                     visualize(queue, skel, prev_time + step_time)
                     sleep(0.5)
-            if pause and (ct % 5) == 0:
+            if pause and False:# and (ct % 10) == 0:
                 visualize(queue, skel, NOW)
-                
                 import os, random
                 #with open("/tmp/signal", "w") as fh:
                 #    fh.write("{}".format(random.randint(0,1000)))

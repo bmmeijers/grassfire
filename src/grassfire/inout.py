@@ -73,9 +73,10 @@ def output_offsets(skel, now=1000):
     """ """
     logging.debug("offsets for t= {}".format(now))
     now = 10
-    ct = 1000
-    inc = now / float(ct)
-    times = [0.05] #[t*inc for t in range(ct)]
+    ct = 100
+    inc = 0.05 # now / float(ct)
+    #times = [0.0276]#[0.075] #[0.0375] #[0.15] #[0.075] #
+    times = [t*inc for t in range(ct)]
     with open("/tmp/offsetsl.wkt", "w") as fh:
         fh.write("wkt;time;from;to\n")
         for t in times:
@@ -127,7 +128,7 @@ def output_skel(skel):
                 fh.write("\n")
             else:
                 s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(v.starts_at), 
-                                                                      v.position_at(1000))
+                                                                      v.position_at(5))
                 fh.write(s)
                 fh.write("\n")
 
