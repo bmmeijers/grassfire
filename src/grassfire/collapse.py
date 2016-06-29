@@ -1,6 +1,7 @@
 import logging
 import numpy
 import bisect
+import math
 
 # from operator import sub, add
 from tri.delaunay import cw, ccw
@@ -468,7 +469,9 @@ def compute_event_2triangle(tri, now, sieve):
         time = collapse_time_edge(a, o)
         times.append(time)
     times = get_unique_times(times)
+    logging.debug("Unique times: " + str(times))
     time = sieve(times, now)
+    logging.debug("Time found: " + str(time))
     if time is not None:
         dists = [d.distance2_at(a, time),
                  a.distance2_at(o, time),
@@ -664,6 +667,7 @@ def compute_collapse_time_at_T(tri, time):
              o.distance2_at(d, time)]
     logging.debug("distances at time = {1}: {0}".format(dists, time))
     zeros = [near_zero(dist) for dist in dists]
+    logging.debug("near zero at time = {1}: {0}".format(zeros, time))
     sides = []
     for i, zero in enumerate(zeros):
         if zero is True:

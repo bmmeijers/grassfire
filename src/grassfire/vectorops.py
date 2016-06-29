@@ -1,8 +1,10 @@
 """Operations that allow tuples/lists (or any type that implements __getitem__
 and __iter__) to be used as vectors"""
 
+import logging
 import math
 from operator import sub as _sub, mul as _mul, truediv as _div, add as _add
+from grassfire.calc import near_zero
 
 
 def sub(a, b):
@@ -148,6 +150,9 @@ def bisector(u1, u2):
     in which a vertex has to move to keep up (stay at the intersection of)
     the 2 wavefront edges
     """
+    check = add(u1, u2)
+    if all(map(near_zero, check)):
+        raise ValueError("parallel wavefront")
     alpha = 0.5 * math.pi + 0.5 * angle_unit(u1, u2)
     # print "angle :=", math.degrees(alpha)
     magnitude = math.sin(alpha)

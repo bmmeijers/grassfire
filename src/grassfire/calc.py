@@ -18,6 +18,9 @@ def get_unique_times(times):
 
 
 def all_close_clusters(L, abs_tol=1e-7, rel_tol=0.):
+    """Return those values in a list that are 'far enough away'
+    from other values in a list.
+    """
     if L:
         it = iter(sorted(L))
         first = next(it)

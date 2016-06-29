@@ -314,42 +314,13 @@ def replace_in_queue(t, now, queue):
         logging.debug("no new events".format(e))
         return
 
-# def update_circ(kv, v1, v2, now):
-#     """Update neighbour list of kinetic vertices (this is a circular list going
-#     around the wavefront edges
-#     """
-#     raise ValueError("update circ disabled")
-#     # FIXME:
-#     # Would it not be better to have just one side updated
-#     # and call method twice? --> fits better with parallel wavefront handling
-#     # update_circ(v_left, v_right, now):
-#     #    v_left.right = v_right, now
-#     #    v_right.left = v_left, now
-#     #
-#
-#     # update circular list:
-#     #               <-----v2
-#     #    <----- kv ----->
-#     # v1 ---->
-#     kv.left = v1, now
-#     kv.right = v2, now
-#     #
-#     v1.right = kv, now
-#     v2.left = kv, now
-
 
 def update_circ(v_left, v_right, now):
     """Update neighbour list of kinetic vertices (this is a circular list going
     around the wavefront edges
-    """
-    # FIXME:
-    # Would it not be better to have just one side updated
-    # and call method twice? --> fits better with parallel wavefront handling
-    # update_circ(v_left, v_right, now):
-    #    v_left.right = v_right, now
-    #    v_right.left = v_left, now
-    #
 
+    Note that for a vertex often 2 sides need to be updated.
+    """
     # update circular list:
     #               <-----v_right
     # v_left ----->
@@ -631,6 +602,7 @@ def handle_edge_event_3sides(evt, skel, queue, immediate):
     # get neighbours around collapsing triangle
     for n in t.neighbours:
         if n is not None and n.event is not None and n.stops_at is None:
+            n.neighbours[n.neighbours.index(t)] = None
             schedule_immediately(n, now, queue, immediate)
     # we "remove" the triangle itself
     t.stops_at = now
@@ -899,8 +871,11 @@ def schedule_immediately(tri, now, queue, immediate):
     # remove from global queue
     queue.discard(tri.event)
     # compute new event and put in immediate queue
+    #E = compute_collapse_time(tri, now)
     E = compute_collapse_time_at_T(tri, now)
     tri.event = E
+    if tri.neighbours.count(None) == 3:
+        tri.event.side = range(3)
     immediate.append(tri.event)
 
 
@@ -1185,6 +1160,8 @@ def event_loop(queue, skel, pause=False):
 #                 prev += step
             evt = queue.popleft()
             prev_time = NOW
+        if pause:
+            visualize(queue, skel, NOW)
         # -- decide what to do based on event type
         logging.debug("Handling event " +
                       str(evt.tp) +
@@ -1216,7 +1193,11 @@ def event_loop(queue, skel, pause=False):
             logging.debug("{0:5d} {1}".format(i, e))
         logging.debug("-" * 80)
         for i, e in enumerate(queue):
+            if i > 5 and i < len(queue) - 5:
+                continue
             logging.debug("{0:5d} {1}".format(i, e))
+            if i == 5 and len(queue) > 5:
+                logging.debug("...")
         logging.debug("=" * 80)
         if pause:
             import random
