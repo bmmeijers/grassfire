@@ -851,7 +851,7 @@ class TestGrassfire(unittest.TestCase):
              445622.80800000001909211)]
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
-        skel = calc_skel(conv, pause=PAUSE, output=True)
+        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
 
 
 if __name__ == "__main__":

@@ -34,4 +34,4 @@ for line in segments:
     conv.add_segment(*line)
 print conv.points
 
-skel = calc_skel(conv, pause=True, output=True)
+skel = calc_skel(conv, pause=False, output=True)

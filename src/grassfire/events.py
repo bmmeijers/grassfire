@@ -1119,7 +1119,10 @@ def event_loop(queue, skel, pause=False):
     logging.debug("=" * 80)
     ct = 0
 #     step = prev = 0.025
+    FILTER_CT = 220
     while queue or immediate:
+#         if len(queue) < FILTER_CT:
+#             pause = True
         ct += 1
 #         if parallel:
 #             evt = parallel.popleft()
@@ -1192,12 +1195,14 @@ def event_loop(queue, skel, pause=False):
         for i, e in enumerate(immediate):
             logging.debug("{0:5d} {1}".format(i, e))
         logging.debug("-" * 80)
-        for i, e in enumerate(queue):
-            if i > 5 and i < len(queue) - 5:
-                continue
-            logging.debug("{0:5d} {1}".format(i, e))
-            if i == 5 and len(queue) > 5:
-                logging.debug("...")
+        if len(queue) < FILTER_CT:
+            for i, e in enumerate(queue):
+                if i > 5 and i < len(queue) - 5:
+                    continue
+                    logging.debug("{0:5d} {1}".format(i, e))
+                    logging.debug(repr(e.triangle))
+                if i == 5 and len(queue) > 5:
+                    logging.debug("...")
         logging.debug("=" * 80)
         if pause:
             import random
