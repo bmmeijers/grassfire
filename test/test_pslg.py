@@ -16,6 +16,22 @@ class TestPSLGGrassfire(unittest.TestCase):
     planar straight line graph as input (with terminal vertices)
     """
 
+    def test_cshape(self):
+        """Parallel c-shape wavefront"""
+        conv = ToPointsAndSegments()
+        l0 = [(0.0, 0.0), (0.0, 3)]
+        l1 = [(0, 3), (5,3)]
+        l2 = [(0,0), (5,0)]
+        for line in l0, l1, l2:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        skel = calc_skel(conv,
+                         pause=True,
+                         output=True)
+        assert len(skel.segments()) == 10
+        assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+
 #     def test_simple_infinite(self):
 #         """1 segment with terminal vertices at convex hull
 #         """
@@ -210,41 +226,123 @@ class TestPSLGGrassfire(unittest.TestCase):
         assert len(skel.segments()) == 15, len(skel.segments())
         assert len(skel.sk_nodes) == 9, len(skel.sk_nodes)
 
-def test_inf(self):
-        """Contains 1 triangle that is only witnessed by infinite triangle event (edge collapse)
-        """
-        segments = [[(0.713628396143, 0.28492915571299998), (0.605791703184, 0.27382778264800001)],
-                    [(0.71037832310799998, 0.31648042652800001),
-                     (0.713628396143, 0.28492915571299998)],
-                    [(0.74580046742600004, 0.32013219398300002),
-                     (0.71037832310799998, 0.31648042652800001)],
-                    [(0.74919661115900005, 0.28708369850999998),
-                     (0.74580046742600004, 0.32013219398300002)],
-                    [(0.74919661115900005, 0.28708369850999998),
-                     (0.84596844872900001, 0.25202673093900002)],
-                    [(0.84596844872900001, 0.25202673093900002),
-                     (0.86338737949099997, 0.27726044405599998)],
-                    [(0.89132340052500003, 0.25797911189200001),
-                     (0.86338737949099997, 0.27726044405599998)],
-                    [(0.89132340052500003, 0.25797911189200001),
-                     (0.87101957347299996, 0.22858238387499999)],
-                    [(0.87101957347299996, 0.22858238387499999),
-                     (0.94226555652900001, 0.15090929009699999)],
-                    [(0.94226555652900001, 0.15090929009699999),
-                     (0.98031697341500001, 0.16547984224500001)],
-                    [(0.98689015483499998, 0.13283304119200001),
-                     (0.98031697341500001, 0.16547984224500001)],
-                    [(0.98689015483499998, 0.13283304119200001),
-                     (0.954279871457, 0.118518112767)],
-                    [(0.954279871457, 0.118518112767), (0.96435874963400003, 0.0207237803098)]]
+#     def test_another_parallel4(self):
+#         j = """{
+# "type": "FeatureCollection",
+# "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+#                                                                                          
+# "features": [
+# { "type": "Feature", "properties": { "id": 19 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.481125224325, 0.5 ], [ 0.288675134595, 0.5 ] ] } },
+# { "type": "Feature", "properties": { "id": 20 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.288675134595, 0.5 ], [ 0.19245008973, 0.666666666667 ] ] } },
+# { "type": "Feature", "properties": { "id": 24 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.19245008973, 0.666666666667 ], [ 0.288675134595, 0.833333333333 ] ] } },
+# { "type": "Feature", "properties": { "id": 44 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.5773502692, 0.666666666667 ], [ 0.481125224325, 0.5 ] ] } }
+# ]
+# }"""
+#         import json
+#         x = json.loads(j)
+#         # parse segments from geo-json
+#         segments = []
+#         for y in x['features']:
+#             segments.append(tuple(map(tuple, y['geometry']['coordinates'])))
+#         # convert to triangulation input
+#         conv = ToPointsAndSegments()
+#         for line in segments:
+#             conv.add_point(line[0])
+#             conv.add_point(line[1])
+#             conv.add_segment(*line)
+#         # skeletonize / offset
+#         skel = calc_skel(conv, pause=True, output=True)
+
+    def test_inf(self):
+            """Contains 1 triangle that is only witnessed by infinite triangle event (edge collapse)
+            """
+            segments = [[(0.713628396143, 0.28492915571299998), (0.605791703184, 0.27382778264800001)],
+                        [(0.71037832310799998, 0.31648042652800001),
+                         (0.713628396143, 0.28492915571299998)],
+                        [(0.74580046742600004, 0.32013219398300002),
+                         (0.71037832310799998, 0.31648042652800001)],
+                        [(0.74919661115900005, 0.28708369850999998),
+                         (0.74580046742600004, 0.32013219398300002)],
+                        [(0.74919661115900005, 0.28708369850999998),
+                         (0.84596844872900001, 0.25202673093900002)],
+                        [(0.84596844872900001, 0.25202673093900002),
+                         (0.86338737949099997, 0.27726044405599998)],
+                        [(0.89132340052500003, 0.25797911189200001),
+                         (0.86338737949099997, 0.27726044405599998)],
+                        [(0.89132340052500003, 0.25797911189200001),
+                         (0.87101957347299996, 0.22858238387499999)],
+                        [(0.87101957347299996, 0.22858238387499999),
+                         (0.94226555652900001, 0.15090929009699999)],
+                        [(0.94226555652900001, 0.15090929009699999),
+                         (0.98031697341500001, 0.16547984224500001)],
+                        [(0.98689015483499998, 0.13283304119200001),
+                         (0.98031697341500001, 0.16547984224500001)],
+                        [(0.98689015483499998, 0.13283304119200001),
+                         (0.954279871457, 0.118518112767)],
+                        [(0.954279871457, 0.118518112767), (0.96435874963400003, 0.0207237803098)]]
+            conv = ToPointsAndSegments()
+            for line in segments:
+                conv.add_point(line[0])
+                conv.add_point(line[1])
+                conv.add_segment(*line)
+            skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
+            assert len(skel.segments()) == 47, len(skel.segments())
+            assert len(skel.sk_nodes) == 33, len(skel.sk_nodes)
+
+    def test_another_parallel3(self):
+        j = """{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+                                                                                      
+"features": [
+{ "type": "Feature", "properties": { "id": 19 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.481125224325, 0.5 ], [ 0.288675134595, 0.5 ] ] } },
+{ "type": "Feature", "properties": { "id": 20 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.288675134595, 0.5 ], [ 0.19245008973, 0.666666666667 ] ] } },
+{ "type": "Feature", "properties": { "id": 24 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.19245008973, 0.666666666667 ], [ 0.288675134595, 0.833333333333 ] ] } },
+{ "type": "Feature", "properties": { "id": 44 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.57735026919, 0.666666666667 ], [ 0.481125224325, 0.5 ] ] } }
+]
+}"""
+        import json
+        x = json.loads(j)
+        # parse segments from geo-json
+        segments = []
+        for y in x['features']:
+            segments.append(tuple(map(tuple, y['geometry']['coordinates'])))
+        # convert to triangulation input
         conv = ToPointsAndSegments()
         for line in segments:
             conv.add_point(line[0])
             conv.add_point(line[1])
             conv.add_segment(*line)
-        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
-        assert len(skel.segments()) == 47, len(skel.segments())
-        assert len(skel.sk_nodes) == 33, len(skel.sk_nodes)
+        # skeletonize / offset
+        skel = calc_skel(conv, pause=True, output=True)
+ 
+    def test_another_parallel1(self):
+        j = """{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+                                                                                     
+"features": [
+{ "type": "Feature", "properties": { "id": 21 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.673575314055, 0.166666666667 ], [ 0.866025403784, 0.166666666667 ] ] } },
+{ "type": "Feature", "properties": { "id": 25 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.673575314055, -0.166666666667 ], [ 0.5, -0.0 ] ] } },
+{ "type": "Feature", "properties": { "id": 27 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.866025403784, -0.166666666667 ], [ 0.673575314055, -0.166666666667 ] ] } },
+{ "type": "Feature", "properties": { "id": 32 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.5, -0.0 ], [ 0.673575314055, 0.166666666667 ] ] } }
+]
+}"""
+        import json
+        x = json.loads(j)
+        # parse segments from geo-json
+        segments = []
+        for y in x['features']:
+            segments.append(tuple(map(tuple, y['geometry']['coordinates'])))
+        # convert to triangulation input
+        conv = ToPointsAndSegments()
+        for line in segments:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        # skeletonize / offset
+        skel = calc_skel(conv, pause=True, output=True)
+
 
 
 if __name__ == "__main__":
