@@ -50,69 +50,33 @@ def vertex_crash_time(org, dst, apx):
 
     This method assumes that velocity of wavefront is unit speed (1!)
 
-    input:
-    org, dst: vertices incident with wavefront edge
-    apx: vertex opposite of wavefront edge
+    Input:
+        org, dst: kinetic vertices incident with wavefront edge
+        apx: kinetic vertex opposite of wavefront edge
     """
     Mv = tuple(sub(apx.origin, org.origin))
-    # if the two vertices are the same, the vector is undetermined!!!
-    # for terminal vertices this may be a problem! ->
-    # the vector is known though (it is perpendicular to the original segment
-    # in this case!)
     logging.debug("Vector Mv: " + str(Mv))
     assert org.ur == dst.ul
     n = org.ur
-#     if org.origin == dst.origin:
-#         # wavefront does not have length:
-#         # we assume the two velocity vectors are perpendicular
-#         # as this then should be a 1-terminal vertex
-#         #         assert dot(org.velocity, dst.velocity) == 0
-#         # we add them and we normalize to get a unit vector
-#         n = unit(add(org.velocity, dst.velocity))
-#     else:
-#         # get vector m from begin to end of wavefront
-#         m = sub(dst.origin, org.origin)
-#         # normalize m
-#         m = unit(m)
-#         # take perpendicular vector to get normal to wavefront
-#         # that points in direction where wavefront is moving to
-#         n = rotate90ccw(m)
-
-    # output wavefront normal for visualization
-#     halfpt = vector_mul_scalar(map(add, org.origin, dst.origin), 0.5)
-#     endpt = map(add, halfpt, n)
-#     with open("/tmp/wavefront_normal.wkt", "w") as fh:
-#         fh.write("wkt\n")
-#         l = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(halfpt, endpt)
-#         fh.write(l + "\n")
-
     logging.debug("Vector n: " + str(n))
     # Normalize, to get unit vector
     s = apx.velocity
     logging.debug("Vector s: " + str(s))
-    #     nn = norm(n)
-    #     logging.debug("Vector nn (normalized n): " + str(nn))
-    # project Mv onto normalized unit vector pointing outwards of wavefront
+    # Project Mv onto normalized unit vector pointing outwards of wavefront
     # edge this gives distance from vertex to wavefront edge
-    dist_v_e = dot(Mv, n)  # normalize(n))
+    dist_v_e = dot(Mv, n)
     logging.debug("Distance wavefront -- vertex: " + str(dist_v_e))
     # Speed vector of vertex v: s
-
-    # Unit vector of wavefront edge in opposite direction
-    #n_ = mul(unit(n), -1.0)
-    # Length of projection of s onto nn
     s_proj = dot(s, n)
     logging.debug(
         "Per time unit v travels (1 - s_proj := combined speed of approach) " +
         str(s_proj) +
         " " +
-        str(
-            1.0 -
-            s_proj))
+        str(1.0 - s_proj))
     logging.debug("Per time unit e travels " + str(norm(n)))
-    # The distance between is travelled by each vertex that each move
+    # The distance between is traveled by each vertex that each move
     # this amount of units per time tick
-    denom = 1.0 - s_proj #+ norm(n)
+    denom = 1.0 - s_proj
     if not near_zero(denom):
         # It takes this amount of time units to crash
         t_v = dist_v_e / denom

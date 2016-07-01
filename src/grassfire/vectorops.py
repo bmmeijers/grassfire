@@ -162,12 +162,16 @@ def bisector(u1, u2):
 
 def rotate90ccw(v):
     """Rotate 2d vector 90 degrees counter clockwise
+
+    (x, y) -> (-y, x)
     """
     return (-(v[1]), v[0])
 
 
 def rotate90cw(v):
     """Rotate 2d vector 90 degrees clockwise
+
+    (x, y) -> (y, -x)
     """
     return (v[1], -v[0])
 
