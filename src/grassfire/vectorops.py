@@ -152,6 +152,7 @@ def bisector(u1, u2):
     """
     check = add(u1, u2)
     if all(map(near_zero, check)):
+        #return (0, 0)
         raise ValueError("parallel wavefront")
     alpha = 0.5 * math.pi + 0.5 * angle_unit(u1, u2)
     # print "angle :=", math.degrees(alpha)

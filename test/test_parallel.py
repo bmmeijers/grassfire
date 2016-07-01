@@ -9,15 +9,62 @@ class TestParallelEvents(unittest.TestCase):
     def setUp(self):
        pass
 
+#     def test_butterfly_like(self):
+#         conv = ToPointsAndSegments()
+#         polygon = [[(0,0), (5,1), (10,0), (10,3), (5,2), (0,3), (0,0)]]
+#         conv.add_polygon(polygon)
+#         skel = calc_skel(conv, pause=True, output=True)
 
-    def test_rect_extra_pt(self):
-        """"Rectangle with extra point on straight (180 degrees) edge """
+
+    def test_butterfly_like(self):
         conv = ToPointsAndSegments()
-        polygon = [[(0, 0), (0., 10), (15,10), (15,0.), (2., 0.), (0,0)]]
+        polygon = [[(0,0), (5,1), (10,0), (10,1.5), (10,3), (5,2), (0,3), (0,0)]] #(0,1.5), (0,0)]]
         conv.add_polygon(polygon)
         skel = calc_skel(conv, pause=True, output=True)
-        assert len(skel.segments()) == 12
-        assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
+
+#     def test_corner_same_inwards(self):
+#         conv = ToPointsAndSegments()
+#         polygon = [[(0, 0), (10., 0), (10,20), (0,20.), (0.,11.), (1,11), (1,10), (0,10), (0,0)]]
+#         conv.add_polygon(polygon)
+#         skel = calc_skel(conv, pause=True, output=True)
+
+#     def test_corner_same(self):
+#         conv = ToPointsAndSegments()
+#         polygon = [[(0, 0), (10., 0), (10,20), (0,20.), (0.,11.), (-1,11), (-1,10), (0,10), (0,0)]]
+#         conv.add_polygon(polygon)
+#         skel = calc_skel(conv, pause=True, output=True)
+
+#     def test_corner_same2(self):
+#         conv = ToPointsAndSegments()
+#         polygon = [[(0, 0), (10., 0), (10,20), (0,20.), (0.,11.), (-1,12), (-1,9), (0,10), (0,0)]]
+#         conv.add_polygon(polygon)
+#         skel = calc_skel(conv, pause=True, output=True)
+
+
+#     def test_corner_bottom_short(self):
+#         conv = ToPointsAndSegments()
+#         polygon = [[(-.5, 0), (10., 0), (10,20), (0,20.), (0.,11.), (-1,11), (-1,10), (-0.5,10), (-.5,0)]]
+#         conv.add_polygon(polygon)
+#         skel = calc_skel(conv, pause=True, output=True)
+        
+#     def test_corner_top_short(self):
+#         conv = ToPointsAndSegments()
+#         polygon = [[(0, 0), (10., 0), (10,20), (-0.5,20.), (-0.5,11.), (-1,11), (-1,10), (0,10), (0,0)]]
+#         conv.add_polygon(polygon)
+#         skel = calc_skel(conv, pause=True, output=True)
+
+        
+#         assert len(skel.segments()) == 12
+#         assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
+
+#     def test_rect_extra_pt(self):
+#         """"Rectangle with extra point on straight (180 degrees) edge """
+#         conv = ToPointsAndSegments()
+#         polygon = [[(0, 0), (0., 10), (15,10), (15,0.), (2., 0.), (0,0)]]
+#         conv.add_polygon(polygon)
+#         skel = calc_skel(conv, pause=True, output=True)
+#         assert len(skel.segments()) == 12
+#         assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
         
 #     def test_simple_parallel(self):
 #         j = """{
@@ -892,21 +939,7 @@ class TestParallelEvents(unittest.TestCase):
 # # 
 # # 
 # # 
-#     def test_half_U(self):
-#         """Misses event, and has disconnected vertex"""
-#         polys = [
-#         [(38.3852, 32.0156), (39.2659501953, 32.0912681641), 
-#          (42.1678701172, 35.1549208984), 
-#          (42.2309, 35.9922), (42.2309, 47.834), 
-#          (47.5316, 47.834), (47.5316, 35.7273), 
-#          (47.4732092773, 34.7657740479), 
-#          (47.3213726562, 33.8784173828),  
-#          (38.3852, 32.0156)],
-#         ]
-#         conv = ToPointsAndSegments()
-#         for ring in polys:
-#             conv.add_polygon([ring])
-#         skel = calc_skel(conv, pause=True, output=True)#, pause=False, output=False)
+
 # #    
 # #    
 # #     def test_tudelft_logo(self):
@@ -960,146 +993,55 @@ class TestParallelEvents(unittest.TestCase):
 # #    
 # #    
 # #    
-# # ##############################################################################
-# # # PARALLEL EDGES IN THE INPUT, leading to problems 
-# # # (e.g. nodes not on correct location)
-# # ##############################################################################
-# #     
 
 # #    
-# #     def test_flipped_cshape(self):
-# #         """Parallel c-shape wavefront"""
-# #         conv = ToPointsAndSegments()
-# #         l0 = [(5, 0.0), (5, 3)]
-# #         l1 = [(0, 3), (5,3)]
-# #         l2 = [(0,0), (5,0)]
-# #         for line in l0, l1, l2:
-# #             conv.add_point(line[0])
-# #             conv.add_point(line[1])
-# #             conv.add_segment(*line)
-# #         skel = calc_skel(conv,
-# #                          pause=True,
-# #                          output=True)
-# #         assert len(skel.segments()) == 10
-# #         assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+# #     
 # #    
-#     def test_cshape_bottom(self):
-#         """Parallel c-shape wavefront with longer segment on bottom"""
-# #         # FIXME: missing piece of wavefront, after handling parallel fan
+# #    
+#     def test_cross(self):
+#         # FIXME: Multiple skeleton nodes, because of fan that just collapses
+#         ring = [(0,0), (10, 0), (10,-10), (15, -10), (15,0), (25,0), (25,5), (15,5), (15,15), (10,15), (10,5), (0,5), (0,0)]
 #         conv = ToPointsAndSegments()
-#         l0 = [(0.0, 0.0), (0.0, 3)]
-#         l1 = [(0, 3), (5,3)]
-#         l2 = [(0,0), (10,0)]
-#         for line in l0, l1, l2:
-#             conv.add_point(line[0])
-#             conv.add_point(line[1])
-#             conv.add_segment(*line)
+#         conv.add_polygon([ring])
 #         skel = calc_skel(conv, pause=True, output=True)
-#         assert len(skel.segments()) == 10
+#         # FIXME: are the following numbers correct?
+#         # yep they are...
+#         assert len(skel.segments()) == 16+12, len(skel.segments())
+#         assert len(skel.sk_nodes) == 17, len(skel.sk_nodes)
+# #    
+# #    
+#     def test_parallelogram(self):
+#         """Parallelogram with parallel wavefronts collapsing"""
+#         conv = ToPointsAndSegments()
+#         conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
+#         skel = calc_skel(conv, pause=True, output=True)
+#         positions = [n.pos for n in skel.sk_nodes]
 #         assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
-# #    
-# #    
-# #     def test_cshape_top(self):
-# #         """Parallel c-shape wavefront with longer segment on top"""
-# #         # FIXME: missing piece of wavefront, after handling parallel fan
-# #         conv = ToPointsAndSegments()
-# #         l0 = [(0.0, 0.0), (0.0, 3)]
-# #         l1 = [(0, 3), (10,3)]
-# #         l2 = [(0,0), (5,0)]
-# #         for line in l0, l1, l2:
-# #             conv.add_point(line[0])
-# #             conv.add_point(line[1])
-# #             conv.add_segment(*line)
-# #         skel = calc_skel(conv, pause=True, output=True)
-# #         assert len(skel.segments()) == 10
-# #         assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
-# #         # geometric embedding
-# #         positions = [n.pos for n in skel.sk_nodes]
-# #         assert frozenset(positions) == frozenset([(0.0, -0.3), (1.0, 0.3), (-1.0, 0.3), (-1.0, -0.3), (-0.7, 0.0), (0.3, 0.0)])
-# #    
-# #    
-
-# #   
-# #     def test_2parallel_eq(self):
-# #         """2 parallel wavefront having equal size"""
-# #         conv = ToPointsAndSegments()
-# #         l0 = [(0, 0), (3,0)]
-# #         l1 = [(0, 1), (3,1)]
-# #         for line in l0, l1:
-# #             conv.add_point(line[0])
-# #             conv.add_point(line[1])
-# #             conv.add_segment(*line)
-# #         skel = calc_skel(conv, pause=True, output=True)
-# #     
-# #     def test_2parallel_not_eq(self):
-# #         """2 parallel wavefront having different size"""
-# #         conv = ToPointsAndSegments()
-# #         l0 = [(0, 0), (3,0)]
-# #         l1 = [(1, 1), (2,1)]
-# #         for line in l0, l1:
-# #             conv.add_point(line[0])
-# #             conv.add_point(line[1])
-# #             conv.add_segment(*line)
-# #         skel = calc_skel(conv, pause=False, output=False)
-# #    
-# #     def test_2parallel_not_eq2(self):
-# #         """2 parallel wavefront having different size, other one above"""
-# #         conv = ToPointsAndSegments()
-# #         l0 = [(0, 0), (3,0)]
-# #         l1 = [(1, -1), (2,-1)]
-# #         for line in l0, l1:
-# #             conv.add_point(line[0])
-# #             conv.add_point(line[1])
-# #             conv.add_segment(*line)
-# #         skel = calc_skel(conv, pause=False, output=False)
-# #    
-# #     
-# #    
-# #    
-# #     def test_cross(self):
-# #         # FIXME: Multiple skeleton nodes, because of fan that just collapses
-# #         ring = [(0,0), (10, 0), (10,-10), (15, -10), (15,0), (25,0), (25,5), (15,5), (15,15), (10,15), (10,5), (0,5), (0,0)]
-# #         conv = ToPointsAndSegments()
-# #         conv.add_polygon([ring])
-# #         skel = calc_skel(conv, pause=True, output=True)
-# #         # FIXME: are the following numbers correct?
-# #         # yep they are...
-# #         assert len(skel.segments()) == 16+12, len(skel.segments())
-# #         assert len(skel.sk_nodes) == 17, len(skel.sk_nodes)
-# #    
-# #    
-# #     def test_parallelogram(self):
-# #         """Parallelogram with parallel wavefronts collapsing"""
-# #         conv = ToPointsAndSegments()
-# #         conv.add_polygon([[(-15,0), (0,0), (15,25), (0, 25), (-15,0)]])
-# #         skel = calc_skel(conv, pause=True, output=True)
-# #         positions = [n.pos for n in skel.sk_nodes]
-# #         assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
-# #         assert len(skel.segments()) == 9, len(skel.segments())
+#         assert len(skel.segments()) == 9, len(skel.segments())
 # #    
 # #    
 # #    
-# #     def test_multiple_parallel(self):
-# #         """Parallelogram with parallel wavefronts collapsing"""
-# #         # FIXME: Multiple skeleton nodes, because of fan that just collapses
-# #         conv = ToPointsAndSegments()
-# #         conv.add_polygon([[(0,0), (1,0), (2,0), (3,0), (4,0), (5,0),
-# #                            (5,1), (4,1), (3,1), (2,1), (1,1), (0, 1), (0,0)
-# #                            ]])
-# #         skel = calc_skel(conv, pause=True, output=True)
-# #         assert len(skel.sk_nodes) == 18, len(skel.sk_nodes)
-# #         assert len(skel.segments()) == 29, len(skel.segments())
+#     def test_multiple_parallel(self):
+#         """Parallelogram with parallel wavefronts collapsing"""
+#         # FIXME: Multiple skeleton nodes, because of fan that just collapses
+#         conv = ToPointsAndSegments()
+#         conv.add_polygon([[(0,0), (1,0), (2,0), (3,0), (4,0), (5,0),
+#                            (5,1), (4,1), (3,1), (2,1), (1,1), (0, 1), (0,0)
+#                            ]])
+#         skel = calc_skel(conv, pause=True, output=True)
+#         assert len(skel.sk_nodes) == 18, len(skel.sk_nodes)
+#         assert len(skel.segments()) == 29, len(skel.segments())
 # #    
 # #    
-# #     def test_multiple_parallel2(self):
-# #         """Parallelogram with parallel wavefronts collapsing"""
-# #         conv = ToPointsAndSegments()
-# #         conv.add_polygon([[(0,0), (2,0), (4,0), (5,0),
-# #                            (5,1), (3,1), (1,1), (0, 1), (0,0)
-# #                            ]])
-# #         skel = calc_skel(conv, pause=True, output=True)
-# #         assert len(skel.sk_nodes) == 14, len(skel.sk_nodes)
-# #         assert len(skel.segments()) == 13, len(skel.segments())
+#     def test_multiple_parallel2(self):
+#         """Parallelogram with parallel wavefronts collapsing"""
+#         conv = ToPointsAndSegments()
+#         conv.add_polygon([[(0,0), (2,0), (4,0), (5,0),
+#                            (5,1), (3,1), (1,1), (0, 1), (0,0)
+#                            ]])
+#         skel = calc_skel(conv, pause=True, output=True)
+#         assert len(skel.sk_nodes) == 14, len(skel.sk_nodes)
+#         assert len(skel.segments()) == 13, len(skel.segments())
 # #    
 # #    
 # #    
@@ -1109,36 +1051,36 @@ class TestParallelEvents(unittest.TestCase):
 # #     
 # # # 
 # #    
-# #     def test_3tris(self):
-# #         # Fixme: Missing wavefront after handling parallel fan
-# #         conv = ToPointsAndSegments()
-# #         polygons = [
-# #                     [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
-# #                     [[(1,0.5), (2,0.5), (1.5,1), (1,0.5)]],
-# #                     [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
-# #                     ]
-# # #         polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.), (1., 0.), (-.1,3), (0.,10.)]]
-# #         for polygon in polygons:
-# #             conv.add_polygon(polygon)
-# #         skel = calc_skel(conv, pause=True, output=True)
-# #         assert len(skel.segments()) == 24
-# #         assert len(skel.sk_nodes) == 16
+#     def test_3tris(self):
+#         # Fixme: Missing wavefront after handling parallel fan
+#         conv = ToPointsAndSegments()
+#         polygons = [
+#                     [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
+#                     [[(1,0.5), (2,0.5), (1.5,1), (1,0.5)]],
+#                     [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
+#                     ]
+# #         polygon = [[(0., 10.), (1., 8.), (2.,10.), (2.1,3.), (1., 0.), (-.1,3), (0.,10.)]]
+#         for polygon in polygons:
+#             conv.add_polygon(polygon)
+#         skel = calc_skel(conv, pause=True, output=True)
+#         assert len(skel.segments()) == 24
+#         assert len(skel.sk_nodes) == 16
 # #    
 # #     
-# #     def test_3tris_handle_cw_ccw(self):
-# #         """Splitting and then handle the fan
-# #         """
-# #         conv = ToPointsAndSegments()
-# #         polygons = [
-# #                     [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
-# #                     [[(1,3), (2,3), (1.5,3.5), (1,3)]],
-# #                     [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
-# #                     ]
-# #         for polygon in polygons:
-# #             conv.add_polygon(polygon)
-# #         skel = calc_skel(conv, pause=True, output=True)
-# #         assert len(skel.segments()) == 24
-# #         assert len(skel.sk_nodes) == 16
+#     def test_3tris_handle_cw_ccw(self):
+#         """Splitting and then handle the fan
+#         """
+#         conv = ToPointsAndSegments()
+#         polygons = [
+#                     [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
+#                     [[(1,3), (2,3), (1.5,3.5), (1,3)]],
+#                     [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
+#                     ]
+#         for polygon in polygons:
+#             conv.add_polygon(polygon)
+#         skel = calc_skel(conv, pause=True, output=True)
+#         assert len(skel.segments()) == 24
+#         assert len(skel.sk_nodes) == 16
 # 
 #     def test_3tris_split_handle(self):
 #         """One side that should just use handle and other side should handle_ccw
