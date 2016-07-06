@@ -56,7 +56,7 @@ def vertex_crash_time(org, dst, apx):
     """
     Mv = tuple(sub(apx.origin, org.origin))
     logging.debug("Vector Mv: " + str(Mv))
-#     assert org.ur == dst.ul, "{} {}".format(org.ur, dst.ul)
+    assert org.ur == dst.ul
     n = org.ur
     logging.debug("Vector n: " + str(n))
     # Normalize, to get unit vector
@@ -335,7 +335,7 @@ def compute_event_1triangle(tri, now, sieve):
         for i, _ in enumerate(dists):
             if near_zero(_ - max(dists)):
                 longest.append(i)
-        if wavefront_side in longest:# and len(longest) == 1:
+        if wavefront_side in longest and len(longest) == 1:
             return Event(when=time_vertex_crash,
                          tri=tri,
                          side=(wavefront_side,),

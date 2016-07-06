@@ -13,6 +13,7 @@ OUTPUT = False
 
 class TestGrassfire(unittest.TestCase):
     """Relatively simple test cases for Straight Skeleton"""
+
     def test_diamantlike(self):
         conv = ToPointsAndSegments()
         conv.add_polygon(

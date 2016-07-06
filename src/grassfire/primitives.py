@@ -1,4 +1,5 @@
 from collections import namedtuple
+from grassfire.calc import near_zero
 
 
 class Event(object):
@@ -39,9 +40,9 @@ class Skeleton(object):
         segments = []
         for v in self.vertices:
             if v.stops_at is not None:
-                s = (v.position_at(v.starts_at), v.position_at(v.stops_at))
+                s = (v.start_node.pos, v.stop_node.pos)
             else:
-                s = (v.position_at(v.starts_at), v.position_at(1000))
+                s = (v.start_node.pos, v.position_at(1000))
             segments.append(s)
         return segments
 
@@ -55,12 +56,18 @@ class SkeletonNode(object):
         self.pos = pos
         self.info = info  # the info of the vertex in the triangulation
 
+    def position_at(self, time):
+        """Returns the position of this skeleton node
+        (to have same interface as a vertex -> simplifies testing)
+        """
+        return self.pos
+
 
 class KineticVertex(object):
     __slots__ = ("origin", "velocity",
                  "starts_at", "stops_at",
                  "start_node", "stop_node",
-                 "_left", "_right", "id", "ul", "ur"
+                 "_left", "_right", "id", "ul", "ur", "inf_fast"
                  )
 
     def __init__(self, origin=None, velocity=None, ul=None, ur=None):
@@ -84,6 +91,7 @@ class KineticVertex(object):
         self.ur = ur  # or right
 
         self.id = id(self)
+        self.inf_fast = False  # whether this vertex moves infinitely fast
 
     def __str__(self):
         # FIXME: make other method (dependent on time as argument)
@@ -110,8 +118,11 @@ class KineticVertex(object):
         return pow(sx - ox, 2) + pow(sy - oy, 2)
 
     def position_at(self, time):
-        return (self.origin[0] + time * self.velocity[0],
-                self.origin[1] + time * self.velocity[1])
+        if not self.inf_fast:
+            return (self.origin[0] + time * self.velocity[0],
+                    self.origin[1] + time * self.velocity[1])
+        else:
+            return self.start_node.pos
 
     @property
     def left(self):

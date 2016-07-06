@@ -150,15 +150,15 @@ def bisector(u1, u2):
     in which a vertex has to move to keep up (stay at the intersection of)
     the 2 wavefront edges
     """
-    check = add(u1, u2)
-    if all(map(near_zero, check)):
-        #return (0, 0)
-        raise ValueError("parallel wavefront")
+    direction = add(u1, u2)
+    if all(map(near_zero, direction)):
+        return (0, 0)
+        #raise ValueError("parallel wavefront")
     alpha = 0.5 * math.pi + 0.5 * angle_unit(u1, u2)
     # print "angle :=", math.degrees(alpha)
     magnitude = math.sin(alpha)
     # print magnitude
-    return div(unit(add(u1, u2)), magnitude)
+    return div(unit(direction), magnitude)
 
 
 def rotate90ccw(v):
