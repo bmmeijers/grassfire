@@ -9,6 +9,7 @@ from grassfire import calc_skel
 
 PAUSE = False
 OUTPUT = False
+LOGGING = False
 
 
 class TestGrassfire(unittest.TestCase):
@@ -21,8 +22,8 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (7 + 6), len(skel.segments())
         assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
- 
- 
+  
+  
     def test_triangle(self):
         conv = ToPointsAndSegments()
         conv.add_point((10, 0))
@@ -34,7 +35,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 6
         assert len(skel.sk_nodes) == 4
- 
+  
     def test_symmetric_quad(self):
         """Quad"""
         ring = [(1, 0), (0, 5), (1, 10), (2, 5), (1, 0)]
@@ -43,14 +44,14 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.sk_nodes) == 5, len(skel.segments())
         assert len(skel.segments()) == (4 + 4), len(skel.sk_nodes)
- 
+  
     def test_diamant(self):
         conv = ToPointsAndSegments()
         conv.add_polygon([[(-1, 0), (0, -1), (1, 0), (0, 5), (-1, 0)]])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 8, len(skel.segments())
         assert len(skel.sk_nodes) == 5, len(skel.sk_nodes)
-  
+   
     def test_simple_poly(self):
         conv = ToPointsAndSegments()
         conv.add_polygon(
@@ -58,8 +59,8 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 12
         assert len(skel.sk_nodes) == 8
-
-
+ 
+ 
     def test_two_teeth(self):
         conv = ToPointsAndSegments()
         polygon = [[(-2, -1), (-1, 0), (1, 0), (1.5, -.5), (1.2, .7),
@@ -68,9 +69,9 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 22
         assert len(skel.sk_nodes) == 15
+  
  
-
- 
+  
     def test_quad(self):
         conv = ToPointsAndSegments()
         conv.add_point((8, 2))
@@ -87,7 +88,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 14
         assert len(skel.sk_nodes) == 9
- 
+  
     def test_simultaneous(self):
         # substitute with this and we get a lot of simultaneous events!
         conv = ToPointsAndSegments()
@@ -96,7 +97,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (8 + 4 + 8)
         assert len(skel.sk_nodes) == 13
- 
+  
     def test_squarish(self):
         conv = ToPointsAndSegments()
         conv.add_polygon(
@@ -104,7 +105,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (12 + 8)
         assert len(skel.sk_nodes) == 13
- 
+  
     def test_bottom_circle(self):
         """bottom circle"""
         from math import pi, cos, sin, degrees
@@ -120,7 +121,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (9 + 15)
         assert len(skel.sk_nodes) == 16
- 
+  
     def test_poly(self):
         """Simple polygon with small dent"""
         conv = ToPointsAndSegments()
@@ -129,7 +130,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (8 + 13)
         assert len(skel.sk_nodes) == 14
- 
+  
     def test_cocircular1(self):
         ok = (3.8, 0.8)  # this works
         conv = ToPointsAndSegments()
@@ -138,9 +139,9 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 13 + 8
         assert len(skel.sk_nodes) == 14
+  
  
-
- 
+  
     def test_rocket2(self):
         """Contains zero triangle to flip ...
         """
@@ -150,13 +151,13 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 15
         assert len(skel.sk_nodes) == 10
-
-
+ 
+ 
     def test_simple_house(self):
         s = """{
 "type": "FeatureCollection",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
-   
+    
 "features": [
 { "type": "Feature", "properties": { "id": 204 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.0834448906737, 0.288710397143 ], [ -0.0986166889782, 0.387773315484 ] ] } },
 { "type": "Feature", "properties": { "id": 206 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0861222668452, 0.298527443105 ], [ 0.08255243195, 0.373493975902 ] ] } },
@@ -184,11 +185,11 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 18
         assert len(skel.sk_nodes) == 12, len(skel.sk_nodes)
+  
  
-
- 
-    
- 
+  
+     
+  
     def test_house1(self):
         """House 1
         """
@@ -220,7 +221,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 31, len(skel.segments())
         assert len(skel.sk_nodes) == 22, len(skel.sk_nodes)
- 
+  
     def test_house2(self):
         """House 2
         """
@@ -264,7 +265,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 51, len(skel.segments())
         assert len(skel.sk_nodes) == 36, len(skel.sk_nodes)
- 
+  
     def test_koch_rec1(self):
         """Koch curve recursing once"""
         ring = [
@@ -297,7 +298,7 @@ class TestGrassfire(unittest.TestCase):
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
- 
+  
     def test_chishape(self):
         """Large shape """
         ring = [(-
@@ -856,7 +857,7 @@ class TestGrassfire(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    if False:
+    if LOGGING:
         import logging
         import sys
         root = logging.getLogger()
@@ -866,4 +867,5 @@ if __name__ == "__main__":
         formatter = logging.Formatter('%(asctime)s - %(message)s')
         ch.setFormatter(formatter)
         root.addHandler(ch)
-    unittest.main()
+
+    unittest.main(verbosity=5)

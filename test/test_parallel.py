@@ -9,7 +9,6 @@ class TestMoreAdvancedParallelEvents(unittest.TestCase):
     def setUp(self):
        pass
 
-
 #     def test_mute(self):
 #         conv = ToPointsAndSegments()
 #         polygon = [[(0,0), (3,0), (6,4), (10,4), (10,5), (6,5), (3,9), (0,9), (0,0)]]

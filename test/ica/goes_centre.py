@@ -325,4 +325,4 @@ for line in segments:
     conv.add_point(line[1])
     conv.add_segment(*line)
 # skeletonize / offset
-skel = calc_skel(conv, pause=True, output=True, shrink=True)
+skel = calc_skel(conv, pause=False, output=True, shrink=True)

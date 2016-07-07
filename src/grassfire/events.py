@@ -74,9 +74,10 @@ def stop_kvertices(V, now):
     first time, otherwise it returns (node, True) to indicate that were already
     stopped once.
     """
-    # pre-condition: 
-    # check that the kinetic vertices are more or less at the same location
-    assert at_same_location(V, now)
+    # precondition:
+    # the kinetic vertices that we are stopping should be
+    # at more or less at the same location
+#     assert at_same_location(V, now)
     sk_node = None
     for v in V:
         stopped = v.stops_at is not None
@@ -246,8 +247,10 @@ def update_circ(v_left, v_right, now):
     #               <-----
     # v_left.right o       o v_right.left
     #               ------>
-    v_left.right = v_right, now
-    v_right.left = v_left, now
+    if v_left is not None:
+        v_left.right = v_right, now
+    if v_right is not None:
+        v_right.left = v_left, now
 
 
 # ------------------------------------------------------------------------------
@@ -319,7 +322,7 @@ def handle_edge_event(evt, skel, queue, immediate):
         # raise NotImplementedError("parallel unhandled")
         fan = list(reversed(fan_a))
         fan.extend(fan_b)
-        handle_parallel_fan(fan, kv, now, skel, queue, immediate)
+        dispatch_parallel_fan(fan, kv, now, skel, queue, immediate)
 
 
 def handle_edge_event_3sides(evt, skel, queue, immediate):
@@ -416,9 +419,9 @@ def handle_split_event(evt, skel, queue, immediate):
     t.stops_at = now
     # handle infinitely fast vertices
     if va.inf_fast:
-        handle_parallel_fan(fan_a, va, now, skel, queue, immediate)
+        dispatch_parallel_fan(fan_a, va, now, skel, queue, immediate)
     if vb.inf_fast:
-        handle_parallel_fan(fan_b, vb, now, skel, queue, immediate)
+        dispatch_parallel_fan(fan_b, vb, now, skel, queue, immediate)
 
 # ------------------------------------------------------------------------------
 # Flip
@@ -488,26 +491,86 @@ def flip(t0, side0, t1, side1):
 
 # Parallel
 # -----------------------------------------------------------------------------
-def handle_parallel_fan(fan, pivot, now, skel, queue, immediate):
-    #     with open("/tmp/fan.wkt", "w") as fh:
-    #         output_triangles_at_T(fan, now, fh)
+def dispatch_parallel_fan(fan, pivot, now, skel, queue, immediate):
+    """Dispatches to correct function for handling parallel wavefronts"""
+    if len(fan) == 1:
+        t = fan[0]
+        if t.neighbours.count(None) == 3:
+            handle_parallel_3sides(fan, pivot, now, skel, queue, immediate)
+        else:
+            logging.debug("Number of 'None' neighbours {}".format(
+                                                  t.neighbours.count(None)))
+            handle_parallel_2sides(fan, pivot, now, skel, queue, immediate)
+    else:
+        raise NotImplementedError("Fan with multiple triangles, not yet there")
+
+
+def handle_parallel_2sides(fan, pivot, now, skel, queue, immediate):
+    """Handle parallel fan, 2 sides are wavefront, one is not"""
     assert len(fan) == 1
-    #     t = fan[0]
-    #     e = t.vertices.index(kv)
-    #     e1 = ccw(e)  # tail
-    #     e2 = ccw(e1)  # head
-    #     v1, v2 = t.vertices[e1], t.vertices[e2]
-    #     print e, e1, e2
-    #     print dist(*[v.position_at(now) for v in Edge(t, e1).segment])
-    #     print dist(*[v.position_at(now) for v in Edge(t, e2).segment])
-    #     sk_node, newly_made = stop_kvertices([v1, v2], now)
-    #     # add the skeleton node to the skeleton
-    #     if newly_made:
-    #         skel.sk_nodes.append(sk_node)
-    #     kvnew, newly_made = compute_new_kvertex(v.ul, v2.ul, now, sk_node)
-    #     if newly_made:
-    #         skel.vertices.append(kvnew)
-    #     t.stops_at = now
+    t = fan[0]
+    neighbours = map(lambda x: x is None, t.neighbours)
+    pivot_idx = t.vertices.index(pivot)
+    assert neighbours[pivot_idx] is False
+    cw_idx = cw(pivot_idx)
+    ccw_idx = ccw(pivot_idx)
+    assert t.neighbours[cw_idx] is None
+    assert t.neighbours[ccw_idx] is None
+    left_wavefront = Edge(t, ccw_idx)
+    right_wavefront = Edge(t, cw_idx)
+    right_dist = dist(*map(lambda x: x.position_at(now), right_wavefront.segment))
+    left_dist = dist(*map(lambda x: x.position_at(now), left_wavefront.segment))
+    dists = [left_dist, right_dist]
+    unique_dists = [near_zero(_ - max(dists)) for _ in dists]
+    logging.debug(unique_dists)
+    unique_max_dists = unique_dists.count(True)
+    if unique_max_dists == 2:
+        raise NotImplementedError("not there yet -- fan with equal sized legs")
+    else:
+        logging.debug(unique_dists)
+        longest_idx = unique_dists.index(True)
+        if longest_idx == 0:
+            logging.debug("CW / left wavefront at pivot is longest")
+            v = t.vertices.index(pivot)
+            logging.debug(
+                "wavefront edge collapsing? {0}".format(
+                                                    t.neighbours[v] is None))
+            v1 = t.vertices[(v + 1) % 3]
+            v2 = t.vertices[(v + 2) % 3]
+            # get neighbours around collapsing triangle
+            a = t.neighbours[(v + 1) % 3]
+            b = t.neighbours[(v + 2) % 3]
+            n = t.neighbours[v]
+            assert a is None
+            assert b is None
+            assert n is not None
+            # stop the two vertices
+            sk_node, newly_made = stop_kvertices([v1], now)
+            if newly_made:
+                skel.sk_nodes.append(sk_node)
+            # make the connection
+            # let the infinite vertex stop in the newly created skeleton node
+            pivot.stop_node = sk_node
+            pivot.stops_at = now
+            update_circ(pivot, None, now)
+            update_circ(None, pivot, now)
+            t.stops_at = now
+            kv, newly_made = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
+            if newly_made:
+                skel.vertices.append(kv)
+            fan = replace_kvertex(n, v1, kv, now, cw, queue)
+            update_circ(v2.right, kv, now)
+            update_circ(kv, v1.right, now)
+            n_idx = n.neighbours.index(t)
+            n.neighbours[n_idx] = None
+        else:
+            logging.debug("CCW / right wavefront at pivot is longest")
+
+        #raise NotImplementedError("handle cw or ccw here")
+
+def handle_parallel_3sides(fan, pivot, now, skel, queue, immediate):
+    """Handle end of parallel fan, all 3 sides are wavefront"""
+    assert len(fan) == 1
     t = fan[0]
     # take edge e
     e = t.vertices.index(pivot)
@@ -515,23 +578,6 @@ def handle_parallel_fan(fan, pivot, now, skel, queue, immediate):
         "wavefront edge collapsing? {0}".format(t.neighbours[e] is None))
     v1 = t.vertices[(e + 1) % 3]
     v2 = t.vertices[(e + 2) % 3]
-    # stop the two vertices and make new skeleton node
-    # replace 2 vertices with new kinetic vertex
-    sk_node, newly_made = stop_kvertices([v1, v2], now)
-    if newly_made:
-        skel.sk_nodes.append(sk_node)
-    # make the connection from one to the other
-    pivot.stop_node = sk_node
-    pivot.stops_at = now
-#     kv, newly_made = compute_new_kvertex(v1.ul, v2.ur, now, sk_node)
-#     logging.debug("New kinetic vertex -- parallel {}".format(id(kv)))
-#     if newly_made:
-#         skel.vertices.append(kv)
-#     update_circ(v1.left, kv, now)
-#     update_circ(kv, v2.right, now)
-#     if kv.inf_fast:
-#         logging.debug("New kinetic vertex moves infinitely fast!")
-    # append to skeleton structure, kinetic vertices
     # get neighbours around collapsing triangle
     a = t.neighbours[(e + 1) % 3]
     b = t.neighbours[(e + 2) % 3]
@@ -539,46 +585,15 @@ def handle_parallel_fan(fan, pivot, now, skel, queue, immediate):
     assert a is None
     assert b is None
     assert n is None
-
-#     # we "remove" the triangle itself
+    # stop the two vertices
+    sk_node, newly_made = stop_kvertices([v1, v2], now)
+    if newly_made:
+        skel.sk_nodes.append(sk_node)
+    # make the connection
+    # let the infinite vertex stop in the newly created skeleton node
+    pivot.stop_node = sk_node
+    pivot.stops_at = now
     t.stops_at = now
-
-# 
-#     fan_a = []
-#     fan_b = []
-#     #
-#     if a is not None:
-#         logging.debug("replacing vertex for neighbour A")
-#         a_idx = a.neighbours.index(t)
-#         a.neighbours[a_idx] = b
-#         # fan_a
-# #         if inf_fast:
-# #             fan_a = replace_inffast_kvertex(a, v2, kv, now, cw, queue)
-# #         else:
-# #         fan_a = replace_kvertex(a, v2, kv, now, cw, queue)
-#     #
-#     if b is not None:
-#         logging.debug("replacing vertex for neighbour B")
-#         b_idx = b.neighbours.index(t)
-#         b.neighbours[b_idx] = a
-#         # fan_b
-# #         if inf_fast:
-# #             fan_b = replace_inffast_kvertex(b, v1, kv, now, ccw, queue)
-# #         else:
-# #         fan_b = replace_kvertex(b, v1, kv, now, ccw, queue)
-#     #
-#     if n is not None:
-#         n.neighbours[n.neighbours.index(t)] = None
-#         if n.event is not None and n.stops_at is None:
-#             schedule_immediately(n, now, queue, immediate)
-
-# #     raise NotImplementedError("this is not yet there")
-#     # process parallel fan
-# #     if kv.inf_fast:
-# #         fan = list(reversed(fan_a))
-# #         fan.extend(fan_b)
-# #         if fan:
-# #             handle_parallel_fan(fan, kv, now, skel, queue, immediate)
 
 
 # Main event loop
@@ -599,7 +614,7 @@ def event_loop(queue, skel, pause=False):
         with open(file_nm, 'w') as fh:
             pass
     # -- visualize
-    NOW = prev_time = 5e-2
+    NOW = prev_time = 1e-5 #5e-2
     if pause:
         visualize(queue, skel, prev_time)
         raw_input('paused at start')
@@ -697,7 +712,7 @@ def event_loop(queue, skel, pause=False):
                 if i > 5 and i < len(queue) - 5:
                     continue
                 logging.debug("{0:5d} {1}".format(i, e))
-                # logging.debug(repr(e.triangle))
+                logging.debug(repr(e.triangle))
                 if i == 5 and len(queue) > 5:
                     logging.debug("...")
         logging.debug("=" * 80)

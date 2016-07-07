@@ -89,7 +89,7 @@ def area_collapse_times(o, d, a):
     coeff = area_collapse_time_coeff(o, d, a)
     logging.debug(coeff)
     solution = solve_quadratic(coeff[0], coeff[1], coeff[2])
-    logging.debug("numpy solve: " + str(numpy.roots(coeff)))
+    logging.debug("numpy solve: " + str(["{:.60f}".format(_) for _ in numpy.roots(coeff)]))
     # solution = filter(lambda x: x != None, solution)
     solution.sort()
     # http://stackoverflow.com/questions/28081247/print-real-roots-only-in-numpy
@@ -130,9 +130,12 @@ def compute_event_0triangle(tri, now, sieve):
     dists = [o.distance2_at(d, times_edge_collapse[0]),
              d.distance2_at(a, times_edge_collapse[1]),
              a.distance2_at(o, times_edge_collapse[2])]
-    logging.debug("dists {}".format(dists))
+
+    logging.debug("dists^2 {}".format(dists))
+    logging.debug("dists {}".format([math.sqrt(_) for _ in dists]))
+    logging.debug("near_zero dists {}".format([near_zero(math.sqrt(_)) for _ in dists]))
     indices = []
-    for i, _ in enumerate(dists):
+    for i, _ in enumerate([math.sqrt(_) for _ in dists]):
         if near_zero(_):
             indices.append(i)
     t_e_c = []
@@ -141,8 +144,8 @@ def compute_event_0triangle(tri, now, sieve):
     logging.debug("t e c {}".format(t_e_c))
     time_edge_collapse = sieve(t_e_c, now)
     time_area_collapse = sieve(area_collapse_times(o, d, a), now)
-    logging.debug(">> time_edge_collapse: {}".format(time_edge_collapse))
-    logging.debug(">> time_area_collapse: {}".format(time_area_collapse))
+    logging.debug(">> time_edge_collapse: {0}".format(time_edge_collapse))
+    logging.debug(">> time_area_collapse: {0}".format(time_area_collapse))
 
     if time_edge_collapse is None and time_area_collapse is None:
         # if we do not have a time for either, no collapse will happen
@@ -320,9 +323,9 @@ def compute_event_1triangle(tri, now, sieve):
         # length calculations...
         logging.debug(" case B, time vertex crash " + str(time_vertex_crash))
         time = time_vertex_crash
-        dists = [d.distance2_at(a, time),
-                 a.distance2_at(o, time),
-                 o.distance2_at(d, time)]
+        dists = [math.sqrt(d.distance2_at(a, time)),
+                 math.sqrt(a.distance2_at(o, time)),
+                 math.sqrt(o.distance2_at(d, time))]
         unique_dists = [near_zero(_ - max(dists)) for _ in dists]
         logging.debug(unique_dists)
         unique_max_dists = unique_dists.count(True)
@@ -374,8 +377,9 @@ def compute_event_1triangle(tri, now, sieve):
                      a.distance2_at(o, time),
                      o.distance2_at(d, time)]
             tp = "edge"
-            zeros = [near_zero(dist) for dist in dists]
+            zeros = [near_zero(math.sqrt(dist)) for dist in dists]
             if True not in zeros:
+                #raise ValueError("no event?")
                 return None
             sides = [zeros.index(True)]
             assert len(sides) == 1
@@ -654,7 +658,8 @@ def collapse_time_edge(v1, v2):
     - they run in parallel, so they never cross
     - they never cross, but there exists a point in time when they are closest
     """
-#     logging.debug("edge collapse time for v1 = {} and v2 = {}".format(id(v1), id(v2)))
+    logging.debug("edge collapse time for v1 = {} and v2 = {}".format(id(v1),
+                                                                      id(v2)))
     s1 = v1.velocity
     s2 = v2.velocity
     o1 = v1.origin
