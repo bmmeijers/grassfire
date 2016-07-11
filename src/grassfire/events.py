@@ -328,7 +328,7 @@ def handle_edge_event(evt, skel, queue, immediate):
         # raise NotImplementedError("parallel unhandled")
         fan = list(reversed(fan_a))
         fan.extend(fan_b)
-        dispatch_parallel_fan(fan, kv, now, skel, queue, immediate)
+        dispatch_parallel_fan(fan, kv, now, skel, queue)
 
 
 def handle_edge_event_3sides(evt, skel, queue, immediate):
