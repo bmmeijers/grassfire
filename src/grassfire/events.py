@@ -497,22 +497,22 @@ def flip(t0, side0, t1, side1):
 
 # Parallel
 # -----------------------------------------------------------------------------
-def dispatch_parallel_fan(fan, pivot, now, skel, queue, immediate):
+def dispatch_parallel_fan(fan, pivot, now, skel, queue):
     """Dispatches to correct function for handling parallel wavefronts"""
     logging.debug(" -------- dispatching parallel event --------")
     if len(fan) == 1:
         t = fan[0]
         if t.neighbours.count(None) == 3:
-            handle_parallel_3sides(fan, pivot, now, skel, queue, immediate)
+            handle_parallel_3sides(fan, pivot, now, skel)
         else:
             logging.debug("Number of 'None' neighbours {}".format(
                                                   t.neighbours.count(None)))
-            handle_parallel_2sides(fan, pivot, now, skel, queue, immediate)
+            handle_parallel_2sides(fan, pivot, now, skel, queue)
     else:
         raise NotImplementedError("Fan with multiple triangles, not yet there")
 
 
-def handle_parallel_2sides(fan, pivot, now, skel, queue, immediate):
+def handle_parallel_2sides(fan, pivot, now, skel, queue):
     """Handle parallel fan, 2 sides are wavefront, one is not"""
     assert len(fan) == 1
     t = fan[0]
@@ -610,8 +610,7 @@ def handle_parallel_2sides(fan, pivot, now, skel, queue, immediate):
             n.neighbours[n_idx] = None
 
 
-
-def handle_parallel_3sides(fan, pivot, now, skel, queue, immediate):
+def handle_parallel_3sides(fan, pivot, now, skel):
     """Handle end of parallel fan, all 3 sides are wavefront"""
     assert len(fan) == 1
     t = fan[0]
