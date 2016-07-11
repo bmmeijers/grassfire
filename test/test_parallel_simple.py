@@ -14,11 +14,47 @@ class TestSimpleParallelEvents(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_dent_unequal_wavefront_side(self):
+#     def test_dent_unequal_wavefront_side(self):
+#         """Simple parallel event, starting from wavefront side
+#         """
+#         conv = ToPointsAndSegments()
+#  
+#         lines = [
+#             [[51046.4, 391515.7], [51046.3, 391516.65]],
+#             [[51047.95, 391513.05], [51047.55, 391515.85]],
+#             [[51047.55, 391515.85], [51046.4, 391515.7]],
+#             [[51047.45, 391516.8], [51046.9, 391520.8]],
+#             [[51046.3, 391516.65], [51047.45, 391516.8]],
+#             [[51055, 391521], [51057, 391514]],
+#             [[51046.9, 391520.8, ], [51055, 391521]],
+#             [[51047.95, 391513.05], [51057, 391514]]]
+#         for line in lines:
+#             start, end = map(tuple, line)
+#             conv.add_point(start)
+#             conv.add_point(end)
+#             conv.add_segment(start, end)
+#         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT, shrink=True)
+#         # check the amount of skeleton nodes
+#         assert len(skel.sk_nodes) == 16, len(skel.sk_nodes)
+#         # check the amount of segments in the skeleton
+#         assert len(skel.segments()) == 23, len(skel.segments())
+#         # check the amount of kinetic vertices that are (not) stopped
+#         assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 6
+#         assert len(
+#             filter(lambda v: v.stops_at is not None, skel.vertices)) == 13 + 4
+#         # check cross relationship between kinetic vertices and skeleton nodes
+#         for v in skel.vertices:
+#             assert at_same_location((v.start_node, v), v.starts_at)
+#             if v.stops_at is not None and not v.inf_fast:
+#                 assert at_same_location((v.stop_node, v), v.stops_at), "{} {} {}".format(id(v), v.stop_node.pos, v.position_at(v.stops_at) )
+
+
+    def test_dent_unequal_wavefront_side_flipped_y(self):
         """Simple parallel event, starting from wavefront side
         """
+        def flip_y(pt):
+            return (pt[0], -pt[1])
         conv = ToPointsAndSegments()
-
         lines = [
             [[51046.4, 391515.7], [51046.3, 391516.65]],
             [[51047.95, 391513.05], [51047.55, 391515.85]],
@@ -29,24 +65,25 @@ class TestSimpleParallelEvents(unittest.TestCase):
             [[51046.9, 391520.8, ], [51055, 391521]],
             [[51047.95, 391513.05], [51057, 391514]]]
         for line in lines:
-            start, end = map(tuple, line)
+            start, end = map(tuple, map(flip_y, line))
             conv.add_point(start)
             conv.add_point(end)
             conv.add_segment(start, end)
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT, shrink=True)
-        # check the amount of segments in the skeleton
-        assert len(skel.segments()) == (4 + 4), len(skel.segments())
+        #
         # check the amount of skeleton nodes
-        assert len(skel.sk_nodes) == 5, len(skel.sk_nodes)
+        assert len(skel.sk_nodes) == 16, len(skel.sk_nodes)
+        # check the amount of segments in the skeleton
+        assert len(skel.segments()) == 23, len(skel.segments())
         # check the amount of kinetic vertices that are (not) stopped
-        assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 4
+        assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 6
         assert len(
-            filter(lambda v: v.stops_at is not None, skel.vertices)) == 4
+            filter(lambda v: v.stops_at is not None, skel.vertices)) == 13 + 4
         # check cross relationship between kinetic vertices and skeleton nodes
         for v in skel.vertices:
             assert at_same_location((v.start_node, v), v.starts_at)
-            if v.stops_at is not None:
-                assert at_same_location((v.stop_node, v), v.stops_at)
+            if v.stops_at is not None and not v.inf_fast:
+                assert at_same_location((v.stop_node, v), v.stops_at), "{} {} {}".format(id(v), v.stop_node.pos, v.position_at(v.stops_at) )
 
 
 #     def test_square(self):

@@ -152,12 +152,13 @@ def replace_kvertex(t, v, newv, now, direction, queue):
         fan.append(t)
         t.vertices[side] = newv
         logging.debug(
-            "Placed vertex #{} {} at side {} of triangle {} <{}>".format(
+            "Placed vertex #{} at side {} of triangle {}".format(
                 id(newv),
-                repr(newv),
+                # repr(newv),
                 side,
-                id(t),
-                repr(t)))
+                id(t)
+                # , repr(t)
+                ))
         if newv.inf_fast and t.event is not None:  # infintely fast
             queue.discard(t.event)
         else:  # vertex moves with normal speed
@@ -248,8 +249,14 @@ def update_circ(v_left, v_right, now):
     # v_left.right o       o v_right.left
     #               ------>
     if v_left is not None:
+        logging.debug("update_circ at right of #{} lies #{}".format(
+                                                  id(v_left),
+                                                  id(v_right)))
         v_left.right = v_right, now
     if v_right is not None:
+        logging.debug("update_circ at left  of #{} lies #{}".format(
+                                                  id(v_right),
+                                                  id(v_left)))
         v_right.left = v_left, now
 
 
@@ -290,7 +297,6 @@ def handle_edge_event(evt, skel, queue, immediate):
 
     fan_a = []
     fan_b = []
-    #
     if a is not None:
         logging.debug("replacing vertex for neighbour A")
         a_idx = a.neighbours.index(t)
@@ -493,6 +499,7 @@ def flip(t0, side0, t1, side1):
 # -----------------------------------------------------------------------------
 def dispatch_parallel_fan(fan, pivot, now, skel, queue, immediate):
     """Dispatches to correct function for handling parallel wavefronts"""
+    logging.debug(" -------- dispatching parallel event --------")
     if len(fan) == 1:
         t = fan[0]
         if t.neighbours.count(None) == 3:
@@ -518,8 +525,10 @@ def handle_parallel_2sides(fan, pivot, now, skel, queue, immediate):
     assert t.neighbours[ccw_idx] is None
     left_wavefront = Edge(t, ccw_idx)
     right_wavefront = Edge(t, cw_idx)
-    right_dist = dist(*map(lambda x: x.position_at(now), right_wavefront.segment))
-    left_dist = dist(*map(lambda x: x.position_at(now), left_wavefront.segment))
+    right_dist = dist(*map(lambda x: x.position_at(now),
+                           right_wavefront.segment))
+    left_dist = dist(*map(lambda x: x.position_at(now),
+                          left_wavefront.segment))
     dists = [left_dist, right_dist]
     unique_dists = [near_zero(_ - max(dists)) for _ in dists]
     logging.debug(unique_dists)
@@ -529,6 +538,7 @@ def handle_parallel_2sides(fan, pivot, now, skel, queue, immediate):
     else:
         logging.debug(unique_dists)
         longest_idx = unique_dists.index(True)
+        assert longest_idx >= 0
         if longest_idx == 0:
             logging.debug("CW / left wavefront at pivot is longest")
             v = t.vertices.index(pivot)
@@ -559,14 +569,47 @@ def handle_parallel_2sides(fan, pivot, now, skel, queue, immediate):
             if newly_made:
                 skel.vertices.append(kv)
             fan = replace_kvertex(n, v1, kv, now, cw, queue)
-            update_circ(v2.right, kv, now)
+            update_circ(v2, kv, now)
             update_circ(kv, v1.right, now)
             n_idx = n.neighbours.index(t)
             n.neighbours[n_idx] = None
         else:
             logging.debug("CCW / right wavefront at pivot is longest")
+            #raise NotImplementedError("handle ccw here")
+            v = t.vertices.index(pivot)
+            logging.debug(
+                "wavefront edge collapsing? {0}".format(
+                                                    t.neighbours[v] is None))
+            v1 = t.vertices[(v + 1) % 3]
+            v2 = t.vertices[(v + 2) % 3]
+            # get neighbours around collapsing triangle
+            a = t.neighbours[(v + 1) % 3]
+            b = t.neighbours[(v + 2) % 3]
+            n = t.neighbours[v]
+            assert a is None
+            assert b is None
+            assert n is not None
+            # stop the two vertices
+            sk_node, newly_made = stop_kvertices([v2], now)
+            if newly_made:
+                skel.sk_nodes.append(sk_node)
+            # make the connection
+            # let the infinite vertex stop in the newly created skeleton node
+            pivot.stop_node = sk_node
+            pivot.stops_at = now
+            update_circ(pivot, None, now)
+            update_circ(None, pivot, now)
+            t.stops_at = now
+            kv, newly_made = compute_new_kvertex(v2.ul, v1.ul, now, sk_node)
+            if newly_made:
+                skel.vertices.append(kv)
+            fan = replace_kvertex(n, v2, kv, now, ccw, queue)
+            update_circ(v2.left, kv, now)
+            update_circ(kv, v1, now)
+            n_idx = n.neighbours.index(t)
+            n.neighbours[n_idx] = None
 
-        #raise NotImplementedError("handle cw or ccw here")
+
 
 def handle_parallel_3sides(fan, pivot, now, skel, queue, immediate):
     """Handle end of parallel fan, all 3 sides are wavefront"""
@@ -727,4 +770,3 @@ def event_loop(queue, skel, pause=False):
     if pause:
         visualize(queue, skel, NOW)
     return NOW
-
