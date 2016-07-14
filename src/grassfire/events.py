@@ -514,7 +514,7 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
 
 def handle_parallel_2sides(fan, pivot, now, skel, queue):
     """Handle parallel fan, 2 sides are wavefront, one is not"""
-    assert len(fan) == 1
+    assert len(fan) == 1, len(fan)
     t = fan[0]
     neighbours = map(lambda x: x is None, t.neighbours)
     pivot_idx = t.vertices.index(pivot)
@@ -534,7 +534,28 @@ def handle_parallel_2sides(fan, pivot, now, skel, queue):
     logging.debug(unique_dists)
     unique_max_dists = unique_dists.count(True)
     if unique_max_dists == 2:
-        raise NotImplementedError("not there yet -- fan with equal sized legs")
+        # take edge e
+        e = t.vertices.index(pivot)
+        logging.debug(
+            "wavefront edge collapsing? {0}".format(t.neighbours[e] is None))
+        v1 = t.vertices[(e + 1) % 3]
+        v2 = t.vertices[(e + 2) % 3]
+        # get neighbours around collapsing triangle
+        a = t.neighbours[(e + 1) % 3]
+        b = t.neighbours[(e + 2) % 3]
+        n = t.neighbours[e]
+        assert a is None
+        assert b is None
+        assert n is not None
+        # stop the two vertices
+        sk_node, newly_made = stop_kvertices([v1, v2], now)
+        if newly_made:
+            skel.sk_nodes.append(sk_node)
+        # make the connection
+        # let the infinite vertex stop in the newly created skeleton node
+        pivot.stop_node = sk_node
+        pivot.stops_at = now
+        t.stops_at = now
     else:
         logging.debug(unique_dists)
         longest_idx = unique_dists.index(True)
@@ -608,6 +629,10 @@ def handle_parallel_2sides(fan, pivot, now, skel, queue):
             update_circ(kv, v1, now)
             n_idx = n.neighbours.index(t)
             n.neighbours[n_idx] = None
+        # we should not have a new vertex that is infinitely fast...
+        if kv.inf_fast:
+            raise ValueError("should deal with infinite fast vertex again")
+            handle_parallel_2sides(fan, kv, now, skel, queue)
 
 
 def handle_parallel_3sides(fan, pivot, now, skel):

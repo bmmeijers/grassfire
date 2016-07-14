@@ -2,6 +2,8 @@ import unittest
 
 from tri import ToPointsAndSegments
 from grassfire import calc_skel
+from grassfire.events import at_same_location
+
 
 # FIXME:
 # we could test the geometric embedding of the skeleton generated
@@ -854,6 +856,7 @@ class TestGrassfire(unittest.TestCase):
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
+
 
 
 if __name__ == "__main__":

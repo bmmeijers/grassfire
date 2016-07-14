@@ -14,6 +14,94 @@ class TestMoreAdvancedParallelEvents(unittest.TestCase):
        pass
 
 
+    def test_simple_parallel(self):
+        segments = [((0.673575314055, 0.166666666667), (0.866025403784, 0.166666666667)), ((0.673575314055, -0.166666666667), (0.5, -0.0)), ((0.866025403784, -0.166666666667), (0.673575314055, -0.166666666667)), ((0.5, -0.0), (0.673575314055, 0.166666666667)), ((0.866025403784, 0.166666666667), (1.25, -0.0)), ((0.866025403784, -0.166666666667), (1.25, -0.0))]
+        # convert to triangulation input
+        conv = ToPointsAndSegments()
+        for line in segments:
+            conv.add_point(line[0])
+            conv.add_point(line[1])
+            conv.add_segment(*line)
+        # skeletonize / offset
+        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
+        # check the amount of segments in the skeleton
+        assert len(skel.segments()) == 13, len(skel.segments())
+        # check the amount of skeleton nodes
+        assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
+        # check the amount of kinetic vertices that are (not) stopped
+        assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 6
+        assert len(filter(lambda v: v.stops_at is not None, skel.vertices)) == 7
+        # check cross relationship between kinetic vertices and skeleton nodes
+        for v in skel.vertices:
+            assert at_same_location((v.start_node, v), v.starts_at)
+            if v.stops_at is not None and not v.inf_fast:
+                assert at_same_location((v.stop_node, v), v.stops_at), \
+                    "{} {} {}".format(id(v),
+                                      v.stop_node.pos,
+                                      v.position_at(v.stops_at) )
+
+
+    def test_3tris(self):
+        conv = ToPointsAndSegments()
+        polygons = [
+                    [[(0,0), (1,0), (0.5,-0.5), (0,0)]],
+                    [[(1,0.5), (2,0.5), (1.5,1), (1,0.5)]],
+                    [[(2,0), (3,0), (2.5,-0.5), (2,0)]],
+                    ]
+        for polygon in polygons:
+            conv.add_polygon(polygon)
+        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
+        # check the amount of segments in the skeleton
+        assert len(skel.segments()) == 24, len(skel.segments())
+        # check the amount of skeleton nodes
+        assert len(skel.sk_nodes) == 16, len(skel.sk_nodes)
+        # check the amount of kinetic vertices that are (not) stopped
+        not_stopped = filter(lambda v: v.stops_at is None, skel.vertices)
+        stopped = filter(lambda v: v.stops_at is not None, skel.vertices)
+        assert len(not_stopped) == 8, len(not_stopped)
+        assert len(stopped) == 16, len(stopped)
+        # check cross relationship between kinetic vertices and skeleton nodes
+        for v in skel.vertices:
+            assert at_same_location((v.start_node, v), v.starts_at)
+            if v.stops_at is not None and not v.inf_fast:
+                assert at_same_location((v.stop_node, v), v.stops_at), \
+                    "{} {} {}".format(id(v),
+                                      v.stop_node.pos,
+                                      v.position_at(v.stops_at) )
+
+
+    def test_3tris_split_handle(self):
+        """One side that should just use handle and other side should handle_ccw
+        """
+        conv = ToPointsAndSegments()
+        polygons = [
+                    [[(1,0), (2,0), (1.5,-0.5), (1,0)]],
+                    [[(1,3), (2,3), (1.5,3.5), (1,3)]],
+                    [[(3,0), (4,0), (3.5,-0.5), (3,0)]],
+                    ]
+        for polygon in polygons:
+            conv.add_polygon(polygon)
+        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
+        # check the amount of segments in the skeleton
+        assert len(skel.segments()) == 24, len(skel.segments())
+        # check the amount of skeleton nodes
+        assert len(skel.sk_nodes) == 16, len(skel.sk_nodes)
+        # check the amount of kinetic vertices that are (not) stopped
+        not_stopped = filter(lambda v: v.stops_at is None, skel.vertices)
+        stopped = filter(lambda v: v.stops_at is not None, skel.vertices)
+        assert len(stopped) + len(not_stopped) == len(skel.segments())
+        assert len(not_stopped) == 7, len(not_stopped)
+        assert len(stopped) == 17, len(stopped)
+        # check cross relationship between kinetic vertices and skeleton nodes
+        for v in skel.vertices:
+            assert at_same_location((v.start_node, v), v.starts_at)
+            if v.stops_at is not None and not v.inf_fast:
+                assert at_same_location((v.stop_node, v), v.stops_at), \
+                    "{} {} {}".format(id(v),
+                                      v.stop_node.pos,
+                                      v.position_at(v.stops_at) )
+
+
     def test_parallelogram(self):
         """Parallelogram with parallel wavefronts collapsing"""
         conv = ToPointsAndSegments()
@@ -26,6 +114,29 @@ class TestMoreAdvancedParallelEvents(unittest.TestCase):
         # check the amount of kinetic vertices that are (not) stopped
         assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 4
         assert len(filter(lambda v: v.stops_at is not None, skel.vertices)) == 5
+        # check cross relationship between kinetic vertices and skeleton nodes
+        for v in skel.vertices:
+            assert at_same_location((v.start_node, v), v.starts_at)
+            if v.stops_at is not None and not v.inf_fast:
+                assert at_same_location((v.stop_node, v), v.stops_at), \
+                    "{} {} {}".format(id(v),
+                                      v.stop_node.pos,
+                                      v.position_at(v.stops_at) )
+
+
+    def test_rect_extra_pt(self):
+        """"Rectangle with extra point on straight (180 degrees) edge """
+        conv = ToPointsAndSegments()
+        polygon = [[(0, 0), (0., 10), (15,10), (15,0.), (2., 0.), (0,0)]]
+        conv.add_polygon(polygon)
+        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
+        # check the amount of segments in the skeleton
+        assert len(skel.segments()) == 12, len(skel.segments())
+        # check the amount of skeleton nodes
+        assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
+        # check the amount of kinetic vertices that are (not) stopped
+        assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 5
+        assert len(filter(lambda v: v.stops_at is not None, skel.vertices)) == 7
         # check cross relationship between kinetic vertices and skeleton nodes
         for v in skel.vertices:
             assert at_same_location((v.start_node, v), v.starts_at)
@@ -195,6 +306,53 @@ class TestMoreAdvancedParallelEvents(unittest.TestCase):
         assert len(skel.sk_nodes) == 17, len(skel.sk_nodes)
         # check the amount of kinetic vertices that are (not) stopped
         assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 12
+        assert len(filter(lambda v: v.stops_at is not None, skel.vertices)) == 16
+        # check cross relationship between kinetic vertices and skeleton nodes
+        for v in skel.vertices:
+            assert at_same_location((v.start_node, v), v.starts_at)
+            if v.stops_at is not None and not v.inf_fast:
+                assert at_same_location((v.stop_node, v), v.stops_at), \
+                    "{} {} {}".format(id(v),
+                                      v.stop_node.pos,
+                                      v.position_at(v.stops_at) )
+
+
+    def test_multiple_parallel(self):
+        """Parallelogram with parallel wavefronts collapsing"""
+        # FIXME: Multiple skeleton nodes, because of fan that just collapses
+        conv = ToPointsAndSegments()
+        conv.add_polygon([[(0,0), (1,0), (2,0), (3,0), (4,0), (5,0),
+                           (5,1), (4,1), (3,1), (2,1), (1,1), (0, 1), (0,0)
+                           ]])
+        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
+        # check the amount of segments in the skeleton
+        assert len(skel.segments()) == (17 + 12), len(skel.segments())
+        # check the amount of skeleton nodes
+        assert len(skel.sk_nodes) == 18, len(skel.sk_nodes)
+        # check the amount of kinetic vertices that are (not) stopped
+        assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 12
+        assert len(filter(lambda v: v.stops_at is not None, skel.vertices)) == 17
+        # check cross relationship between kinetic vertices and skeleton nodes
+        for v in skel.vertices:
+            assert at_same_location((v.start_node, v), v.starts_at)
+            if v.stops_at is not None and not v.inf_fast:
+                assert at_same_location((v.stop_node, v), v.stops_at), \
+                    "{} {} {}".format(id(v),
+                                      v.stop_node.pos,
+                                      v.position_at(v.stops_at) )
+
+
+    def test_corner_same_inwards(self):
+        conv = ToPointsAndSegments()
+        polygon = [[(0, 0), (10., 0), (10,20), (0,20.), (0.,11.), (1,11), (1,10), (0,10), (0,0)]]
+        conv.add_polygon(polygon)
+        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
+        # check the amount of segments in the skeleton
+        assert len(skel.segments()) == (16 + 5), len(skel.segments())
+        # check the amount of skeleton nodes
+        assert len(skel.sk_nodes) == 14, len(skel.sk_nodes)
+        # check the amount of kinetic vertices that are (not) stopped
+        assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 5
         assert len(filter(lambda v: v.stops_at is not None, skel.vertices)) == 16
         # check cross relationship between kinetic vertices and skeleton nodes
         for v in skel.vertices:
