@@ -18,7 +18,7 @@ class TestSimpleParallelEvents(unittest.TestCase):
         """Simple parallel event, starting from wavefront side
         """
         conv = ToPointsAndSegments()
-  
+   
         lines = [
             [[51046.4, 391515.7], [51046.3, 391516.65]],
             [[51047.95, 391513.05], [51047.55, 391515.85]],
@@ -84,8 +84,8 @@ class TestSimpleParallelEvents(unittest.TestCase):
             assert at_same_location((v.start_node, v), v.starts_at)
             if v.stops_at is not None and not v.inf_fast:
                 assert at_same_location((v.stop_node, v), v.stops_at), "{} {} {}".format(id(v), v.stop_node.pos, v.position_at(v.stops_at) )
-
-
+  
+  
     def test_square(self):
         conv = ToPointsAndSegments()
         polygon = [[(0,0), (10,0), (10,10), (0,10), (0,0)]]
@@ -103,8 +103,8 @@ class TestSimpleParallelEvents(unittest.TestCase):
             assert at_same_location((v.start_node, v), v.starts_at)
             if v.stops_at is not None:
                 assert at_same_location((v.stop_node, v), v.stops_at)
-
-
+  
+  
     def test_rectangle(self):
         conv = ToPointsAndSegments()
         polygon = [[(0,0), (10,0), (10,5), (0,5), (0,0)]]
@@ -122,8 +122,8 @@ class TestSimpleParallelEvents(unittest.TestCase):
             assert at_same_location((v.start_node, v), v.starts_at)
             if v.stops_at is not None and not v.inf_fast:
                 assert at_same_location((v.stop_node, v), v.stops_at), "{} {} {}".format(id(v), v.stop_node.pos, v.position_at(v.stops_at) )
-
-
+  
+  
     def test_dent_unequal_top(self):
         conv = ToPointsAndSegments()
         polygon = [[(0, 0), (10., 0), (10,20), (-0.5,20.), (-0.5,11.), (-1,11), (-1,10), (0,10), (0,0)]]
@@ -144,8 +144,8 @@ class TestSimpleParallelEvents(unittest.TestCase):
                     "{} {} {}".format(id(v),
                                       v.stop_node.pos,
                                       v.position_at(v.stops_at) )
-
-
+  
+  
     def test_dent_unequal_bottom(self):
         conv = ToPointsAndSegments()
         polygon = [[(-0.5, 0), (10., 0), (10,20), (0,20.), (0,11.), (-1,11), (-1,10), (-0.5,10), (-0.5,0)]]
@@ -166,7 +166,7 @@ class TestSimpleParallelEvents(unittest.TestCase):
                     "{} {} {}".format(id(v),
                                       v.stop_node.pos,
                                       v.position_at(v.stops_at) )
-
+  
     def test_dent_equal(self):
         conv = ToPointsAndSegments()
         polygon = [[(0, 0), (10., 0), (10,20), (0,20.), (0.,11.), (-1,11), (-1,10), (0,10), (0,0)]]
@@ -187,6 +187,7 @@ class TestSimpleParallelEvents(unittest.TestCase):
                     "{} {} {}".format(id(v),
                                       v.stop_node.pos,
                                       v.position_at(v.stops_at) )
+
 
 
 if __name__ == "__main__":

@@ -121,7 +121,7 @@ def output_offsets(skel, now=1000):
                         pass
 
 
-def output_skel(skel):
+def output_skel(skel, when):
     """ """
     with open("/tmp/skel.wkt", "w") as fh:
         fh.write("wkt\n")
@@ -129,14 +129,12 @@ def output_skel(skel):
             if v.stops_at is not None:
                 s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.start_node.pos,
                                                                       v.stop_node.pos
-                                                                      #v.position_at(v.starts_at), 
-                                                                      #v.position_at(v.stops_at)
                                                                       )
                 fh.write(s)
                 fh.write("\n")
             else:
                 s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(v.starts_at), 
-                                                                      v.position_at(5))
+                                                                      v.position_at(when))
                 fh.write(s)
                 fh.write("\n")
 

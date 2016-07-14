@@ -1,5 +1,5 @@
 import logging
-import numpy
+# import numpy
 import bisect
 import math
 
@@ -12,13 +12,13 @@ from grassfire.calc import near_zero, get_unique_times
 from grassfire.primitives import InfiniteVertex
 from grassfire.inout import output_vertices_at_T, output_triangles_at_T, \
     output_edges_at_T
-from grassfire.vectorops import dot, mul, add, sub, rotate90ccw, unit, norm
+from grassfire.vectorops import dot, mul, add, sub, norm
 # ------------------------------------------------------------------------------
 # solve
 
 
 def find_gt(a, x):
-    """Find leftmost value greater than x"""
+    """Find value greater than x, ignores None values"""
     # -- filter None values
     a = filter(lambda x: x is not None, a)
     # -- filter values that are really close to x
@@ -35,7 +35,7 @@ def find_gt(a, x):
 
 
 def find_gte(a, x):
-    """Find leftmost item greater than or equal to x"""
+    """Find greater than or equal to x, ignores None values"""
     # -- filter None values and sort
     L = sorted(filter(lambda x: x is not None, a))
     i = bisect.bisect_left(L, x)
@@ -89,7 +89,7 @@ def area_collapse_times(o, d, a):
     coeff = area_collapse_time_coeff(o, d, a)
     logging.debug(coeff)
     solution = solve_quadratic(coeff[0], coeff[1], coeff[2])
-    logging.debug("numpy solve: " + str(["{:.60f}".format(_) for _ in numpy.roots(coeff)]))
+    # logging.debug("numpy solve: " + str(["{:.60f}".format(_) for _ in numpy.roots(coeff)]))
     # solution = filter(lambda x: x != None, solution)
     solution.sort()
     # http://stackoverflow.com/questions/28081247/print-real-roots-only-in-numpy
@@ -283,7 +283,8 @@ def compute_event_1triangle(tri, now, sieve):
                   tri.vertices[wavefront_side]]
     # what are the times the triangle collapses
     logging.debug("time area collapse " +
-                  str(solve_quadratic(*area_collapse_time_coeff(*tri.vertices))))
+                  str(solve_quadratic(*area_collapse_time_coeff(*tri.vertices)
+                                      )))
     # edge collapse times
     time_edge_collapse = sieve([collapse_time_edge(ow, dw)], now)
     logging.debug([collapse_time_edge(ow, dw),
@@ -373,11 +374,13 @@ def compute_event_1triangle(tri, now, sieve):
             # wavefront edge collapses, because edge collapse time is earlier
             # or equal to vertex crash time
             time = time_edge_collapse
-            dists = [d.distance2_at(a, time),
-                     a.distance2_at(o, time),
-                     o.distance2_at(d, time)]
+            dists = [math.sqrt(d.distance2_at(a, time)),
+                     math.sqrt(a.distance2_at(o, time)),
+                     math.sqrt(o.distance2_at(d, time))]
+            logging.debug('dists {}'.format(dists))
             tp = "edge"
-            zeros = [near_zero(math.sqrt(dist)) for dist in dists]
+            zeros = [near_zero(dist) for dist in dists]
+            logging.debug('zeros {}'.format(zeros))
             if True not in zeros:
                 #raise ValueError("no event?")
                 return None
@@ -387,20 +390,29 @@ def compute_event_1triangle(tri, now, sieve):
                 when=time, tri=tri, side=sides, tp=tp, tri_tp=tri.type)
         elif time_vertex_crash < time_edge_collapse:
             # wavefront edge is split
-            logging.debug("vertex crash time earlier than time edge collapse")
+            logging.debug("vertex crash time strictly "
+                          "earlier than time edge collapse")
             # can be either split or flip
             # take longest side, if that side is wavefront -> split
             time = time_vertex_crash
-            dists = [d.distance2_at(a, time),
-                     a.distance2_at(o, time),
-                     o.distance2_at(d, time)]
-            max_dist = max(dists)
-            max_dist_side = dists.index(max_dist)
-            if tri.neighbours[max_dist_side] == None:
-                tp = "split"
+            dists = [math.sqrt(d.distance2_at(a, time)),
+                     math.sqrt(a.distance2_at(o, time)),
+                     math.sqrt(o.distance2_at(d, time))]
+            logging.debug('dists {}'.format(dists))
+            zeros = [near_zero(dist) for dist in dists]
+            logging.debug('zeros {}'.format(zeros))
+            if True in zeros and zeros.count(True) == 1:
+                logging.debug("one edge that has no length -> edge event")
+                tp = 'edge'
+                sides = (zeros.index(True), )
             else:
-                tp = "flip"
-            sides = [max_dist_side]
+                max_dist = max(dists)
+                max_dist_side = dists.index(max_dist)
+                if tri.neighbours[max_dist_side] == None:
+                    tp = "split"
+                else:
+                    tp = "flip"
+                sides = (max_dist_side, )
             return Event(
                 when=time, tri=tri, side=sides, tp=tp, tri_tp=tri.type)
         else:
@@ -1071,7 +1083,7 @@ def test_solve():
 
 
 def main():
-    test_compute_collapse_times()
+    #test_compute_collapse_times()
     test_one_collapse()
 
 
@@ -1108,17 +1120,25 @@ def test_one_collapse():
     #tri = KineticTriangle(KineticVertex((0.8308871493803005, -0.35731302646132906), (1.248735516282837, 1.0000000000000002)), InfiniteVertex((0.0356332876747788, -0.06225382499568155)), KineticVertex((0.8534771264074428, -0.06782665418758393), (1.0, -1.0)), True, True, True)
 
     # infinite 0-triangle should flip at: 0.14372166332027514
-    tri = KineticTriangle(KineticVertex((0.8308871493803005, -
-                                         0.35731302646132906), (1.248735516282837, 1.0000000000000002)), InfiniteVertex((0.035633287674778816, -
-                                                                                                                         0.06225382499568152)), KineticVertex((0.8534771264074428, -
-                                                                                                                                                               0.06782665418758393), (1.0, -
-                                                                                                                                                                                      1.0)), True, True, True)
+    # tri = KineticTriangle(KineticVertex((0.8308871493803005, -
+                                         #0.35731302646132906), (1.248735516282837, 1.0000000000000002)), InfiniteVertex((0.035633287674778816, -
+#                                                                                                                          0.06225382499568152)), KineticVertex((0.8534771264074428, -
+#                                                                                                                                                                0.06782665418758393), (1.0, -
+#                                                                                                                                                                                       1.0)), True, True, True)
+#     
+#     tri = KineticTriangle(KineticVertex((0.2, 0.1), (-0.5, -1.0), (-0.0, -1.0), (-0.8, -0.6000000000000001)),
+# KineticVertex((0.2, -0.1), (-0.5, 1.0), (-0.8, 0.6000000000000001), (-0.0, 1.0)),
+# KineticVertex((1.0, 0.1), (-0.9999999999999999, -0.9999999999999999), (-1.0, 0.0), (-0.0, -1.0)), True, None, True)
+
+    tri = KineticTriangle(KineticVertex((0.2, 0.1), (-0.5, -1.0), (-0.0, -1.0), (-0.8, -0.6000000000000001)),
+        KineticVertex((0.2, -0.1), (-0.5, 1.0), (-0.8, 0.6000000000000001), (-0.0, 1.0)),
+        KineticVertex((1.0, 0.1), (-0.9999999999999999, -0.9999999999999999), (-1.0, 0.0), (-0.0, -1.0)), True, None, True)
     now = 0.  # 0.6339745962123428
     evt = compute_collapse_time(tri, now)
 #     print evt
     # 0.00242630813252781, 0.6340506109731798, 0.004284474881621788,
     # 0.0022096098886525, 0.22933526207436553]
-    times = [0, 0.13, 0.14372166332027514, 0.15]
+    times = [0, 0.05, 0.1]
     for time in sorted(times):
         visualize_collapse(tri, time)
         raw_input("paused at " + str(time))
@@ -1127,7 +1147,6 @@ if __name__ == "__main__":
     # -- logging
     import logging
     import sys
-
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
 
@@ -1139,5 +1158,4 @@ if __name__ == "__main__":
     root.addHandler(ch)
     # -- main function
     main()
-
-    # test_compute_collapse_times()
+    #test_compute_collapse_times()

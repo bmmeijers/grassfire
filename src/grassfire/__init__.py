@@ -51,5 +51,5 @@ def calc_skel(conv, pause=False, output=False, shrink=True):
     # step 5 -- output offsets and the skeleton
     if output:
         output_offsets(skel, last_evt_time)
-        output_skel(skel)
+        output_skel(skel, last_evt_time + 10)
     return skel
