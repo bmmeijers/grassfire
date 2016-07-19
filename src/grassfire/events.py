@@ -1,7 +1,5 @@
 import logging
 
-from time import sleep
-
 from tri.delaunay import apex, orig, dest, cw, ccw, Edge
 from oseq import OrderedSequence
 
@@ -9,15 +7,13 @@ from grassfire.primitives import SkeletonNode, KineticVertex
 from grassfire.collapse import compute_collapse_time, find_gt, \
     compute_collapse_time_at_T
 
-from grassfire.inout import output_triangles_at_T
-import os
-
 from collections import deque
 
 from grassfire.vectorops import mul, bisector, add, dist
 from grassfire.calc import near_zero
 from grassfire.inout import visualize
 
+from random import shuffle
 
 def compare_event_by_time(one, other):
     """ Compare two events, first by time, in case they are equal
@@ -76,8 +72,8 @@ def stop_kvertices(V, now):
     """
     # precondition:
     # the kinetic vertices that we are stopping should be
-    # at more or less at the same location
-#     assert at_same_location(V, now)
+    # at more or less the same location
+    assert at_same_location(V, now)
     sk_node = None
     for v in V:
         stopped = v.stops_at is not None
@@ -100,7 +96,9 @@ def stop_kvertices(V, now):
         logging.debug("Skeleton node already there")
         for v in V:
             v.stop_node = sk_node
-        return sk_node, False
+            v.stops_at = now
+            #assert v.stops_at is not None
+        new_node = False
     else:
         logging.debug("Make new skeleton node")
         l = [v.position_at(now) for v in V]
@@ -113,7 +111,18 @@ def stop_kvertices(V, now):
         sk_node = SkeletonNode(pos)
         for v in V:
             v.stop_node = sk_node
-        return sk_node, True
+        new_node = True
+    # post condition
+    # all vertices do have a stop node and are stopped at a certain time
+    for v in V:
+        assert v.stop_node is not None
+        assert v.stops_at == now
+        # FIXME:
+        # should all segments in the skeleton have length
+        # or do we keep a topological tree of events (where nodes
+        # can be embedded at same location) ???
+        # assert not at_same_location([v.start_node, v.stop_node], now), "stopped nodes should be different, but are not for {0}".format(id(v))
+    return sk_node, new_node
 
 
 def compute_new_kvertex(ul, ur, now, sk_node):
@@ -172,6 +181,7 @@ def at_same_location(V, now):
     vertex in the list
     """
     P = [v.position_at(now) for v in V]
+    logging.debug(P)
     p = P[0]
     for o in P[1:]:
         if not (near_zero(p[0]-o[0]) and near_zero(p[1]-o[1])):
@@ -501,39 +511,16 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
     """Dispatches to correct function for handling parallel wavefronts"""
     logging.debug(" -------- dispatching parallel event --------")
     if len(fan) == 1:
-        t = fan[0]
-        if t.neighbours.count(None) == 3:
-            handle_parallel_3sides(fan, pivot, now, skel)
-        else:
-            logging.debug("Number of 'None' neighbours {}".format(
-                                                  t.neighbours.count(None)))
-            handle_parallel_2sides(fan, pivot, now, skel, queue)
+        handle_parallel(fan, pivot, now, skel, queue)
     else:
         raise NotImplementedError("Fan with multiple triangles, not yet there")
 
 
-def handle_parallel_2sides(fan, pivot, now, skel, queue):
-    """Handle parallel fan, 2 sides are wavefront, one is not"""
+def handle_parallel(fan, pivot, now, skel, queue):
+    """Handle parallel fan with 1 triangle in the fan"""
     assert len(fan) == 1, len(fan)
     t = fan[0]
-    neighbours = map(lambda x: x is None, t.neighbours)
-    pivot_idx = t.vertices.index(pivot)
-    assert neighbours[pivot_idx] is False
-    cw_idx = cw(pivot_idx)
-    ccw_idx = ccw(pivot_idx)
-    assert t.neighbours[cw_idx] is None
-    assert t.neighbours[ccw_idx] is None
-    left_wavefront = Edge(t, ccw_idx)
-    right_wavefront = Edge(t, cw_idx)
-    right_dist = dist(*map(lambda x: x.position_at(now),
-                           right_wavefront.segment))
-    left_dist = dist(*map(lambda x: x.position_at(now),
-                          left_wavefront.segment))
-    dists = [left_dist, right_dist]
-    unique_dists = [near_zero(_ - max(dists)) for _ in dists]
-    logging.debug(unique_dists)
-    unique_max_dists = unique_dists.count(True)
-    if unique_max_dists == 2:
+    if t.neighbours.count(None) == 3:
         # take edge e
         e = t.vertices.index(pivot)
         logging.debug(
@@ -546,7 +533,7 @@ def handle_parallel_2sides(fan, pivot, now, skel, queue):
         n = t.neighbours[e]
         assert a is None
         assert b is None
-        assert n is not None
+        assert n is None
         # stop the two vertices
         sk_node, newly_made = stop_kvertices([v1, v2], now)
         if newly_made:
@@ -556,111 +543,158 @@ def handle_parallel_2sides(fan, pivot, now, skel, queue):
         pivot.stop_node = sk_node
         pivot.stops_at = now
         t.stops_at = now
+        return
     else:
+        neighbours = map(lambda x: x is None, t.neighbours)
+        pivot_idx = t.vertices.index(pivot)
+        assert neighbours[pivot_idx] is False
+        cw_idx = cw(pivot_idx)
+        ccw_idx = ccw(pivot_idx)
+        assert t.neighbours[cw_idx] is None
+        assert t.neighbours[ccw_idx] is None
+        left_wavefront = Edge(t, ccw_idx)
+        right_wavefront = Edge(t, cw_idx)
+        right_dist = dist(*map(lambda x: x.position_at(now),
+                               right_wavefront.segment))
+        left_dist = dist(*map(lambda x: x.position_at(now),
+                              left_wavefront.segment))
+        dists = [left_dist, right_dist]
+        unique_dists = [near_zero(_ - max(dists)) for _ in dists]
         logging.debug(unique_dists)
-        longest_idx = unique_dists.index(True)
-        assert longest_idx >= 0
-        if longest_idx == 0:
-            logging.debug("CW / left wavefront at pivot is longest")
-            v = t.vertices.index(pivot)
+        unique_max_dists = unique_dists.count(True)
+        if unique_max_dists == 2:
+            # take edge e
+            e = t.vertices.index(pivot)
             logging.debug(
-                "wavefront edge collapsing? {0}".format(
-                                                    t.neighbours[v] is None))
-            v1 = t.vertices[(v + 1) % 3]
-            v2 = t.vertices[(v + 2) % 3]
+                "wavefront edge collapsing? {0}".format(t.neighbours[e] is None))
+            v1 = t.vertices[(e + 1) % 3]
+            v2 = t.vertices[(e + 2) % 3]
             # get neighbours around collapsing triangle
-            a = t.neighbours[(v + 1) % 3]
-            b = t.neighbours[(v + 2) % 3]
-            n = t.neighbours[v]
+            a = t.neighbours[(e + 1) % 3]
+            b = t.neighbours[(e + 2) % 3]
+            n = t.neighbours[e]
             assert a is None
             assert b is None
             assert n is not None
             # stop the two vertices
-            sk_node, newly_made = stop_kvertices([v1], now)
+            sk_node, newly_made = stop_kvertices([v1, v2], now)
             if newly_made:
                 skel.sk_nodes.append(sk_node)
             # make the connection
             # let the infinite vertex stop in the newly created skeleton node
             pivot.stop_node = sk_node
             pivot.stops_at = now
-            update_circ(pivot, None, now)
-            update_circ(None, pivot, now)
             t.stops_at = now
-            kv, newly_made = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
-            if newly_made:
-                skel.vertices.append(kv)
-            fan = replace_kvertex(n, v1, kv, now, cw, queue)
-            update_circ(v2, kv, now)
-            update_circ(kv, v1.right, now)
-            n_idx = n.neighbours.index(t)
-            n.neighbours[n_idx] = None
         else:
-            logging.debug("CCW / right wavefront at pivot is longest")
-            #raise NotImplementedError("handle ccw here")
-            v = t.vertices.index(pivot)
-            logging.debug(
-                "wavefront edge collapsing? {0}".format(
-                                                    t.neighbours[v] is None))
-            v1 = t.vertices[(v + 1) % 3]
-            v2 = t.vertices[(v + 2) % 3]
-            # get neighbours around collapsing triangle
-            a = t.neighbours[(v + 1) % 3]
-            b = t.neighbours[(v + 2) % 3]
-            n = t.neighbours[v]
-            assert a is None
-            assert b is None
-            assert n is not None
-            # stop the two vertices
-            sk_node, newly_made = stop_kvertices([v2], now)
-            if newly_made:
-                skel.sk_nodes.append(sk_node)
-            # make the connection
-            # let the infinite vertex stop in the newly created skeleton node
-            pivot.stop_node = sk_node
-            pivot.stops_at = now
-            update_circ(pivot, None, now)
-            update_circ(None, pivot, now)
-            t.stops_at = now
-            kv, newly_made = compute_new_kvertex(v2.ul, v1.ul, now, sk_node)
-            if newly_made:
-                skel.vertices.append(kv)
-            fan = replace_kvertex(n, v2, kv, now, ccw, queue)
-            update_circ(v2.left, kv, now)
-            update_circ(kv, v1, now)
-            n_idx = n.neighbours.index(t)
-            n.neighbours[n_idx] = None
-        # we should not have a new vertex that is infinitely fast...
-        if kv.inf_fast:
-            raise ValueError("should deal with infinite fast vertex again")
-            handle_parallel_2sides(fan, kv, now, skel, queue)
+            logging.debug(unique_dists)
+            longest_idx = unique_dists.index(True)
+            assert longest_idx >= 0
+            if longest_idx == 0:
+                logging.debug("CW / left wavefront at pivot is longest")
+                v = t.vertices.index(pivot)
+                logging.debug(
+                    "wavefront edge collapsing? {0}".format(
+                                                        t.neighbours[v] is None))
+                v1 = t.vertices[(v + 1) % 3]
+                v2 = t.vertices[(v + 2) % 3]
+                # get neighbours around collapsing triangle
+                a = t.neighbours[(v + 1) % 3]
+                b = t.neighbours[(v + 2) % 3]
+                n = t.neighbours[v]
+                assert a is None
+                assert b is None
+                assert n is not None
+                # stop the two vertices
+                sk_node, newly_made = stop_kvertices([v1], now)
+                if newly_made:
+                    skel.sk_nodes.append(sk_node)
+                # make the connection
+                # let the infinite vertex stop in the newly created skeleton node
+                pivot.stop_node = sk_node
+                pivot.stops_at = now
+                update_circ(pivot, None, now)
+                update_circ(None, pivot, now)
+                t.stops_at = now
+                kv, newly_made = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
+                if newly_made:
+                    skel.vertices.append(kv)
+                fan = replace_kvertex(n, v1, kv, now, cw, queue)
+                update_circ(v2, kv, now)
+                update_circ(kv, v1.right, now)
+                n_idx = n.neighbours.index(t)
+                n.neighbours[n_idx] = None
+            else:
+                logging.debug("CCW / right wavefront at pivot is longest")
+                #raise NotImplementedError("handle ccw here")
+                v = t.vertices.index(pivot)
+                logging.debug(
+                    "wavefront edge collapsing? {0}".format(
+                                                        t.neighbours[v] is None))
+                v1 = t.vertices[(v + 1) % 3]
+                v2 = t.vertices[(v + 2) % 3]
+                # get neighbours around collapsing triangle
+                a = t.neighbours[(v + 1) % 3]
+                b = t.neighbours[(v + 2) % 3]
+                n = t.neighbours[v]
+                assert a is None
+                assert b is None
+                assert n is not None
+                # stop the two vertices
+                sk_node, newly_made = stop_kvertices([v2], now)
+                if newly_made:
+                    skel.sk_nodes.append(sk_node)
+                # make the connection
+                # let the infinite vertex stop in the newly created skeleton node
+                pivot.stop_node = sk_node
+                pivot.stops_at = now
+                update_circ(pivot, None, now)
+                update_circ(None, pivot, now)
+                t.stops_at = now
+                kv, newly_made = compute_new_kvertex(v2.ul, v1.ul, now, sk_node)
+                if newly_made:
+                    skel.vertices.append(kv)
+                fan = replace_kvertex(n, v2, kv, now, ccw, queue)
+                update_circ(v2.left, kv, now)
+                update_circ(kv, v1, now)
+                n_idx = n.neighbours.index(t)
+                n.neighbours[n_idx] = None
+            # we should not have a new vertex that is infinitely fast...
+            if kv.inf_fast:
+                dispatch_parallel_fan(fan, kv, now, skel, queue)
 
 
-def handle_parallel_3sides(fan, pivot, now, skel):
-    """Handle end of parallel fan, all 3 sides are wavefront"""
-    assert len(fan) == 1
-    t = fan[0]
-    # take edge e
-    e = t.vertices.index(pivot)
-    logging.debug(
-        "wavefront edge collapsing? {0}".format(t.neighbours[e] is None))
-    v1 = t.vertices[(e + 1) % 3]
-    v2 = t.vertices[(e + 2) % 3]
-    # get neighbours around collapsing triangle
-    a = t.neighbours[(e + 1) % 3]
-    b = t.neighbours[(e + 2) % 3]
-    n = t.neighbours[e]
-    assert a is None
-    assert b is None
-    assert n is None
-    # stop the two vertices
-    sk_node, newly_made = stop_kvertices([v1, v2], now)
-    if newly_made:
-        skel.sk_nodes.append(sk_node)
-    # make the connection
-    # let the infinite vertex stop in the newly created skeleton node
-    pivot.stop_node = sk_node
-    pivot.stops_at = now
-    t.stops_at = now
+def choose_next_event(queue):
+    """Choose a next event from the queue
+
+    In case there are multiple events happening more or less at the same time
+    we pick a non-flipping event first. In case we have all flip events,
+    we pick a random event (to break possible flip event loops).
+    """
+    def sort_key(evt):
+        """Key for sorting; first by event type, when these equal by time"""
+        types = {'flip': 2, 'split': 1, 'edge': 0}
+        return (types[evt.tp], evt.time)
+    it = iter(queue)
+    first = next(it)
+    events = [first]
+    for e in it:
+        if near_zero(e.time - first.time):
+            events.append(e)
+    logging.debug("Events to pick next event from:\n - " + "\n - ".join(map(str, events)))
+    if len(events) == 1:
+        # just one event happening now
+        item = events [0]
+    elif all([_.tp == 'flip' for _ in events]):
+        # only flip events happening
+        # FIXME: introduce some bias to pick longest flip?
+        shuffle(events)
+        item = events[0]
+    else:
+        # return the first item, sorted on type (non-flipping events first)
+        for item in sorted(events, key=sort_key):
+            break
+    queue.remove(item)
+    return item
 
 
 # Main event loop
@@ -712,35 +746,37 @@ def event_loop(queue, skel, pause=False):
         if immediate:
             evt = immediate.popleft()
         else:
-            peek = next(iter(queue))
-            NOW = peek.time
-            if pause and False:  # visualize progressively
-                #                 if peek.tp == "flip":
-                #                     ct = 2
-                #                 else:
-                ct = 10
-                # -- use this for getting progress visualization
-                delta = NOW - prev_time
-                if near_zero(delta):
-                    ct = 1
-                step_time = delta / ct
-                for i in range(ct - 1):  # ct - 2): # stop 1 step before
-                    print "."
-                    prev_time += step_time
-                    visualize(queue, skel, prev_time + step_time)
-                    sleep(0.5)
-            if pause and False:  # and (ct % 10) == 0:
-                visualize(queue, skel, NOW)
-                # import random
-                # with open("/tmp/signal", "w") as fh:
-                #    fh.write("{}".format(random.randint(0,1000)))
-                os.system("touch /tmp/signal")
-                sleep(2.)
-#             if NOW > prev:
+            evt = choose_next_event(queue)
+            NOW = evt.time
+#             peek = next(iter(queue))
+#             NOW = peek.time
+#             if pause and False:  # visualize progressively
+#                 #                 if peek.tp == "flip":
+#                 #                     ct = 2
+#                 #                 else:
+#                 ct = 10
+#                 # -- use this for getting progress visualization
+#                 delta = NOW - prev_time
+#                 if near_zero(delta):
+#                     ct = 1
+#                 step_time = delta / ct
+#                 for i in range(ct - 1):  # ct - 2): # stop 1 step before
+#                     print "."
+#                     prev_time += step_time
+#                     visualize(queue, skel, prev_time + step_time)
+#                     sleep(0.5)
+#             if pause and False:  # and (ct % 10) == 0:
 #                 visualize(queue, skel, NOW)
-#                 prev += step
-            evt = queue.popleft()
-            prev_time = NOW
+#                 # import random
+#                 # with open("/tmp/signal", "w") as fh:
+#                 #    fh.write("{}".format(random.randint(0,1000)))
+#                 os.system("touch /tmp/signal")
+#                 sleep(2.)
+# #             if NOW > prev:
+# #                 visualize(queue, skel, NOW)
+# #                 prev += step
+            #evt = queue.popleft()
+            #prev_time = NOW
         if pause:
             visualize(queue, skel, NOW)
         # -- decide what to do based on event type

@@ -451,9 +451,9 @@ def compute_event_2triangle(tri, now, sieve):
     time = sieve(times, now)
     logging.debug("Time found: " + str(time))
     if time is not None:
-        dists = [d.distance2_at(a, time),
-                 a.distance2_at(o, time),
-                 o.distance2_at(d, time)]
+        dists = [math.sqrt(d.distance2_at(a, time)),
+                 math.sqrt(a.distance2_at(o, time)),
+                 math.sqrt(o.distance2_at(d, time))]
         logging.debug("distances at time = {1}: {0}".format(dists, time))
         zeros = [near_zero(dist) for dist in dists]
         logging.debug("near_zero = {}".format(zeros))

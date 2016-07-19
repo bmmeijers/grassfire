@@ -124,19 +124,20 @@ def output_offsets(skel, now=1000):
 def output_skel(skel, when):
     """ """
     with open("/tmp/skel.wkt", "w") as fh:
-        fh.write("wkt\n")
+        fh.write("id;wkt;stopped;length\n")
         for v in skel.vertices:
+            fh.write(str(id(v))+";")
             if v.stops_at is not None:
                 s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.start_node.pos,
                                                                       v.stop_node.pos
                                                                       )
                 fh.write(s)
-                fh.write("\n")
+                fh.write(";True;" + str(dist(v.start_node.pos, v.stop_node.pos)) + "\n")
             else:
                 s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(v.starts_at), 
                                                                       v.position_at(when))
                 fh.write(s)
-                fh.write("\n")
+                fh.write(";False;" + str(dist(v.position_at(v.starts_at), v.position_at(when))) + "\n")
 
     with open("/tmp/skelnodes.wkt", "w") as fh:
         fh.write("wkt\n")
@@ -224,6 +225,7 @@ def visualize(queue, skel, NOW):
             else:
                 right_id = id(right)
             if kvertex.stop_node is None:
+                assert kvertex.stops_at is None
                 fh1.write(
                     "{1};POINT({0[0]} {0[1]});{2};{3}\n".format(
                         kvertex.position_at(NOW),

@@ -166,28 +166,6 @@ class TestSimpleParallelEvents(unittest.TestCase):
                     "{} {} {}".format(id(v),
                                       v.stop_node.pos,
                                       v.position_at(v.stops_at) )
-  
-    def test_dent_equal(self):
-        conv = ToPointsAndSegments()
-        polygon = [[(0, 0), (10., 0), (10,20), (0,20.), (0.,11.), (-1,11), (-1,10), (0,10), (0,0)]]
-        conv.add_polygon(polygon)
-        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
-        # check the amount of segments in the skeleton
-        assert len(skel.segments()) == (12 + 8), len(skel.segments())
-        # check the amount of skeleton nodes
-        assert len(skel.sk_nodes) == 13, len(skel.sk_nodes)
-        # check the amount of kinetic vertices that are (not) stopped
-        assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 8
-        assert len(filter(lambda v: v.stops_at is not None, skel.vertices)) == 12
-        # check cross relationship between kinetic vertices and skeleton nodes
-        for v in skel.vertices:
-            assert at_same_location((v.start_node, v), v.starts_at)
-            if v.stops_at is not None and not v.inf_fast:
-                assert at_same_location((v.stop_node, v), v.stops_at), \
-                    "{} {} {}".format(id(v),
-                                      v.stop_node.pos,
-                                      v.position_at(v.stops_at) )
-
 
 
 if __name__ == "__main__":
