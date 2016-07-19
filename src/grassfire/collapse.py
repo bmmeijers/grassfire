@@ -487,6 +487,7 @@ def compute_event_2triangle(tri, now, sieve):
 def compute_event_3triangle(tri, now, sieve):
     # a 3-triangle can:
     # - collapse to a point
+    # - collapse to 2 line segments (split)
 
     # Calculate 3 edge collapse times
     # These should all be similar
@@ -499,12 +500,20 @@ def compute_event_3triangle(tri, now, sieve):
     times.append(time)
     time = collapse_time_edge(a, o)
     times.append(time)
+    logging.debug(sorted(times))
     #
     time = sieve(get_unique_times(times), now)
-    # we should find at most 1 collapse time
-#     assert len(times) <= 1, times
-    # we take this event only when it is >= now (now or in the future)
-    if time:
+#     logging.debug(time)
+#     dists = [math.sqrt(d.distance2_at(a, time)),
+#              math.sqrt(a.distance2_at(o, time)),
+#              math.sqrt(o.distance2_at(d, time))]
+#     logging.debug(dists)
+#     logging.debug(map(near_zero, dists))
+#     # we should find at most 1 collapse time
+# #     assert len(times) <= 1, times
+#     # we take this event only when it is >= now (now or in the future)
+#     zeros = map(near_zero, dists)
+    if time: # and all(zeros):
         # time = find_gte(times, now) # can raise ValueError if no value found
         sides = tuple(range(3))
 #         pa = o.position_at(time)
@@ -519,6 +528,10 @@ def compute_event_3triangle(tri, now, sieve):
 #             avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
         return Event(
             when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
+#     elif time and zeros.count(True) == 1:
+#         sides = (dists.index(max(dists)),)
+#         return Event(
+#             when=time, tri=tri, side=sides, tp="split", tri_tp=tri.type)
     else:
         return None
 

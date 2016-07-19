@@ -71,9 +71,8 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 22
         assert len(skel.sk_nodes) == 15
-  
- 
-  
+
+
     def test_quad(self):
         conv = ToPointsAndSegments()
         conv.add_point((8, 2))
@@ -90,7 +89,8 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 14
         assert len(skel.sk_nodes) == 9
-  
+
+
     def test_simultaneous(self):
         # substitute with this and we get a lot of simultaneous events!
         conv = ToPointsAndSegments()
@@ -99,7 +99,8 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (8 + 4 + 8)
         assert len(skel.sk_nodes) == 13
-  
+
+
     def test_squarish(self):
         conv = ToPointsAndSegments()
         conv.add_polygon(
@@ -122,7 +123,7 @@ class TestGrassfire(unittest.TestCase):
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (9 + 15)
-        assert len(skel.sk_nodes) == 16
+        assert len(skel.sk_nodes) == 16, len(skel.sk_nodes) 
   
     def test_poly(self):
         """Simple polygon with small dent"""

@@ -15,6 +15,7 @@ from grassfire.inout import visualize
 
 from random import shuffle
 
+
 def compare_event_by_time(one, other):
     """ Compare two events, first by time, in case they are equal
     by triangle type (first 2-triangle, then 1-triangle, then 0-triangle),
@@ -188,48 +189,6 @@ def at_same_location(V, now):
             return False
     return True
 
-# def replace_inffast_kvertex(t, v, newv, now, direction, queue):
-#     """Replace kinetic vertex at incident triangles
-# 
-#     As the vertex we replace is infinitely fast, we walk 'along' the wavefront
-#     until we find a wavefront edge that has length
-# 
-#     Returns:
-#         fan of triangles that were replaced
-#         vertices that were replaced 
-#     """
-#     logging.debug("replace_inffast_kvertex, start at: {0}".format(id(t)))
-#     fan = []
-#     while t is not None:
-#         assert t.stops_at is None, id(t)
-#         logging.debug(" @ {}".format(id(t)))
-#         side = t.vertices.index(v)
-#         fan.append(t)
-#         # stop_kvertices([t.vertices[side]], now)
-#         t.vertices[side] = newv
-#         logging.debug("Placed infinitely fast vertex {} at side {} of triangle {} <{}>".format(repr(newv), side, id(t), repr(t)))
-#         if t.event is not None:
-#             queue.discard(t.event)
-#         ngb = t.neighbours[direction(side)]
-#         if ngb is None:
-#             v = t.vertices[direction(direction(side))]
-#             if at_same_location([newv, v], now):
-#                 # replace other side of edge
-#                 t.vertices[direction(direction(side))] = newv
-#                 logging.debug("Placed infinitely fast vertex {}"
-#                               " at side {} of triangle {} <{}>".
-#                               format(
-#                        repr(newv), 
-#                        direction(direction(side)), 
-#                        id(t), 
-#                        repr(t)))
-#                 t = t.neighbours[side]
-#             else:
-#                 return tuple(fan)
-#         else:
-#             t = ngb
-#     return tuple(fan)
-
 
 def replace_in_queue(t, now, queue):
     """Replace event for a triangle in the queue """
@@ -354,9 +313,11 @@ def handle_edge_event_3sides(evt, skel, queue, immediate):
     now = evt.time
     t = evt.triangle
     logging.debug(evt.side)
+#     assert t.neighbours.count(None) == 3
     assert len(evt.side) == 3
     # e = evt.side[0]
     # stop 3 vertices, not making a new kinetic vertex
+#     for v in t.vertices:
     sk_node, newly_made = stop_kvertices(t.vertices, now)
     # update circ ????
     if newly_made:
