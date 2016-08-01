@@ -514,6 +514,8 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
     if len(fan) == 1:
         handle_parallel(fan, pivot, now, skel, queue)
     elif len(fan) > 1:
+        raise NotImplementedError("Fan with multiple triangles,"
+                                  " not yet finished")
         for tri in fan:
             print id(tri), tri
         # check whether all triangles opposite of the pivot vertex
@@ -522,28 +524,7 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
         # vertices at their current location
         opposing = [tri.neighbours[tri.vertices.index(pivot)] for tri in fan]
         is_closed_fan = all(map(lambda x: x is None, opposing))
-        if is_closed_fan:
-            logging.debug('CLOSED FAN')
-            logging.debug(pivot.position_at(now))
-            for tri in fan:
-                pivot_idx = tri.vertices.index(pivot)
-                v = tri.vertices[ccw(pivot_idx)]
-                logging.debug(v.position_at(now))
-            v = tri.vertices[cw(pivot_idx)]
-            logging.debug(v.position_at(now))
-            for t in fan:
-                t.stops_at = now
-                if t.event is not None:
-                    queue.discard(t.event)
-                for v in t.vertices:
-                    sk_node, newly_made = stop_kvertices([v], now)
-                    # add the skeleton node to the skeleton
-                    if newly_made:
-                        skel.sk_nodes.append(sk_node)
-            visualize(queue, skel, now)
-            raise NotImplementedError("we should connect the vertices better")
-            return
-        assert not is_closed_fan
+        #assert not is_closed_fan
         first_tri = fan[0]
         last_tri = fan[-1]
         first_pivot_idx = first_tri.vertices.index(pivot)
@@ -566,6 +547,7 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
             logging.debug("legs are same length")
             raise NotImplementedError("Fan with multiple triangles, not yet there")
         else:
+            visualize(queue, skel, now)
             logging.debug(unique_dists)
             longest_idx = unique_dists.index(True)
             assert longest_idx >= 0
@@ -576,7 +558,7 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 v1 = first_tri.vertices[(first_pivot_idx + 1) % 3]
                 v2 = last_tri.vertices[(last_pivot_idx + 2) % 3]
                 n = first_tri.neighbours[first_pivot_idx]
-                assert n is not None
+                # assert n is not None
                 #
                 sk_node, newly_made = stop_kvertices([v1], now)
                 if newly_made:
@@ -616,7 +598,7 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 kv, newly_made = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
                 if newly_made:
                     skel.vertices.append(kv)
-                fan = replace_kvertex(n, v1, kv, now, cw, queue)
+                new_fan = replace_kvertex(n, v1, kv, now, cw, queue)
                 update_circ(v2, kv, now)
                 update_circ(kv, v1.right, now)
                 if n is not None:
@@ -627,7 +609,7 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 v1 = first_tri.vertices[(first_pivot_idx + 1) % 3]
                 v2 = last_tri.vertices[(last_pivot_idx + 2) % 3]
                 n = last_tri.neighbours[last_pivot_idx]
-                assert n is not None
+                #assert n is not None
                 #
                 sk_node, newly_made = stop_kvertices([v2], now)
                 if newly_made:
@@ -643,15 +625,45 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 kv, newly_made = compute_new_kvertex(v2.ul, v1.ul, now, sk_node)
                 if newly_made:
                     skel.vertices.append(kv)
-                fan = replace_kvertex(n, v2, kv, now, ccw, queue)
+                new_fan = replace_kvertex(n, v2, kv, now, ccw, queue)
                 update_circ(v2.left, kv, now)
                 update_circ(kv, v1, now)
                 if n is not None:
                     n_idx = n.neighbours.index(last_tri)
                     n.neighbours[n_idx] = None
+            if is_closed_fan:
+                logging.debug('CLOSED FAN')
+#                 logging.debug(pivot.position_at(now))
+#                 for tri in fan:
+#                     kv_idx = tri.vertices.index(kv)
+#                     v = tri.vertices[ccw(kv_idx)]
+#                     logging.debug(v.position_at(now))
+#                 v = tri.vertices[cw(pivot_idx)]
+#                 logging.debug(v.position_at(now))
+#                 for t in fan:
+#                     t.stops_at = now
+#                     if t.event is not None:
+#                         queue.discard(t.event)
+#                     for v in t.vertices:
+#                         sk_node, newly_made = stop_kvertices([v], now)
+#                         # add the skeleton node to the skeleton
+#                         if newly_made:
+#                             skel.sk_nodes.append(sk_node)
+                assert kv.inf_fast
+                logging.debug("fan: " + str(fan))
+                kv_idx = first_tri.vertices.index(kv)
+                # stop_kvertices([kv], now)
+                v1 = last_tri.vertices[(kv_idx + 1) % 3]
+                v2 = last_tri.vertices[(kv_idx + 2) % 3]
+                sk_node, newly_made = stop_kvertices([v1, v2], now)
+                pivot.stop_node = sk_node
+                pivot.stops_at = now
+                visualize(queue, skel, now)
+                raise NotImplementedError("we should connect the vertices better")
+                return
         # the newly created vertex again is infinitely fast
         if kv.inf_fast:
-            dispatch_parallel_fan(fan, kv, now, skel, queue)
+            dispatch_parallel_fan(new_fan, kv, now, skel, queue)
 #         raise NotImplementedError("Fan with multiple triangles, not yet there")
     else:
         return
