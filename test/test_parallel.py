@@ -71,36 +71,6 @@ class TestMoreAdvancedParallelEvents(unittest.TestCase):
                                       v.position_at(v.stops_at) )
 
 
-
-    def test_capital_T(self):
-        """Capital T, has more than one triangle in parallel fan
-             
-        Exhibits infinite event loop because of flipping...
-        """
-        #    T
-        ring = [(15.5055, 28.7004), (20.8063, 28.7004), (20.8063, 44.1211), (26.7445, 44.1211), (26.7445, 47.8328), (9.5668, 47.8328), (9.5668, 44.1211), (15.5055, 44.1211), (15.5055, 28.7004)]
-        conv = ToPointsAndSegments()
-        conv.add_polygon([ring])
-        skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
-        # check the amount of segments in the skeleton
-        assert len(skel.segments()) == 21, len(skel.segments())
-        # check the amount of skeleton nodes
-        assert len(skel.sk_nodes) == 14, len(skel.sk_nodes)
-        # check the amount of kinetic vertices that are (not) stopped
-        not_stopped = filter(lambda v: v.stops_at is None, skel.vertices)
-        stopped = filter(lambda v: v.stops_at is not None, skel.vertices)
-        assert len(not_stopped) == 8, len(not_stopped)
-        assert len(stopped) == 13, len(stopped)
-        # check cross relationship between kinetic vertices and skeleton nodes
-        for v in skel.vertices:
-            assert at_same_location((v.start_node, v), v.starts_at)
-            if v.stops_at is not None and not v.inf_fast:
-                assert at_same_location((v.stop_node, v), v.stops_at), \
-                    "{} {} {}".format(id(v),
-                                      v.stop_node.pos,
-                                      v.position_at(v.stops_at) )
-
-
     def test_multiple_parallel2(self):
         """Parallelogram with parallel wavefronts collapsing"""
         conv = ToPointsAndSegments()
