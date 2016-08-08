@@ -139,7 +139,11 @@ def angle(v1, v2):
 
 def angle_unit(v1, v2):
     """angle between 2 *unit* vectors"""
-    return math.acos(dot(v1, v2))
+    d = dot(v1, v2)
+    if d > 1.0 or d < -1.0:
+        logging.warn("WARN - dot not in [-1, 1]")
+        d = max(-1.0, min(1.0, d))
+    return math.acos(d)
 
 
 def bisector(u1, u2):
