@@ -124,3 +124,33 @@ def is_close(a,
     elif method == "average":
         return ((diff <= abs(rel_tol * (a + b) * 0.5) or
                  (diff <= abs_tol)))
+
+
+def groupby_cluster(L):
+    """Groups list of 2-tuples in clusters, based on whether tuples are nearly
+    equal
+
+    Assumes sorted list as input
+    Returns list with sublists with indices
+    """
+    it = iter(L)
+    prev = next(it)
+    clusters = []
+    cluster = [0]
+    ct = 1
+    for item in it:
+        if near_zero(prev[0] - item[0]) and near_zero(prev[1] - item[1]):
+            cluster.append(ct)
+        else:
+            clusters.append(cluster)
+            cluster = [ct]
+            prev = item
+        ct += 1
+    if cluster:
+        clusters.append(cluster)
+    return clusters
+
+
+if __name__ == "__main__":
+    L = [(0, 0), (0, 0), (1, 1), (1, 1), (2, 2)]
+    print groupby_cluster(L)
