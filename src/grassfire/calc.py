@@ -9,6 +9,8 @@
 # from tri.delaunay import orient2d
 # import logging
 
+import math
+
 
 def get_unique_times(times):
     """Filters out None values and then returns unique event times,
@@ -150,6 +152,28 @@ def groupby_cluster(L):
         clusters.append(cluster)
     return clusters
 
+
+def r_squared(pts):
+    """Calculate R**2 for a set of points
+
+    If value returned == 1, these points are on a straight line
+    """
+    length = len(pts)
+    xs = [pt[0] for pt in pts]
+    ys = [pt[1] for pt in pts]
+    x = sum(xs)
+    y = sum(ys)
+    xx = sum(x**2 for x in xs)
+    yy = sum(y**2 for y in ys)
+    xy = sum(x*y for x, y in zip(xs,ys))
+    num = (length * xy - x * y)
+    sqt = (length * xx - x * x) * (length * yy - y * y)
+    if sqt <= 0:
+        corr = 0
+    else:
+        den = math.sqrt(sqt)
+        corr = num / den
+    return corr
 
 if __name__ == "__main__":
     L = [(0, 0), (0, 0), (1, 1), (1, 1), (2, 2)]

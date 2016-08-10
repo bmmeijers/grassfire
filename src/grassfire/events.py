@@ -10,7 +10,8 @@ from grassfire.collapse import compute_collapse_time, find_gt, \
 from collections import deque
 
 from grassfire.vectorops import mul, bisector, add, dist
-from grassfire.calc import near_zero, groupby_cluster
+from grassfire.calc import near_zero, groupby_cluster, r_squared
+from grassfire.regression import are_residuals_near_zero
 from grassfire.inout import visualize
 
 from random import shuffle
@@ -510,7 +511,7 @@ def flip(t0, side0, t1, side1):
 # -----------------------------------------------------------------------------
 def dispatch_parallel_fan(fan, pivot, now, skel, queue):
     """Dispatches to correct function for handling parallel wavefronts"""
-    logging.debug(" -------- dispatching parallel event --------")
+#     logging.debug(" -------- dispatching parallel event --------")
     if len(fan) == 1:
         handle_parallel(fan, pivot, now, skel, queue)
     elif len(fan) > 1:
@@ -559,8 +560,8 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 kv.velocity = (0, 0)
                 kv.inf_fast = True
                 skel.vertices.append(kv)
-                # FIXME: circular list for these kinetic vertices
-            visualize(queue, skel, now)
+                update_circ(kv, None, now)
+                update_circ(None, kv, now)
             return
         first_tri = fan[0]
         last_tri = fan[-1]
@@ -584,14 +585,14 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
             logging.debug("legs are same length")
             raise NotImplementedError("Fan with multiple triangles, not yet there")
         else:
-            visualize(queue, skel, now)
+            # visualize(queue, skel, now)
             logging.debug(unique_dists)
             longest_idx = unique_dists.index(True)
             assert longest_idx >= 0
             if longest_idx == 0:
                 logging.debug("CW / left wavefront at pivot is longest")
                 logging.debug([str(id(_)) for _ in first_tri.neighbours])
-#                 raise NotImplementedError("Fan with multiple triangles, not yet there")
+    #                 raise NotImplementedError("Fan with multiple triangles, not yet there")
                 v1 = first_tri.vertices[(first_pivot_idx + 1) % 3]
                 v2 = last_tri.vertices[(last_pivot_idx + 2) % 3]
                 n = first_tri.neighbours[first_pivot_idx]
@@ -608,30 +609,30 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 update_circ(None, pivot, now)
                 for t in fan:
                     t.stops_at = now
-#                 v = t.vertices.index(pivot)
-#                 logging.debug(
-#                     "wavefront edge collapsing? {0}".format(
-#                                                         t.neighbours[v] is None))
-#                 v1 = t.vertices[(v + 1) % 3]
-#                 v2 = t.vertices[(v + 2) % 3]
-#                 # get neighbours around collapsing triangle
-#                 a = t.neighbours[(v + 1) % 3]
-#                 b = t.neighbours[(v + 2) % 3]
-#                 n = t.neighbours[v]
-#                 assert a is None
-#                 assert b is None
-#                 assert n is not None
-#                 # stop the two vertices
-#                 sk_node, newly_made = stop_kvertices([v1], now)
-#                 if newly_made:
-#                     skel.sk_nodes.append(sk_node)
-#                 # make the connection
-#                 # let the infinite vertex stop in the newly created skeleton node
-#                 pivot.stop_node = sk_node
-#                 pivot.stops_at = now
-#                 update_circ(pivot, None, now)
-#                 update_circ(None, pivot, now)
-#                 t.stops_at = now
+    #                 v = t.vertices.index(pivot)
+    #                 logging.debug(
+    #                     "wavefront edge collapsing? {0}".format(
+    #                                                         t.neighbours[v] is None))
+    #                 v1 = t.vertices[(v + 1) % 3]
+    #                 v2 = t.vertices[(v + 2) % 3]
+    #                 # get neighbours around collapsing triangle
+    #                 a = t.neighbours[(v + 1) % 3]
+    #                 b = t.neighbours[(v + 2) % 3]
+    #                 n = t.neighbours[v]
+    #                 assert a is None
+    #                 assert b is None
+    #                 assert n is not None
+    #                 # stop the two vertices
+    #                 sk_node, newly_made = stop_kvertices([v1], now)
+    #                 if newly_made:
+    #                     skel.sk_nodes.append(sk_node)
+    #                 # make the connection
+    #                 # let the infinite vertex stop in the newly created skeleton node
+    #                 pivot.stop_node = sk_node
+    #                 pivot.stops_at = now
+    #                 update_circ(pivot, None, now)
+    #                 update_circ(None, pivot, now)
+    #                 t.stops_at = now
                 kv, newly_made = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
                 if newly_made:
                     skel.vertices.append(kv)
@@ -840,19 +841,43 @@ def choose_next_event(queue):
     for e in it:
         if near_zero(e.time - first.time):
             events.append(e)
+#         else:
+#             break
     logging.debug("Events to pick next event from:\n - " + "\n - ".join(map(str, events)))
     if len(events) == 1:
         # just one event happening now
         item = events [0]
     elif all([_.tp == 'flip' for _ in events]):
-        # only flip events happening
+        # only flip events happening, pick random event
         # FIXME: introduce some bias to pick longest flip?
         shuffle(events)
         item = events[0]
     else:
-        # return the first item, sorted on type (non-flipping events first)
-        for item in sorted(events, key=sort_key):
-            break
+        pts = []
+        for evt in events:
+            pts.extend([v.position_at(first.time) for v in evt.triangle.vertices])
+        on_straight_line = are_residuals_near_zero(pts)
+#         print pts
+#         for pt in pts:
+#             print "POINT({0[0]} {0[1]})".format(pt)
+#         metric = r_squared(pts)
+#         logging.debug('metric {0}'.format(metric))
+#         import numpy as np
+#         x = np.array([pt[0] for pt in pts])
+#         y = np.array([pt[1] for pt in pts])
+#         A = np.vstack([x, np.ones(len(x))]).T
+#         res = np.linalg.lstsq(A, y)
+#         print res
+        if not on_straight_line:
+            logging.debug('pick first event') 
+            # points should be on straight line to exhibit infinite flipping
+            # if this is not the case, we return the first event
+            item = events[0]
+        else:
+            logging.debug('pick non-flip event')
+            # return the first item, sorted on type (non-flipping events first)
+            for item in sorted(events, key=sort_key):
+                break
     queue.remove(item)
     return item
 
