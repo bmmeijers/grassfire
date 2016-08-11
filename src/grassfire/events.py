@@ -99,7 +99,10 @@ def stop_kvertices(V, now):
         for v in V:
             v.stop_node = sk_node
             v.stops_at = now
-            # assert v.stops_at is not None
+            # FIXME: it is not always true that vertices stopped this way
+            # are at the same location (they are close, but because of
+            # numerical issues can be on slightly different location
+            # assert at_same_location([v, sk_node], now)
         new_node = False
     else:
         logging.debug("Make new skeleton node")
@@ -592,12 +595,9 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
             if longest_idx == 0:
                 logging.debug("CW / left wavefront at pivot is longest")
                 logging.debug([str(id(_)) for _ in first_tri.neighbours])
-    #                 raise NotImplementedError("Fan with multiple triangles, not yet there")
                 v1 = first_tri.vertices[(first_pivot_idx + 1) % 3]
                 v2 = last_tri.vertices[(last_pivot_idx + 2) % 3]
                 n = first_tri.neighbours[first_pivot_idx]
-                # assert n is not None
-                #
                 sk_node, newly_made = stop_kvertices([v1], now)
                 if newly_made:
                     skel.sk_nodes.append(sk_node)
@@ -605,34 +605,14 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 # let the infinite vertex stop in the newly created skeleton node
                 pivot.stop_node = sk_node
                 pivot.stops_at = now
+                # FIXME: it is not always true that vertices stopped this way
+                # are at the same location (they are close, but because of
+                # numerical issues can be on slightly different location
+                # assert at_same_location([pivot, sk_node], now)
                 update_circ(pivot, None, now)
                 update_circ(None, pivot, now)
                 for t in fan:
                     t.stops_at = now
-    #                 v = t.vertices.index(pivot)
-    #                 logging.debug(
-    #                     "wavefront edge collapsing? {0}".format(
-    #                                                         t.neighbours[v] is None))
-    #                 v1 = t.vertices[(v + 1) % 3]
-    #                 v2 = t.vertices[(v + 2) % 3]
-    #                 # get neighbours around collapsing triangle
-    #                 a = t.neighbours[(v + 1) % 3]
-    #                 b = t.neighbours[(v + 2) % 3]
-    #                 n = t.neighbours[v]
-    #                 assert a is None
-    #                 assert b is None
-    #                 assert n is not None
-    #                 # stop the two vertices
-    #                 sk_node, newly_made = stop_kvertices([v1], now)
-    #                 if newly_made:
-    #                     skel.sk_nodes.append(sk_node)
-    #                 # make the connection
-    #                 # let the infinite vertex stop in the newly created skeleton node
-    #                 pivot.stop_node = sk_node
-    #                 pivot.stops_at = now
-    #                 update_circ(pivot, None, now)
-    #                 update_circ(None, pivot, now)
-    #                 t.stops_at = now
                 kv, newly_made = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
                 if newly_made:
                     skel.vertices.append(kv)
@@ -647,8 +627,6 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 v1 = first_tri.vertices[(first_pivot_idx + 1) % 3]
                 v2 = last_tri.vertices[(last_pivot_idx + 2) % 3]
                 n = last_tri.neighbours[last_pivot_idx]
-                #assert n is not None
-                #
                 sk_node, newly_made = stop_kvertices([v2], now)
                 if newly_made:
                     skel.sk_nodes.append(sk_node)
@@ -656,6 +634,11 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 # let the infinite vertex stop in the newly created skeleton node
                 pivot.stop_node = sk_node
                 pivot.stops_at = now
+                # FIXME: it is not always true that vertices stopped this way
+                # are at the same location (they are close, but because of
+                # numerical issues can be on slightly different location
+                # -> see capital_T test case, which *randomly* comes here!
+                # assert at_same_location([pivot, sk_node], now)
                 update_circ(pivot, None, now)
                 update_circ(None, pivot, now)
                 for t in fan:
@@ -703,6 +686,8 @@ def handle_parallel(fan, pivot, now, skel, queue):
         # let the infinite vertex stop in the newly created skeleton node
         pivot.stop_node = sk_node
         pivot.stops_at = now
+        if not pivot.inf_fast: 
+            assert at_same_location([pivot, sk_node], now)
         t.stops_at = now
         return
     else:
@@ -745,6 +730,8 @@ def handle_parallel(fan, pivot, now, skel, queue):
             # let the infinite vertex stop in the newly created skeleton node
             pivot.stop_node = sk_node
             pivot.stops_at = now
+            if not pivot.inf_fast: 
+                assert at_same_location([pivot, sk_node], now)
             t.stops_at = now
         else:
             logging.debug(unique_dists)
@@ -773,6 +760,8 @@ def handle_parallel(fan, pivot, now, skel, queue):
                 # let the infinite vertex stop in the newly created skeleton node
                 pivot.stop_node = sk_node
                 pivot.stops_at = now
+                if not pivot.inf_fast: 
+                    assert at_same_location([pivot, sk_node], now)
                 update_circ(pivot, None, now)
                 update_circ(None, pivot, now)
                 t.stops_at = now
@@ -808,6 +797,8 @@ def handle_parallel(fan, pivot, now, skel, queue):
                 # let the infinite vertex stop in the newly created skeleton node
                 pivot.stop_node = sk_node
                 pivot.stops_at = now
+                if not pivot.inf_fast: 
+                    assert at_same_location([pivot, sk_node], now)
                 update_circ(pivot, None, now)
                 update_circ(None, pivot, now)
                 t.stops_at = now

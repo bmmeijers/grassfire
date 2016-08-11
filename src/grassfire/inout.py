@@ -185,28 +185,30 @@ def visualize(queue, skel, NOW):
                                 mul(bi, 0.1)
                                 )))
     with open("/tmp/segments_progress.wkt", "w") as fh:
-        fh.write("wkt;finished;length\n")
+        fh.write("id;wkt;finished;length\n")
         for kvertex in skel.vertices:
             if kvertex.start_node is not None and kvertex.stop_node is not None:
                 start, end = kvertex.start_node.pos, kvertex.stop_node.pos
                 fh.write(
-                    "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3}\n".format(
+                    "{4};LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3}\n".format(
                         start,
                         end,
                         True,
                         dist(
                             start,
-                            end)))
+                            end),
+                        id(kvertex)))
             elif kvertex.start_node is not None and kvertex.stop_node is None:
                 start, end = kvertex.start_node.pos, kvertex.position_at(NOW)
                 fh.write(
-                    "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3}\n".format(
+                    "{4};LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3}\n".format(
                         start,
                         end,
                         False,
                         dist(
                             start,
-                            end)))
+                            end),
+                        id(kvertex)))
 
     with open("/tmp/vertices1_progress.wkt", 'w') as fh1:
         fh1.write("id;wkt;leftid;rightid\n")
