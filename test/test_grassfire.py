@@ -635,8 +635,8 @@ class TestGrassfire(unittest.TestCase):
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
-        assert len(skel.segments()) == 51, len(skel.segments())
-        assert len(skel.sk_nodes) == 36, len(skel.sk_nodes)
+        assert len(skel.segments()) == 50, len(skel.segments())
+        assert len(skel.sk_nodes) == 35, len(skel.sk_nodes)
 
 
     def test_koch_rec1(self):
