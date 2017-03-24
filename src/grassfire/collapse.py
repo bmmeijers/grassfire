@@ -543,23 +543,18 @@ def compute_event_inftriangle(tri, now, sieve):
     side = inf_idx
     logging.debug(repr(tri))
     logging.debug("side " + str(side))
-    o, d, a = tri.vertices[
-        cw(side)], tri.vertices[
-        ccw(side)], tri.vertices[side]
-
-#     print cw(side), "cw | o", repr(o)
-#     print ccw(side), "ccw | d", repr(d)
-#     print side, repr(a)
+    o, d, a = tri.vertices[cw(side)], \
+        tri.vertices[ccw(side)], \
+        tri.vertices[side]
     logging.debug(o)
     logging.debug(d)
-    if tri.neighbours[side] is None:  # wavefront edge
+    if tri.neighbours[side] is None:  # wavefront edge on the hull that collapses
         assert tri.type == 1, tri.type
         # time of closest approach of the 2 points
         time = find_gt([collapse_time_edge(o, d)], now)
         logging.debug("time of closest approach {}".format(time))
         if time:
             dist = o.distance2_at(d, time)
-            from math import sqrt
             logging.debug(dist)
             if near_zero(dist):
                 # collapsing edge!
@@ -568,52 +563,31 @@ def compute_event_inftriangle(tri, now, sieve):
             else:
                 return None
                 raise ValueError('problem?')
-#                 tp = "edge"
-#                 return Event(when=time, tri=tri, side=(side,), tp=tp)
-    time = sieve(area_collapse_times(o, d, a), now)
-    logging.debug("time = {}".format(time))
-    # if time != None and not near_zero(time - now):
-    if time:
-        dist = o.distance2_at(d, time)
-        if near_zero(dist):
-            return Event(
-                when=time, tri=tri, side=(side,), tp="edge", tri_tp=tri.type)
-            # non-wavefront edge collapses
-#             return Event(when=time, tri=tri, side=(side,), tp="edge")
-        else:
-            return None
-            tp = "flip"
-            # FIXME: side to flip depends on which side to rotate to
-            # The flip of infinite triangle leads to finite and infinite triangle
-            # The result should be that the finite triangle has a good orientation
-            # which results in the triangle laying outside of the already swept domain
-            # o->d = side
-            # d->a = cw(side)
-            # a->o = ccw(side)
-#             print Edge(tri, cw(side)).segment
-#             print Edge(tri, ccw(side)).segmen
-            # FIXME: dists
-            a, o, d = tri.vertices
-            dists = [d.distance2_at(a, time),
-                     a.distance2_at(o, time),
-                     o.distance2_at(d, time)]
-            min_dist = min(dists)
-            min_dist_side = dists.index(min_dist)
-
-            # I think you need to flip away the shortest side of the two edges
-            # that both are connected to the infinite vertex
-            return Event(
-                when=time, tri=tri, side=(min_dist_side,), tp=tp, tri_tp=tri.type)
-
-    return None
-#     return NewEventType(
-#             when=time,
-#             tri=tri,
-#             sides=sides,
-#             event_tp=tp, # collapse / flip / split
-#             how=how, # if collapse: point | line
-#             where=where # if collapse: the geometry of point or segment
-#         )
+    else:
+        time = sieve(area_collapse_times(o, d, a), now)
+        logging.debug("time = {}".format(time))
+        if time:
+            dist = o.distance2_at(d, time)
+            if near_zero(dist):
+                return Event(
+                    when=time, tri=tri, side=(side,), tp="edge", tri_tp=tri.type)
+            else:
+                tp = "flip"
+                # Determine side to flip
+                #
+                # The flip of infinite triangle leads to
+                # 1 finite and 1 infinite triangle
+                #
+                # compute dists for 2 legs incident with inf vertex
+                # shortest leg of the two has to be flipped away
+                dists = []
+                for func in cw, ccw:
+                    start, end = Edge(tri, func(side)).segment
+                    dists.append(start.distance2_at(end, time))
+                idx = dists.index(min(dists))
+                min_dist_side = [cw, ccw][idx](side)
+                return Event(
+                    when=time, tri=tri, side=(min_dist_side,), tp=tp, tri_tp=tri.type)
 
 
 def compute_collapse_time(tri, now=0, sieve=find_gte):
