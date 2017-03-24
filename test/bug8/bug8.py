@@ -17,25 +17,27 @@ if True:
     ch.setFormatter(formatter)
     root.addHandler(ch)
 
+
 # -- large example, with multiple examples
-with open('bug_exterior.wkt') as fh:
-    fh.readline()  # skip header in file (line with "wkt")
-    wkt = fh.readline()
-    from simplegeom.wkt import loads
-    poly = loads(wkt)
-    poly = poly[0]
+# with open('bug_exterior.wkt') as fh:
+#     fh.readline()  # skip header in file (line with "wkt")
+#     wkt = fh.readline()
+#     from simplegeom.wkt import loads
+#     poly = loads(wkt)
+#     poly = poly[0]
 
 
 # -- small sample
-# import json
-# with open('bug8.geojson') as fh:
-#     j = fh.read()
-# x = json.loads(j)
-# print x
-# ## parse segments from geo-json
-# y = x['features'][0]
-# poly = map(tuple, y['geometry']['coordinates'][0])
-# 
+import json
+with open('bug8.geojson') as fh:
+    j = fh.read()
+x = json.loads(j)
+print x
+## parse segments from geo-json
+y = x['features'][0]
+poly = map(tuple, y['geometry']['coordinates'][0])
+
+
 conv = ToPointsAndSegments()
 for start, end in zip(poly[:-1], poly[1:]):
     conv.add_point(start)
