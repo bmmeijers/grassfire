@@ -943,13 +943,13 @@ def event_loop(queue, skel, pause=False):
         logging.debug("STEP := " + str(ct))
         logging.debug("")
 
-        logging.debug("=" * 80)
-        for i, e in enumerate(immediate):
-            logging.debug("{0:5d} {1}".format(i, e))
-        logging.debug("-" * 80)
-        for i, e in enumerate(queue):
-            logging.debug("{0:5d} {1}".format(i, e))
-        logging.debug("=" * 80)
+#         logging.debug("=" * 80)
+#         for i, e in enumerate(immediate):
+#             logging.debug("{0:5d} {1}".format(i, e))
+#         logging.debug("-" * 80)
+#         for i, e in enumerate(queue):
+#             logging.debug("{0:5d} {1}".format(i, e))
+#         logging.debug("=" * 80)
 
 #         if len(queue) == 143:
 #             raise ValueError("stop stop")
@@ -1041,7 +1041,7 @@ def event_loop(queue, skel, pause=False):
             with open("/tmp/signal", "w") as fh:
                 fh.write("{0}".format("boe"))# random.randint(0, int(1e6))))
             # raw_input("paused...")
-        if not immediate:
+        if False and not immediate:
             # if we have immediate events, the linked list will not be
             # ok for a while
             try:
