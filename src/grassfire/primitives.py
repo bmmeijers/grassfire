@@ -97,7 +97,7 @@ class KineticVertex(object):
         # FIXME: make other method (dependent on time as argument)
         time = 0
         # 4.281470022378475
-        return "{0[0]} {0[1]} ".format(self.position_at(time))
+        return "{0[0]} {0[1]} @{1}".format(self.position_at(time), id(self))
 
     def __repr__(self):
         """ """
