@@ -186,7 +186,6 @@ def at_same_location(V, now):
     vertex in the list
     """
     P = [v.position_at(now) for v in V]
-    logging.debug(P)
     p = P[0]
     for o in P[1:]:
         if not (near_zero(p[0]-o[0]) and near_zero(p[1]-o[1])):
@@ -343,6 +342,7 @@ def handle_edge_event(evt, skel, queue, immediate):
         # raise NotImplementedError("parallel unhandled")
         fan = list(reversed(fan_a))
         fan.extend(fan_b)
+        # fan is ordered counter clockwise
         dispatch_parallel_fan(fan, kv, now, skel, queue)
 
 
@@ -513,8 +513,11 @@ def flip(t0, side0, t1, side1):
 # Parallel
 # -----------------------------------------------------------------------------
 def dispatch_parallel_fan(fan, pivot, now, skel, queue):
-    """Dispatches to correct function for handling parallel wavefronts"""
-#     logging.debug(" -------- dispatching parallel event --------")
+    """Dispatches to correct function for handling parallel wavefronts
+    
+    fan: list of triangles, sorted counter-clockwise
+    """
+    logging.debug(" -------- dispatching parallel event --------")
     if len(fan) == 1:
         handle_parallel(fan, pivot, now, skel, queue)
     elif len(fan) > 1:
@@ -595,8 +598,8 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
             if longest_idx == 0:
                 logging.debug("CW / left wavefront at pivot is longest")
                 logging.debug([str(id(_)) for _ in first_tri.neighbours])
-                v1 = first_tri.vertices[(first_pivot_idx + 1) % 3]
-                v2 = last_tri.vertices[(last_pivot_idx + 2) % 3]
+                v1 = first_tri.vertices[ccw(first_pivot_idx)]
+                v2 = last_tri.vertices[cw(last_pivot_idx)]
                 n = first_tri.neighbours[first_pivot_idx]
                 sk_node, newly_made = stop_kvertices([v1], now)
                 if newly_made:
@@ -624,8 +627,8 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                     n.neighbours[n_idx] = None
             else:
                 logging.debug("CCW / right wavefront at pivot is longest")
-                v1 = first_tri.vertices[(first_pivot_idx + 1) % 3]
-                v2 = last_tri.vertices[(last_pivot_idx + 2) % 3]
+                v1 = first_tri.vertices[ccw(first_pivot_idx)]
+                v2 = last_tri.vertices[cw(last_pivot_idx)]
                 n = last_tri.neighbours[last_pivot_idx]
                 sk_node, newly_made = stop_kvertices([v2], now)
                 if newly_made:
@@ -797,7 +800,7 @@ def handle_parallel(fan, pivot, now, skel, queue):
                 # let the infinite vertex stop in the newly created skeleton node
                 pivot.stop_node = sk_node
                 pivot.stops_at = now
-                if not pivot.inf_fast: 
+                if not pivot.inf_fast:
                     assert at_same_location([pivot, sk_node], now)
                 update_circ(pivot, None, now)
                 update_circ(None, pivot, now)
@@ -824,8 +827,9 @@ def choose_next_event(queue):
     """
     def sort_key(evt):
         """Key for sorting; first by event type, when these equal by time"""
-        types = {'flip': 2, 'split': 1, 'edge': 0}
-        return (types[evt.tp], evt.time)
+        types = {'flip': 2, 'split': 0, 'edge': 1}
+        x = evt.triangle.vertices[0].position_at(evt.time)[0]
+        return (types[evt.tp], -x, evt.time)
     it = iter(queue)
     first = next(it)
     events = [first]
@@ -837,8 +841,9 @@ def choose_next_event(queue):
     logging.debug("Events to pick next event from:\n - " + "\n - ".join(map(str, events)))
     if len(events) == 1:
         # just one event happening now
-        item = events [0]
+        item = events[0]
     elif all([_.tp == 'flip' for _ in events]):
+        logging.debug("Only flip events, picking randomly an event")
         # only flip events happening, pick random event
         # FIXME: introduce some bias to pick longest flip?
         shuffle(events)
@@ -860,7 +865,7 @@ def choose_next_event(queue):
 #         res = np.linalg.lstsq(A, y)
 #         print res
         if not on_straight_line:
-            logging.debug('pick first event') 
+            logging.debug('pick first event')
             # points should be on straight line to exhibit infinite flipping
             # if this is not the case, we return the first event
             item = events[0]
@@ -873,25 +878,47 @@ def choose_next_event(queue):
     return item
 
 
+def point_to_each_other(triangle, side):
+    """Asserts that two kinetic vertices along the wavefront
+    point to each other
+    """
+    v0, v1 = triangle.vertices[cw(side)], triangle.vertices[ccw(side)]
+    assert v0.left is v1, "@triangle: {} - v0 := {}, v0.left {} != {}".format(id(triangle), id(v0), id(v0.left), id(v1))
+    assert v1.right is v0, "@triangle: {} - v1 := {}, v1.right {} != {}".format(id(triangle), id(v1), id(v1.right), id(v0))
+
+
+def check_wavefront_links(tri):
+    """Check links of the kinetic vertices along the wavefront"""
+    for t in tri:
+        if t is None:
+            continue
+        if t.stops_at is None:
+            for side in range(3):
+                if t.neighbours[side] is None:
+                    point_to_each_other(t, side)  # t.neighbours[side]
+
+
 # Main event loop
 # -----------------------------------------------------------------------------
 def event_loop(queue, skel, pause=False):
     """ The main event loop """
+    STOP_AFTER = 1
     # -- clean out files for visualization
-    for file_nm in [
-        "/tmp/sknodes_progress.wkt",
-        "/tmp/bisectors_progress.wkt",
-        "/tmp/segments_progress.wkt",
-        '/tmp/queue.wkt',
-        # also contains next triangle to be visualised!
-        "/tmp/vertices0_progress.wkt",
-        "/tmp/vertices1_progress.wkt",
-        '/tmp/ktri_progress.wkt',
-    ]:
-        with open(file_nm, 'w') as fh:
-            pass
+    if pause:
+        for file_nm in [
+            "/tmp/sknodes_progress.wkt",
+            "/tmp/bisectors_progress.wkt",
+            "/tmp/segments_progress.wkt",
+            '/tmp/queue.wkt',
+            # also contains next triangle to be visualised!
+            "/tmp/vertices0_progress.wkt",
+            "/tmp/vertices1_progress.wkt",
+            '/tmp/ktri_progress.wkt',
+        ]:
+            with open(file_nm, 'w') as fh:
+                pass
     # -- visualize
-    NOW = prev_time = 1e-5 #5e-2
+    NOW = prev_time = 5e-2
     if pause:
         visualize(queue, skel, prev_time)
         raw_input('paused at start')
@@ -909,16 +936,30 @@ def event_loop(queue, skel, pause=False):
 #     step = prev = 0.025
 #     FILTER_CT = 220
     while queue or immediate:
-#         if len(queue) < FILTER_CT:
-#             pause = True
+        #         if len(queue) < FILTER_CT:
+        #             pause = True
         ct += 1
-#         if parallel:
-#             evt = parallel.popleft()
-#             # print edge, direction, now
-#             handle_parallel_event(evt, skel, queue, immediate, parallel)
-#             visualize(queue, skel, now)
-#             raise NotImplementedError("stop here")
-#         else:
+        logging.debug("")
+        logging.debug("STEP := " + str(ct))
+        logging.debug("")
+
+        logging.debug("=" * 80)
+        for i, e in enumerate(immediate):
+            logging.debug("{0:5d} {1}".format(i, e))
+        logging.debug("-" * 80)
+        for i, e in enumerate(queue):
+            logging.debug("{0:5d} {1}".format(i, e))
+        logging.debug("=" * 80)
+
+#         if len(queue) == 143:
+#             raise ValueError("stop stop")
+        #         if parallel:
+        #             evt = parallel.popleft()
+        #             # print edge, direction, now
+        #             handle_parallel_event(evt, skel, queue, immediate, parallel)
+        #             visualize(queue, skel, now)
+        #             raise NotImplementedError("stop here")
+        #         else:
         if immediate:
             evt = immediate.popleft()
         else:
@@ -951,9 +992,9 @@ def event_loop(queue, skel, pause=False):
 # #             if NOW > prev:
 # #                 visualize(queue, skel, NOW)
 # #                 prev += step
-            #evt = queue.popleft()
-            #prev_time = NOW
-        if pause:
+#            ##evt = queue.popleft()
+#            #prev_time = NOW
+        if pause and ct >= STOP_AFTER: # (ct % STOP_AFTER == 0):
             visualize(queue, skel, NOW)
         # -- decide what to do based on event type
         logging.debug("Handling event " +
@@ -977,10 +1018,10 @@ def event_loop(queue, skel, pause=False):
             handle_split_event(evt, skel, queue, immediate)
 
 #         check_ktriangles(skel.triangles, NOW)
-        if pause:
+        if pause and ct >= STOP_AFTER:
             visualize(queue, skel, NOW)
 
-        if True:  # len(queue) < FILTER_CT:
+        if False:  # len(queue) < FILTER_CT:
             logging.debug("=" * 80)
             logging.debug("Immediate / Queue at end of handling event")
             logging.debug("=" * 80)
@@ -995,11 +1036,26 @@ def event_loop(queue, skel, pause=False):
                 if i == 5 and len(queue) > 5:
                     logging.debug("...")
         logging.debug("=" * 80)
-        if pause:
-            import random
+        if pause and ct >= STOP_AFTER:
+            #import random
             with open("/tmp/signal", "w") as fh:
-                fh.write("{0}".format(random.randint(0, int(1e6))))
-            raw_input("paused...")
+                fh.write("{0}".format("boe"))# random.randint(0, int(1e6))))
+            # raw_input("paused...")
+        if not immediate:
+            # if we have immediate events, the linked list will not be
+            # ok for a while
+            try:
+                check_wavefront_links(skel.triangles)
+            except AssertionError, err:
+                print "{}".format(err)
+                if False:
+                    to_continue = raw_input('continue? [y|n]')
+                    if to_continue == 'y':
+                        pass
+                    else:
+                        break
+                else:
+                    pass
 #     if pause:
 #         for t in range(3):
 #             NOW += t
