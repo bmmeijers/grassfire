@@ -9,6 +9,7 @@ try:
 except ImportError:
     cython_available = False
 
+
 def get_version():
     """
     Gets the version number. Pulls it from the source files rather than
