@@ -139,7 +139,11 @@ def angle(v1, v2):
 
 def angle_unit(v1, v2):
     """angle between 2 *unit* vectors"""
-    return math.acos(dot(v1, v2))
+    d = dot(v1, v2)
+    if d > 1.0 or d < -1.0:
+        logging.warn("WARN - dot not in [-1, 1]")
+        d = max(-1.0, min(1.0, d))
+    return math.acos(d)
 
 
 def bisector(u1, u2):
@@ -150,14 +154,15 @@ def bisector(u1, u2):
     in which a vertex has to move to keep up (stay at the intersection of)
     the 2 wavefront edges
     """
-    check = add(u1, u2)
-    if all(map(near_zero, check)):
-        raise ValueError("parallel wavefront")
+    direction = add(u1, u2)
+    if all(map(near_zero, direction)):
+        return (0, 0)
+        #raise ValueError("parallel wavefront")
     alpha = 0.5 * math.pi + 0.5 * angle_unit(u1, u2)
     # print "angle :=", math.degrees(alpha)
     magnitude = math.sin(alpha)
     # print magnitude
-    return div(unit(add(u1, u2)), magnitude)
+    return div(unit(direction), magnitude)
 
 
 def rotate90ccw(v):

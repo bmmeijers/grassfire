@@ -86,6 +86,7 @@ class TestWrongOffsetsButPassingTests(unittest.TestCase):
         skel = calc_skel(conv, pause=False, output=True)
         assert len(skel.segments()) == (10+7)
         positions = [n.pos for n in skel.sk_nodes]
+        
 #         additional: 
 #        check if last node geerated internally is at (50,50)
 # 

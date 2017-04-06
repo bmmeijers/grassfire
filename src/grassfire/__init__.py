@@ -1,5 +1,6 @@
 from tri import ToPointsAndSegments, triangulate
 from tri.delaunay import FiniteEdgeIterator
+from tri.delaunay import output_triangles, TriangleIterator
 
 from grassfire.inout import output_offsets, output_skel
 from grassfire.initialize import init_skeleton
@@ -32,6 +33,10 @@ def calc_skel(conv, pause=False, output=False, shrink=True):
         pts = conv.points
     dt = triangulate(pts, None, conv.segments)
     if output:
+        with open("/tmp/alltris.wkt", "w") as fh:
+            output_triangles([t for t in TriangleIterator(dt, 
+                                                          finite_only=False)],
+                             fh)
         with open("/tmp/edges.wkt", "w") as fh:
             fh.write("id;wkt\n")
             edgeit = FiniteEdgeIterator(dt, constraints_only=True)
@@ -51,5 +56,5 @@ def calc_skel(conv, pause=False, output=False, shrink=True):
     # step 5 -- output offsets and the skeleton
     if output:
         output_offsets(skel, last_evt_time)
-        output_skel(skel)
+        output_skel(skel, last_evt_time + 10)
     return skel

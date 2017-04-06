@@ -343,7 +343,115 @@ class TestPSLGGrassfire(unittest.TestCase):
         # skeletonize / offset
         skel = calc_skel(conv, pause=True, output=True)
 
+# # ##############################################################################
+# # # PARALLEL EDGES IN THE INPUT, leading to problems 
+# # # (e.g. nodes not on correct location)
+# # ##############################################################################
+# #     
 
+# #    
+# #     def test_flipped_cshape(self):
+# #         """Parallel c-shape wavefront"""
+# #         conv = ToPointsAndSegments()
+# #         l0 = [(5, 0.0), (5, 3)]
+# #         l1 = [(0, 3), (5,3)]
+# #         l2 = [(0,0), (5,0)]
+# #         for line in l0, l1, l2:
+# #             conv.add_point(line[0])
+# #             conv.add_point(line[1])
+# #             conv.add_segment(*line)
+# #         skel = calc_skel(conv,
+# #                          pause=True,
+# #                          output=True)
+# #         assert len(skel.segments()) == 10
+# #         assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+# #    
+#     def test_cshape_bottom(self):
+#         """Parallel c-shape wavefront with longer segment on bottom"""
+# #         # FIXME: missing piece of wavefront, after handling parallel fan
+#         conv = ToPointsAndSegments()
+#         l0 = [(0.0, 0.0), (0.0, 3)]
+#         l1 = [(0, 3), (5,3)]
+#         l2 = [(0,0), (10,0)]
+#         for line in l0, l1, l2:
+#             conv.add_point(line[0])
+#             conv.add_point(line[1])
+#             conv.add_segment(*line)
+#         skel = calc_skel(conv, pause=True, output=True)
+#         assert len(skel.segments()) == 10
+#         assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+# #    
+# #    
+# #     def test_cshape_top(self):
+# #         """Parallel c-shape wavefront with longer segment on top"""
+# #         # FIXME: missing piece of wavefront, after handling parallel fan
+# #         conv = ToPointsAndSegments()
+# #         l0 = [(0.0, 0.0), (0.0, 3)]
+# #         l1 = [(0, 3), (10,3)]
+# #         l2 = [(0,0), (5,0)]
+# #         for line in l0, l1, l2:
+# #             conv.add_point(line[0])
+# #             conv.add_point(line[1])
+# #             conv.add_segment(*line)
+# #         skel = calc_skel(conv, pause=True, output=True)
+# #         assert len(skel.segments()) == 10
+# #         assert len(skel.sk_nodes) == 6, len(skel.sk_nodes)
+# #         # geometric embedding
+# #         positions = [n.pos for n in skel.sk_nodes]
+# #         assert frozenset(positions) == frozenset([(0.0, -0.3), (1.0, 0.3), (-1.0, 0.3), (-1.0, -0.3), (-0.7, 0.0), (0.3, 0.0)])
+# #    
+# #    
+
+# #   
+# #     def test_2parallel_eq(self):
+# #         """2 parallel wavefront having equal size"""
+# #         conv = ToPointsAndSegments()
+# #         l0 = [(0, 0), (3,0)]
+# #         l1 = [(0, 1), (3,1)]
+# #         for line in l0, l1:
+# #             conv.add_point(line[0])
+# #             conv.add_point(line[1])
+# #             conv.add_segment(*line)
+# #         skel = calc_skel(conv, pause=True, output=True)
+# #     
+# #     def test_2parallel_not_eq(self):
+# #         """2 parallel wavefront having different size"""
+# #         conv = ToPointsAndSegments()
+# #         l0 = [(0, 0), (3,0)]
+# #         l1 = [(1, 1), (2,1)]
+# #         for line in l0, l1:
+# #             conv.add_point(line[0])
+# #             conv.add_point(line[1])
+# #             conv.add_segment(*line)
+# #         skel = calc_skel(conv, pause=False, output=False)
+# #    
+# #     def test_2parallel_not_eq2(self):
+# #         """2 parallel wavefront having different size, other one above"""
+# #         conv = ToPointsAndSegments()
+# #         l0 = [(0, 0), (3,0)]
+# #         l1 = [(1, -1), (2,-1)]
+# #         for line in l0, l1:
+# #             conv.add_point(line[0])
+# #             conv.add_point(line[1])
+# #             conv.add_segment(*line)
+# #         skel = calc_skel(conv, pause=False, output=False)
+
+
+    def test_half_U(self):
+        """Misses event, and has disconnected vertex"""
+        polys = [
+        [(38.3852, 32.0156), (39.2659501953, 32.0912681641), 
+         (42.1678701172, 35.1549208984), 
+         (42.2309, 35.9922), (42.2309, 47.834), 
+         (47.5316, 47.834), (47.5316, 35.7273), 
+         (47.4732092773, 34.7657740479), 
+         (47.3213726562, 33.8784173828),  
+         (38.3852, 32.0156)],
+        ]
+        conv = ToPointsAndSegments()
+        for ring in polys:
+            conv.add_polygon([ring])
+        skel = calc_skel(conv, pause=True, output=True)#, pause=False, output=False)
 
 if __name__ == "__main__":
     if True:
