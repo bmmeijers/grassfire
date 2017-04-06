@@ -146,8 +146,8 @@ def init_skeleton(dt):
     # make skeleton nodes
     # -> every triangulation vertex becomes a skeleton node
     nodes = {}
-    avg_x = 0.
-    avg_y = 0.
+    avg_x = 0.0
+    avg_y = 0.0
     for v in dt.vertices:
         if v.is_finite:
             nodes[v] = SkeletonNode(pos=(v.x, v.y), info=v.info)
