@@ -52,7 +52,7 @@ def stop_kvertices(V, now):
             # are at the same location (they are close, but because of
             # numerical issues can be on slightly different location
             # assert at_same_location([v, sk_node], now)
-        new_node = False
+        is_new_node = False
     else:
         logging.debug("Make new skeleton node")
         l = [v.position_at(now) for v in V]
@@ -65,7 +65,7 @@ def stop_kvertices(V, now):
         sk_node = SkeletonNode(pos)
         for v in V:
             v.stop_node = sk_node
-        new_node = True
+        is_new_node = True
     # post condition
     # all vertices do have a stop node and are stopped at a certain time
     for v in V:
@@ -76,7 +76,7 @@ def stop_kvertices(V, now):
         # or do we keep a topological tree of events (where nodes
         # can be embedded at same location) ???
         # assert not at_same_location([v.start_node, v.stop_node], now), "stopped nodes should be different, but are not for {0}".format(id(v))
-    return sk_node, new_node
+    return sk_node, is_new_node
 
 
 def compute_new_kvertex(ul, ur, now, sk_node):
@@ -89,15 +89,17 @@ def compute_new_kvertex(ul, ur, now, sk_node):
     kv.starts_at = now
     kv.start_node = sk_node
     kv.velocity = bisector(ul, ur)
+    # compute where this vertex would have been at time t=0
     if kv.velocity == (0, 0):
         kv.inf_fast = True
+        kv.origin = sk_node.pos
+    else:
+        neg_velo = mul(mul(kv.velocity, -1.0), now)
+        pos_at_t0 = add(sk_node.pos, neg_velo)
+        kv.origin = pos_at_t0
     kv.ul = ul
     kv.ur = ur
-    # compute where this vertex would have been at time t=0
-    neg_velo = mul(mul(kv.velocity, -1.0), now)
-    pos_at_t0 = add(sk_node.pos, neg_velo)
-    kv.origin = pos_at_t0
-    return kv, True
+    return kv
 
 
 def replace_kvertex(t, v, newv, now, direction, queue):

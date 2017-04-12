@@ -26,10 +26,9 @@ def handle_edge_event(evt, skel, queue, immediate):
     sk_node, newly_made = stop_kvertices([v1, v2], now)
     if newly_made:
         skel.sk_nodes.append(sk_node)
-    kv, newly_made = compute_new_kvertex(v1.ul, v2.ur, now, sk_node)
+    kv = compute_new_kvertex(v1.ul, v2.ur, now, sk_node)
     logging.debug("new kinetic vertex {}".format(id(kv)))
-    if newly_made:
-        skel.vertices.append(kv)
+    skel.vertices.append(kv)
     update_circ(v1.left, kv, now)
     update_circ(kv, v2.right, now)
     if kv.inf_fast:

@@ -115,9 +115,8 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 update_circ(None, pivot, now)
                 for t in fan:
                     t.stops_at = now
-                kv, newly_made = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
-                if newly_made:
-                    skel.vertices.append(kv)
+                kv = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
+                skel.vertices.append(kv)
                 new_fan = replace_kvertex(n, v1, kv, now, cw, queue)
                 update_circ(v2, kv, now)
                 update_circ(kv, v1.right, now)
@@ -145,9 +144,8 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 update_circ(None, pivot, now)
                 for t in fan:
                     t.stops_at = now
-                kv, newly_made = compute_new_kvertex(v2.ul, v1.ul, now, sk_node)
-                if newly_made:
-                    skel.vertices.append(kv)
+                kv = compute_new_kvertex(v2.ul, v1.ul, now, sk_node)
+                skel.vertices.append(kv)
                 new_fan = replace_kvertex(n, v2, kv, now, ccw, queue)
                 update_circ(v2.left, kv, now)
                 update_circ(kv, v1, now)
@@ -267,9 +265,8 @@ def handle_parallel(fan, pivot, now, skel, queue):
                 update_circ(pivot, None, now)
                 update_circ(None, pivot, now)
                 t.stops_at = now
-                kv, newly_made = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
-                if newly_made:
-                    skel.vertices.append(kv)
+                kv = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
+                skel.vertices.append(kv)
                 fan = replace_kvertex(n, v1, kv, now, cw, queue)
                 update_circ(v2, kv, now)
                 update_circ(kv, v1.right, now)
@@ -304,9 +301,8 @@ def handle_parallel(fan, pivot, now, skel, queue):
                 update_circ(pivot, None, now)
                 update_circ(None, pivot, now)
                 t.stops_at = now
-                kv, newly_made = compute_new_kvertex(v2.ul, v1.ul, now, sk_node)
-                if newly_made:
-                    skel.vertices.append(kv)
+                kv = compute_new_kvertex(v2.ul, v1.ul, now, sk_node)
+                skel.vertices.append(kv)
                 fan = replace_kvertex(n, v2, kv, now, ccw, queue)
                 update_circ(v2.left, kv, now)
                 update_circ(kv, v1, now)
