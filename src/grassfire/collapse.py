@@ -405,6 +405,10 @@ def compute_event_1triangle(tri, now, sieve):
                 logging.debug("one edge that has no length -> edge event")
                 tp = 'edge'
                 sides = (zeros.index(True), )
+            elif True in zeros and zeros.count(True) == 3:
+                logging.debug("3 edges that have no length -> edge event")
+                tp = 'edge'
+                sides = range(3)
             else:
                 max_dist = max(dists)
                 max_dist_side = dists.index(max_dist)
