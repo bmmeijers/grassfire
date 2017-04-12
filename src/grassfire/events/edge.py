@@ -4,7 +4,7 @@ from tri.delaunay import cw, ccw
 
 from grassfire.events.lib import stop_kvertices, compute_new_kvertex, \
     update_circ, replace_kvertex, schedule_immediately
-from grassfire.events.parallel import dispatch_parallel_fan
+from grassfire.events.parallel import handle_parallel_fan
 
 
 # ------------------------------------------------------------------------------
@@ -19,8 +19,8 @@ def handle_edge_event(evt, skel, queue, immediate):
         "wavefront edge collapsing? {0}".format(
             t.neighbours[e] is None))
     now = evt.time
-    v1 = t.vertices[(e + 1) % 3]
-    v2 = t.vertices[(e + 2) % 3]
+    v1 = t.vertices[ccw(e)]
+    v2 = t.vertices[cw(e)]
     # stop the two vertices and make new skeleton node
     # replace 2 vertices with new kinetic vertex
     sk_node, newly_made = stop_kvertices([v1, v2], now)
@@ -35,8 +35,8 @@ def handle_edge_event(evt, skel, queue, immediate):
         logging.debug("New kinetic vertex moves infinitely fast!")
     # append to skeleton structure, kinetic vertices
     # get neighbours around collapsing triangle
-    a = t.neighbours[(e + 1) % 3]
-    b = t.neighbours[(e + 2) % 3]
+    a = t.neighbours[ccw(e)]
+    b = t.neighbours[cw(e)]
     n = t.neighbours[e]
 
     fan_a = []
@@ -73,7 +73,7 @@ def handle_edge_event(evt, skel, queue, immediate):
         fan = list(reversed(fan_a))
         fan.extend(fan_b)
         # fan is ordered counter clockwise
-        dispatch_parallel_fan(fan, kv, now, skel, queue)
+        handle_parallel_fan(fan, kv, now, skel, queue)
 
 
 def handle_edge_event_3sides(evt, skel, queue, immediate):

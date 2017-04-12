@@ -2,7 +2,7 @@ from tri.delaunay import cw, ccw
 
 from grassfire.events.lib import stop_kvertices, compute_new_kvertex, \
     update_circ, replace_kvertex
-from grassfire.events.parallel import dispatch_parallel_fan
+from grassfire.events.parallel import handle_parallel_fan
 
 
 # ------------------------------------------------------------------------------
@@ -46,6 +46,6 @@ def handle_split_event(evt, skel, queue, immediate):
     t.stops_at = now
     # handle infinitely fast vertices
     if va.inf_fast:
-        dispatch_parallel_fan(fan_a, va, now, skel, queue)
+        handle_parallel_fan(fan_a, va, now, skel, queue)
     if vb.inf_fast:
-        dispatch_parallel_fan(fan_b, vb, now, skel, queue)
+        handle_parallel_fan(fan_b, vb, now, skel, queue)
