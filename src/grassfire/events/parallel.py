@@ -9,11 +9,12 @@ from grassfire.calc import groupby_cluster, near_zero
 from grassfire.primitives import KineticVertex
 from grassfire.vectorops import dist
 
+
 # Parallel
 # -----------------------------------------------------------------------------
 def dispatch_parallel_fan(fan, pivot, now, skel, queue):
     """Dispatches to correct function for handling parallel wavefronts
-    
+
     fan: list of triangles, sorted counter-clockwise
     """
     logging.debug(" -------- dispatching parallel event --------")
@@ -88,7 +89,8 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
         unique_max_dists = unique_dists.count(True)
         if unique_max_dists == 2:
             logging.debug("legs are same length")
-            raise NotImplementedError("Fan with multiple triangles, not yet there")
+            raise NotImplementedError("Fan with multiple triangles,"
+                                      "not yet there")
         else:
             # visualize(queue, skel, now)
             logging.debug(unique_dists)
@@ -104,7 +106,8 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 if newly_made:
                     skel.sk_nodes.append(sk_node)
                 # make the connection
-                # let the infinite vertex stop in the newly created skeleton node
+                # let the infinite vertex stop in the newly created skeleton
+                # node
                 pivot.stop_node = sk_node
                 pivot.stops_at = now
                 # FIXME: it is not always true that vertices stopped this way
@@ -132,7 +135,8 @@ def dispatch_parallel_fan(fan, pivot, now, skel, queue):
                 if newly_made:
                     skel.sk_nodes.append(sk_node)
                 # make the connection
-                # let the infinite vertex stop in the newly created skeleton node
+                # let the infinite vertex stop in the newly created skeleton
+                # node
                 pivot.stop_node = sk_node
                 pivot.stops_at = now
                 # FIXME: it is not always true that vertices stopped this way
@@ -186,7 +190,7 @@ def handle_parallel(fan, pivot, now, skel, queue):
         # let the infinite vertex stop in the newly created skeleton node
         pivot.stop_node = sk_node
         pivot.stops_at = now
-        if not pivot.inf_fast: 
+        if not pivot.inf_fast:
             assert at_same_location([pivot, sk_node], now)
         t.stops_at = now
         return
@@ -212,7 +216,8 @@ def handle_parallel(fan, pivot, now, skel, queue):
             # take edge e
             e = t.vertices.index(pivot)
             logging.debug(
-                "wavefront edge collapsing? {0}".format(t.neighbours[e] is None))
+                "wavefront edge collapsing? {0}".format(
+                                                    t.neighbours[e] is None))
             v1 = t.vertices[(e + 1) % 3]
             v2 = t.vertices[(e + 2) % 3]
             # get neighbours around collapsing triangle
@@ -230,7 +235,7 @@ def handle_parallel(fan, pivot, now, skel, queue):
             # let the infinite vertex stop in the newly created skeleton node
             pivot.stop_node = sk_node
             pivot.stops_at = now
-            if not pivot.inf_fast: 
+            if not pivot.inf_fast:
                 assert at_same_location([pivot, sk_node], now)
             t.stops_at = now
         else:
@@ -242,7 +247,7 @@ def handle_parallel(fan, pivot, now, skel, queue):
                 v = t.vertices.index(pivot)
                 logging.debug(
                     "wavefront edge collapsing? {0}".format(
-                                                        t.neighbours[v] is None))
+                                                    t.neighbours[v] is None))
                 v1 = t.vertices[(v + 1) % 3]
                 v2 = t.vertices[(v + 2) % 3]
                 # get neighbours around collapsing triangle
@@ -257,10 +262,11 @@ def handle_parallel(fan, pivot, now, skel, queue):
                 if newly_made:
                     skel.sk_nodes.append(sk_node)
                 # make the connection
-                # let the infinite vertex stop in the newly created skeleton node
+                # let the infinite vertex stop in the newly created
+                # skeleton node
                 pivot.stop_node = sk_node
                 pivot.stops_at = now
-                if not pivot.inf_fast: 
+                if not pivot.inf_fast:
                     assert at_same_location([pivot, sk_node], now)
                 update_circ(pivot, None, now)
                 update_circ(None, pivot, now)
@@ -274,11 +280,11 @@ def handle_parallel(fan, pivot, now, skel, queue):
                 n.neighbours[n_idx] = None
             else:
                 logging.debug("CCW / right wavefront at pivot is longest")
-                #raise NotImplementedError("handle ccw here")
+                # raise NotImplementedError("handle ccw here")
                 v = t.vertices.index(pivot)
                 logging.debug(
                     "wavefront edge collapsing? {0}".format(
-                                                        t.neighbours[v] is None))
+                                                    t.neighbours[v] is None))
                 v1 = t.vertices[(v + 1) % 3]
                 v2 = t.vertices[(v + 2) % 3]
                 # get neighbours around collapsing triangle
@@ -293,7 +299,8 @@ def handle_parallel(fan, pivot, now, skel, queue):
                 if newly_made:
                     skel.sk_nodes.append(sk_node)
                 # make the connection
-                # let the infinite vertex stop in the newly created skeleton node
+                # let the infinite vertex stop in the newly created
+                # skeleton node
                 pivot.stop_node = sk_node
                 pivot.stops_at = now
                 if not pivot.inf_fast:
