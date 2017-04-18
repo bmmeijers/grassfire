@@ -46,6 +46,6 @@ def handle_split_event(evt, skel, queue, immediate):
     t.stops_at = now
     # handle infinitely fast vertices
     if va.inf_fast:
-        handle_parallel_fan(fan_a, va, now, skel, queue)
+        handle_parallel_fan(fan_a, va, now, skel, queue, immediate)
     if vb.inf_fast:
-        handle_parallel_fan(fan_b, vb, now, skel, queue)
+        handle_parallel_fan(fan_b, vb, now, skel, queue, immediate)

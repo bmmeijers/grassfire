@@ -70,10 +70,16 @@ def handle_edge_event(evt, skel, queue, immediate):
     # process parallel fan
     if kv.inf_fast:
         # raise NotImplementedError("parallel unhandled")
-        fan = list(reversed(fan_a))
-        fan.extend(fan_b)
+#         fan = list(reversed(fan_a))
+#         fan.extend(fan_b)
         # fan is ordered counter clockwise
-        handle_parallel_fan(fan, kv, now, skel, queue)
+        if fan_a:
+            assert fan_b == []
+            handle_parallel_fan(fan_a, kv, now, skel, queue, immediate)
+        if fan_b:
+            assert fan_a == []
+            handle_parallel_fan(fan_b, kv, now, skel, queue, immediate)
+#         handle_parallel_fan(fan, kv, now, skel, queue, immediate)
 
 
 def handle_edge_event_3sides(evt, skel, queue, immediate):
