@@ -171,8 +171,8 @@ class TestSimpleParallelEvents(unittest.TestCase):
             assert at_same_location((v.start_node, v), v.starts_at)
             if v.stops_at is not None and not v.inf_fast:
                 assert at_same_location((v.stop_node, v), v.stops_at), "{} {} {}".format(id(v), v.stop_node.pos, v.position_at(v.stops_at) )
-  
-  
+
+
     def test_dent_unequal_top(self):
         conv = ToPointsAndSegments()
         polygon = [[(0, 0), (10., 0), (10,20), (-0.5,20.), (-0.5,11.), (-1,11), (-1,10), (0,10), (0,0)]]
