@@ -141,8 +141,8 @@ def angle_unit(v1, v2):
     """angle between 2 *unit* vectors"""
     d = dot(v1, v2)
     if d > 1.0 or d < -1.0:
-        logging.warn("WARN - dot not in [-1, 1]")
-        d = max(-1.0, min(1.0, d))
+        logging.debug("dot not in [-1, 1] -- clamp")
+    d = max(-1.0, min(1.0, d))
     return math.acos(d)
 
 
