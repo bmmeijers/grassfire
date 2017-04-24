@@ -17,10 +17,21 @@ Note, the code in this package depends on a few other packages:
 - oseq, https://bitbucket.org/bmmeijers/oseq/
 
 
+Examples
+--------
+See:
+
+- https://vimeo.com/214460356
+- https://vimeo.com/214462766
+
+
 Usage
 -----
 
 Example code for calculating the skeleton of a simple polygon:
+
+```
+#!python
 
 	from tri import ToPointsAndSegments
 	from grassfire import calc_skel
@@ -56,6 +67,8 @@ Example code for calculating the skeleton of a simple polygon:
 	print "segments"
 	for segment in skel.segments():
 		print segment
+```
+
 
 
 Changelog
