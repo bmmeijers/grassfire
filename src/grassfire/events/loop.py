@@ -76,11 +76,44 @@ def choose_next_event(queue):
     return item
 
 
+def make_frames(now, digits, skel, queue, immediate):
+    import random
+    import time
+    if immediate:
+        return
+    else:
+        scale = pow(10, digits)
+        N = round(now, digits)
+        try:
+            peek = next(iter(queue))
+            T = round(peek.time, digits)
+        except StopIteration:
+            T = N + 0.2
+        # print T, N
+        delta = T-N
+        # print delta
+        times = int(delta * scale)
+        # print times
+        for t in range(1, times):
+            print "."
+            cur = N + float(t) / float(scale)
+#             print N + TIME / scale
+            time.sleep(0.25)
+            visualize(queue, skel, cur) # N + TIME / scale)
+            time.sleep(0.5)
+            with open("/tmp/signal", "w") as fh:
+                # FIXME -- write a number for the frames to the file
+                fh.write("{0}".format(random.randint(0, int(1e6))))
+            time.sleep(0.25)
+
+
 # Main event loop
 # -----------------------------------------------------------------------------
 def event_loop(queue, skel, pause=False):
     """ The main event loop """
     STOP_AFTER = 1
+    VIDEO_DIGITS = 3
+    make_video = False
     # -- clean out files for visualization
     if pause:
         for file_nm in [
@@ -96,10 +129,10 @@ def event_loop(queue, skel, pause=False):
             with open(file_nm, 'w') as fh:
                 pass
     # -- visualize
-    NOW = prev_time = 5e-6
+    NOW = prev_time = 0. #= 5e-6
     if pause:
         visualize(queue, skel, prev_time)
-#         raw_input('paused at start')
+        raw_input('paused at start')
     immediate = deque([])
     logging.debug("=" * 80)
     logging.debug("Immediate / Queue at start of process")
@@ -111,6 +144,8 @@ def event_loop(queue, skel, pause=False):
         logging.debug("{0:5d} {1}".format(i, e))
     logging.debug("=" * 80)
     ct = 0
+    if make_video:
+        make_frames(NOW, VIDEO_DIGITS, skel, queue, immediate)
 #     step = prev = 0.025
 #     FILTER_CT = 220
     while queue or immediate:
@@ -173,7 +208,7 @@ def event_loop(queue, skel, pause=False):
 #            ##evt = queue.popleft()
 #            #prev_time = NOW
         if pause and ct >= STOP_AFTER: # (ct % STOP_AFTER == 0):
-            visualize(queue, skel, NOW-5e-2)
+            visualize(queue, skel, NOW)
             raw_input('before event')
         # -- decide what to do based on event type
         logging.debug("Handling event " +
@@ -216,10 +251,8 @@ def event_loop(queue, skel, pause=False):
                 if i == 5 and len(queue) > 5:
                     logging.debug("...")
         logging.debug("=" * 80)
-        if pause and ct >= STOP_AFTER:
-            #import random
-            with open("/tmp/signal", "w") as fh:
-                fh.write("{0}".format("boe"))# random.randint(0, int(1e6))))
+        if make_video:
+            make_frames(NOW, VIDEO_DIGITS, skel, queue, immediate)
             # raw_input("paused...")
         if False and not immediate:
             # if we have immediate events, the linked list will not be
@@ -241,6 +274,8 @@ def event_loop(queue, skel, pause=False):
 #             NOW += t
     if pause:
         visualize(queue, skel, NOW)
+    if make_video:
+        make_frames(NOW, VIDEO_DIGITS, skel, queue, immediate)
     return NOW
 
 
