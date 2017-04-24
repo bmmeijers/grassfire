@@ -1,7 +1,7 @@
 Changelog for grassfire
 ===========================
 
-0.0 (unreleased)
+0.0 (2017-04-24)
 ----------------
 
 - Much improved / more robust event handling
