@@ -7,7 +7,7 @@ from grassfire.initialize import init_skeleton
 from grassfire.events import init_event_list, event_loop
 from grassfire.transform import get_transform, get_box
 
-__version__ = '0.0'
+__version__ = '0.1.dev0'
 __license__ = 'MIT License'
 __author__ = 'Martijn Meijers'
 __all__ = ["calc_skel"]
