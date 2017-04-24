@@ -4,5 +4,6 @@ Changelog for grassfire
 0.0 (unreleased)
 ----------------
 
+- Much improved / more robust event handling
+  (although for parallel events still not 100% okay).
 - Initial version. API may still undergo major changes.
-
