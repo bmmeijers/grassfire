@@ -74,10 +74,10 @@ def handle_edge_event(evt, skel, queue, immediate):
 #         fan.extend(fan_b)
         # fan is ordered counter clockwise
         if fan_a:
-            assert fan_b == []
+#             assert fan_b == []
             handle_parallel_fan(fan_a, kv, now, skel, queue, immediate)
         if fan_b:
-            assert fan_a == []
+#             assert fan_a == []
             handle_parallel_fan(fan_b, kv, now, skel, queue, immediate)
 #         handle_parallel_fan(fan, kv, now, skel, queue, immediate)
 
