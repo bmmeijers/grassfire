@@ -42,7 +42,7 @@ else:
 #                   ['src/oseq/_oseq.c']),
     ]
 SCRIPTS = [] 
-REQUIREMENTS = ["geompreds"]
+REQUIREMENTS = ["geompreds", "tri", "oseq"]
 DATA_FILES = []
 
 setup(
