@@ -103,7 +103,7 @@ def compute_new_kvertex(ul, ur, now, sk_node):
     return kv
 
 
-def replace_kvertex(t, v, newv, now, direction, queue):
+def replace_kvertex(t, v, newv, now, direction, queue, immediate):
     """Replace kinetic vertex at incident triangles
 
     Returns fan of triangles that were replaced
@@ -127,16 +127,20 @@ def replace_kvertex(t, v, newv, now, direction, queue):
                 ))
         if newv.inf_fast and t.event is not None:  # infintely fast
             queue.discard(t.event)
+            if t.event in immediate:
+                immediate.remove(tri.event)
         else:  # vertex moves with normal speed
-            replace_in_queue(t, now, queue)
+            replace_in_queue(t, now, queue, immediate)
         t = t.neighbours[direction(side)]
     return tuple(fan)
 
 
-def replace_in_queue(t, now, queue):
+def replace_in_queue(t, now, queue, immediate):
     """Replace event for a triangle in the queue """
     if t.event is not None:
         queue.discard(t.event)
+        if t.event in immediate:
+            immediate.remove(tri.event)
     else:
         logging.debug(
             "triangle #{0} without event not removed from queue".format(
@@ -184,6 +188,8 @@ def schedule_immediately(tri, now, queue, immediate):
     """
     # remove from global queue
     queue.discard(tri.event)
+    if tri.event in immediate:
+        immediate.remove(tri.event)
     # compute new event and put in immediate queue
     E = compute_collapse_time_at_T(tri, now)
     tri.event = E

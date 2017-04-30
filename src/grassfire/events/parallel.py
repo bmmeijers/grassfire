@@ -135,7 +135,7 @@ def handle_parallel_fan(fan, pivot, now, skel, queue, immediate):
         last_tri.stops_at = now
         kv = compute_new_kvertex(v2.ur, v1.ur, now, sk_node)
         skel.vertices.append(kv)
-        fan = replace_kvertex(n, v1, kv, now, cw, queue)
+        fan = replace_kvertex(n, v1, kv, now, cw, queue, immediate)
         update_circ(v2, kv, now)
         update_circ(kv, v1.right, now)
         if n is not None:
@@ -159,7 +159,7 @@ def handle_parallel_fan(fan, pivot, now, skel, queue, immediate):
         last_tri.stops_at = now
         kv = compute_new_kvertex(v2.ul, v1.ul, now, sk_node)
         skel.vertices.append(kv)
-        fan = replace_kvertex(n, v2, kv, now, ccw, queue)
+        fan = replace_kvertex(n, v2, kv, now, ccw, queue, immediate)
         update_circ(v2.left, kv, now)
         update_circ(kv, v1, now)
         if n is not None:

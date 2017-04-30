@@ -5,7 +5,7 @@ from grassfire.events.lib import replace_in_queue
 # Flip
 
 
-def handle_flip_event(evt, skel, queue):
+def handle_flip_event(evt, skel, queue, immediate):
     """Take the two triangles that need to be flipped, flip them and replace
     their time in the event queue
     """
@@ -16,8 +16,8 @@ def handle_flip_event(evt, skel, queue):
     assert n is not None
     n_side = n.neighbours.index(t)
     flip(t, t_side, n, n_side)
-    replace_in_queue(t, now, queue)
-    replace_in_queue(n, now, queue)
+    replace_in_queue(t, now, queue, immediate)
+    replace_in_queue(n, now, queue, immediate)
     logging.debug("flip event handled")
 
 

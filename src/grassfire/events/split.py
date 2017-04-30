@@ -37,11 +37,11 @@ def handle_split_event(evt, skel, queue, immediate):
     # updates (triangle fan) at neighbour 1
     b = t.neighbours[(e + 1) % 3]
     b.neighbours[b.neighbours.index(t)] = None
-    fan_b = replace_kvertex(b, v, vb, now, ccw, queue)
+    fan_b = replace_kvertex(b, v, vb, now, ccw, queue, immediate)
     # updates (triangle fan) at neighbour 2
     a = t.neighbours[(e + 2) % 3]
     a.neighbours[a.neighbours.index(t)] = None
-    fan_a = replace_kvertex(a, v, va, now, cw, queue)
+    fan_a = replace_kvertex(a, v, va, now, cw, queue, immediate)
 #     # we "remove" the triangle itself
     t.stops_at = now
     # handle infinitely fast vertices

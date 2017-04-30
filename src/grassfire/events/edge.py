@@ -49,7 +49,7 @@ def handle_edge_event(evt, skel, queue, immediate):
 #         if inf_fast:
 #             fan_a = replace_inffast_kvertex(a, v2, kv, now, cw, queue)
 #         else:
-        fan_a = replace_kvertex(a, v2, kv, now, cw, queue)
+        fan_a = replace_kvertex(a, v2, kv, now, cw, queue, immediate)
     #
     if b is not None:
         logging.debug("replacing vertex for neighbour B")
@@ -59,7 +59,7 @@ def handle_edge_event(evt, skel, queue, immediate):
 #         if inf_fast:
 #             fan_b = replace_inffast_kvertex(b, v1, kv, now, ccw, queue)
 #         else:
-        fan_b = replace_kvertex(b, v1, kv, now, ccw, queue)
+        fan_b = replace_kvertex(b, v1, kv, now, ccw, queue, immediate)
     #
     if n is not None:
         n.neighbours[n.neighbours.index(t)] = None

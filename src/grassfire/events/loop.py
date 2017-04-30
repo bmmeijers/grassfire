@@ -156,16 +156,14 @@ def event_loop(queue, skel, pause=False):
         logging.debug("STEP := " + str(ct))
         logging.debug("")
 
-#         logging.debug("=" * 80)
-#         for i, e in enumerate(immediate):
-#             logging.debug("{0:5d} {1}".format(i, e))
-#         logging.debug("-" * 80)
-#         for i, e in enumerate(queue):
-#             logging.debug("{0:5d} {1}".format(i, e))
-#         logging.debug("=" * 80)
+        logging.debug("=" * 80)
+        for i, e in enumerate(immediate):
+            logging.debug("{0:5d} {1}".format(i, e))
+        logging.debug("-" * 80)
+        for i, e in enumerate(queue):
+            logging.debug("{0:5d} {1}".format(i, e))
+        logging.debug("=" * 80)
 
-#         if len(queue) == 143:
-#             raise ValueError("stop stop")
         #         if parallel:
         #             evt = parallel.popleft()
         #             # print edge, direction, now
@@ -208,7 +206,7 @@ def event_loop(queue, skel, pause=False):
 #            ##evt = queue.popleft()
 #            #prev_time = NOW
         if pause and ct >= STOP_AFTER: # (ct % STOP_AFTER == 0):
-            visualize(queue, skel, NOW)
+            visualize(queue, skel, NOW - 5e-3)
             raw_input('before event')
         # -- decide what to do based on event type
         logging.debug("Handling event " +
@@ -220,14 +218,18 @@ def event_loop(queue, skel, pause=False):
                       " at time " +
                       "{0:.28g}".format(evt.time))
         # precondition: this triangle has not yet been dealt with before
-        assert evt.triangle.stops_at is None
+        if evt.triangle.stops_at is not None:
+            logging.warn("Already stopped {}, but queued".format(
+                                                             id(evt.triangle)))
+            assert evt.triangle.stops_at is None, "already stopped {}".format(id(evt.triangle))
+            continue
         if evt.tp == "edge":
             if len(evt.side) == 3:
                 handle_edge_event_3sides(evt, skel, queue, immediate)
             else:
                 handle_edge_event(evt, skel, queue, immediate)
         elif evt.tp == "flip":
-            handle_flip_event(evt, skel, queue)
+            handle_flip_event(evt, skel, queue, immediate)
         elif evt.tp == "split":
             handle_split_event(evt, skel, queue, immediate)
 
