@@ -3,8 +3,10 @@
 	<name>grassfire</name>
 	<comment></comment>
 	<projects>
+		<project>connection</project>
 		<project>oseq</project>
 		<project>predicates</project>
+		<project>simplegeom</project>
 		<project>tri</project>
 	</projects>
 	<buildSpec>

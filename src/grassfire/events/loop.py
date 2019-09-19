@@ -5,6 +5,8 @@ from collections import deque
 
 from oseq import OrderedSequence
 
+from tri.delaunay.tds import Edge
+
 from grassfire.regression import are_residuals_near_zero
 from grassfire.calc import near_zero
 from grassfire.collapse import compute_collapse_time, find_gt
@@ -12,6 +14,7 @@ from grassfire.collapse import compute_collapse_time, find_gt
 from grassfire.events.flip import handle_flip_event
 from grassfire.events.edge import handle_edge_event, handle_edge_event_3sides
 from grassfire.events.split import handle_split_event
+from grassfire.events.check import check_wavefront_links
 
 from grassfire.inout import visualize
 
@@ -26,8 +29,12 @@ def choose_next_event(queue):
     def sort_key(evt):
         """Key for sorting; first by event type, when these equal by time"""
         types = {'flip': 2, 'split': 0, 'edge': 1}
-        x = evt.triangle.vertices[0].position_at(evt.time)[0]
-        return (types[evt.tp], -x, evt.time)
+#         types = {'flip': 0, 'split': 1, 'edge': 2}
+        # x = evt.triangle.vertices[0].position_at(evt.time)[0]
+        # Do sort by event type (first split, than edge, than flip)
+        # in case multiple same types, then sort on time
+        # (otherwise we might miss events that should happen)
+        return (types[evt.tp], evt.time)
     it = iter(queue)
     first = next(it)
     events = [first]
@@ -36,42 +43,51 @@ def choose_next_event(queue):
             events.append(e)
 #         else:
 #             break
-    logging.debug("Events to pick next event from:\n - " + "\n - ".join(map(str, events)))
+    logging.debug("Events to pick next event from:\n - " +
+                  "\n - ".join(map(str, events)))
     if len(events) == 1:
         # just one event happening now
         item = events[0]
     elif all([_.tp == 'flip' for _ in events]):
-        logging.debug("Only flip events, picking randomly an event")
-        # only flip events happening, pick random event
-        # FIXME: introduce some bias to pick longest flip?
-        shuffle(events)
-        item = events[0]
+        logging.debug("Only flip events, picking flip event with longest side")
+        # only flip events happening, pick event with longest side
+        dist_events = []
+        for evt in events:
+            # compute distance of side to flip
+            orig, dest = Edge(evt.triangle, evt.side[0]).segment
+            dist = orig.distance2_at(dest, evt.time)
+            dist_events.append((dist, evt))
+        # take event with longest side
+        dist_events.sort(reverse=True)
+        item = dist_events[0][1]
     else:
         pts = []
         for evt in events:
-            pts.extend([v.position_at(first.time) for v in evt.triangle.vertices])
+            pts.extend([v.position_at(first.time)
+                        for v in evt.triangle.vertices])
         on_straight_line = are_residuals_near_zero(pts)
-#         print pts
-#         for pt in pts:
-#             print "POINT({0[0]} {0[1]})".format(pt)
-#         metric = r_squared(pts)
-#         logging.debug('metric {0}'.format(metric))
-#         import numpy as np
-#         x = np.array([pt[0] for pt in pts])
-#         y = np.array([pt[1] for pt in pts])
-#         A = np.vstack([x, np.ones(len(x))]).T
-#         res = np.linalg.lstsq(A, y)
-#         print res
-        if not on_straight_line:
-            logging.debug('pick first event')
-            # points should be on straight line to exhibit infinite flipping
-            # if this is not the case, we return the first event
-            item = events[0]
-        else:
-            logging.debug('pick non-flip event')
-            # return the first item, sorted on type (non-flipping events first)
-            for item in sorted(events, key=sort_key):
-                break
+##         print pts
+##         for pt in pts:
+##             print "POINT({0[0]} {0[1]})".format(pt)
+##         metric = r_squared(pts)
+##         logging.debug('metric {0}'.format(metric))
+## #        import numpy as np
+##         x = np.array([pt[0] for pt in pts])
+##         y = np.array([pt[1] for pt in pts])
+##         A = np.vstack([x, np.ones(len(x))]).T
+##         res = np.linalg.lstsq(A, y)
+##         print res
+
+        # if not on_straight_line:
+        #     logging.debug('pick first event')
+        #     # points should be on straight line to exhibit infinite flipping
+        #     # if this is not the case, we return the first event
+        #     item = events[0]
+        # else:
+        logging.debug('pick non-flip event (vertices on straight line)')
+        # return the first item, sorted on type (non-flipping events first)
+        for item in sorted(events, key=sort_key):
+            break
     queue.remove(item)
     return item
 
@@ -162,7 +178,15 @@ def event_loop(queue, skel, pause=False):
         logging.debug("-" * 80)
         for i, e in enumerate(queue):
             logging.debug("{0:5d} {1}".format(i, e))
+            if i >= 20:
+                break
+        if len(queue) >= 20:
+            logging.debug("... skipping display of {} events".format(len(queue) - 20))
         logging.debug("=" * 80)
+
+        if True and pause:  # and ct >= STOP_AFTER: # (ct % STOP_AFTER == 0):
+            visualize(queue, skel, NOW - 5e-4)
+            raw_input(str(ct) + ' > before event')
 
         #         if parallel:
         #             evt = parallel.popleft()
@@ -205,9 +229,7 @@ def event_loop(queue, skel, pause=False):
 # #                 prev += step
 #            ##evt = queue.popleft()
 #            #prev_time = NOW
-        if pause and ct >= STOP_AFTER: # (ct % STOP_AFTER == 0):
-            visualize(queue, skel, NOW - 5e-3)
-            raw_input('before event')
+
         # -- decide what to do based on event type
         logging.debug("Handling event " +
                       str(evt.tp) +
@@ -221,13 +243,14 @@ def event_loop(queue, skel, pause=False):
         if evt.triangle.stops_at is not None:
             logging.warn("Already stopped {}, but queued".format(
                                                              id(evt.triangle)))
-            assert evt.triangle.stops_at is None, "already stopped {}".format(id(evt.triangle))
+            # assert evt.triangle.stops_at is None, \
+            #     "already stopped {}".format(id(evt.triangle))
             continue
-        if evt.tp == "edge":
-            if len(evt.side) == 3:
-                handle_edge_event_3sides(evt, skel, queue, immediate)
-            else:
-                handle_edge_event(evt, skel, queue, immediate)
+        if evt.tp == "edge" and len(evt.side) == 3:
+            # collapse to *single* point
+            handle_edge_event_3sides(evt, skel, queue, immediate)
+        elif evt.tp == "edge":
+            handle_edge_event(evt, skel, queue, immediate)
         elif evt.tp == "flip":
             handle_flip_event(evt, skel, queue, immediate)
         elif evt.tp == "split":
@@ -236,7 +259,7 @@ def event_loop(queue, skel, pause=False):
 #         check_ktriangles(skel.triangles, NOW)
         if pause and ct >= STOP_AFTER:
             visualize(queue, skel, NOW)
-            raw_input('after event')
+            raw_input(str(ct) + ' > after event')
 
         if False:  # len(queue) < FILTER_CT:
             logging.debug("=" * 80)
@@ -279,7 +302,6 @@ def event_loop(queue, skel, pause=False):
     if make_video:
         make_frames(NOW, VIDEO_DIGITS, skel, queue, immediate)
     return NOW
-
 
 
 def compare_event_by_time(one, other):

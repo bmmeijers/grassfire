@@ -155,6 +155,7 @@ def bisector(u1, u2):
     the 2 wavefront edges
     """
     direction = add(u1, u2)
+    logging.debug("direction: {}; unitvec1 {} | unitvec2 {}".format(direction, u1, u2))
     if all(map(near_zero, direction)):
         return (0, 0)
         #raise ValueError("parallel wavefront")

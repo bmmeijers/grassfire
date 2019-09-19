@@ -1,4 +1,5 @@
-from tri.delaunay import cw, ccw
+from tri.delaunay.tds import cw, ccw
+
 from grassfire.calc import near_zero
 
 

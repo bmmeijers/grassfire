@@ -43,7 +43,7 @@ def near_zero(val):
 
     :param val: the value to be tested
     """
-    return is_close(val, 0.0, rel_tol=1e-9, abs_tol=1e-8, method="weak")
+    return is_close(val, 0.0, rel_tol=1e-12, abs_tol=1e-10, method="weak")
 
 
 def all_close(iterator, abs_tol=0., rel_tol=1.e-9):

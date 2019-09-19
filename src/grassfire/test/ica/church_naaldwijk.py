@@ -1,4 +1,4 @@
-from tri import ToPointsAndSegments
+from tri.delaunay.helpers import ToPointsAndSegments
 from grassfire import calc_skel
 from simplegeom.wkt import loads
 
@@ -24,7 +24,7 @@ if True:
 # conv.add_polygon([ring])
 # skel = calc_skel(conv, pause=True, output=True)
 
-with open("/home/martijn/Documents/work/2016-01_grassfire_for_building_generalization/data/naaldwijk_church/in_out/in.geojson") as fh:
+with open("/home/martijn/Documents/work/archive/2016-01_grassfire_for_building_generalization/data/naaldwijk_church/in_out/in.geojson") as fh:
     s = fh.read()
 
 import json
@@ -40,4 +40,4 @@ for line in segments:
     conv.add_point(line[1])
     conv.add_segment(*line)
 # skeletonize / offset
-skel = calc_skel(conv, pause=True, output=True, shrink=False)
+skel = calc_skel(conv, pause=False, output=True, shrink=False, internal_only=False)

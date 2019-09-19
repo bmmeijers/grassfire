@@ -1,8 +1,9 @@
-from tri.delaunay import output_triangles, output_vertices, output_edges, Edge
-from tri.delaunay import TriangleIterator, FiniteEdgeIterator
+from tri.delaunay.inout import output_triangles, output_vertices, output_edges
+from tri.delaunay.tds import Edge
+from tri.delaunay.iter import TriangleIterator, FiniteEdgeIterator
 import logging
 
-from grassfire.vectorops import mul, dist, bisector, add
+from grassfire.vectorops import mul, dist, add
 # ------------------------------------------------------------------------------
 # output
 
@@ -82,7 +83,7 @@ def output_offsets(skel, now=1000):
     logging.debug("offsets for t= {}".format(now))
     now = 10
     ct = 100
-    inc = 0.05 # now / float(ct)
+    inc = 0.005 # now / float(ct)
     #times = [0.0276]#[0.075] #[0.0375] #[0.15] #[0.075] #
     times = [t*inc for t in range(ct)]
     with open("/tmp/offsetsl.wkt", "w") as fh:
@@ -246,3 +247,6 @@ def visualize(queue, skel, NOW):
                 for side in sides:
                     edges.append(Edge(tri, side))
         output_edges_at_T(edges, NOW, fh)
+
+    with open('/tmp/signal', 'w') as fh:
+        fh.write('{}'.format(NOW))

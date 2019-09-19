@@ -4,8 +4,7 @@ import bisect
 import math
 
 # from operator import sub, add
-from tri.delaunay import cw, ccw
-from tri.delaunay import Edge
+from tri.delaunay.tds import cw, ccw, Edge
 
 from grassfire.primitives import Event
 from grassfire.calc import near_zero, get_unique_times
@@ -48,7 +47,7 @@ def find_gte(a, x):
 def vertex_crash_time(org, dst, apx):
     """Returns time when vertex crashes on edge
 
-    This method assumes that velocity of wavefront is unit speed (1!)
+    This method assumes that velocity of wavefront is unit speed
 
     Input:
         org, dst: kinetic vertices incident with wavefront edge
@@ -56,6 +55,7 @@ def vertex_crash_time(org, dst, apx):
     """
     Mv = tuple(sub(apx.origin, org.origin))
     logging.debug("Vector Mv: " + str(Mv))
+    assert org.ur is not None
     assert org.ur == dst.ul
     n = org.ur
     logging.debug("Vector n: " + str(n))
@@ -228,9 +228,9 @@ def compute_event_0triangle(tri, now, sieve):
                     tri_tp=tri.type)
             else:
                 #                 return None
-                print repr(tri)
-                logging.debug("TRIANGLE NOT OK: {}".format(id(tri)))
-                return None
+                # print repr(tri)
+                # logging.debug("TRIANGLE NOT OK: {}".format(id(tri)))
+                # return None
                 raise ValueError(
                     "0 triangle with 2 or 0 side collapse,"
                     "while edge collapse time computed?")
@@ -412,7 +412,7 @@ def compute_event_1triangle(tri, now, sieve):
             else:
                 max_dist = max(dists)
                 max_dist_side = dists.index(max_dist)
-                if tri.neighbours[max_dist_side] == None:
+                if tri.neighbours[max_dist_side] is None:
                     tp = "split"
                 else:
                     tp = "flip"
@@ -441,13 +441,13 @@ def compute_event_2triangle(tri, now, sieve):
     times = []
     # edge collapse times
     # only for wavefront edges (not for spokes)
-    if tri.neighbours[2] == None:
+    if tri.neighbours[2] is None:
         time = collapse_time_edge(o, d)
         times.append(time)
-    if tri.neighbours[0] == None:
+    if tri.neighbours[0] is None:
         time = collapse_time_edge(d, a)
         times.append(time)
-    if tri.neighbours[1] == None:
+    if tri.neighbours[1] is None:
         time = collapse_time_edge(a, o)
         times.append(time)
     times = get_unique_times(times)
@@ -626,9 +626,14 @@ def compute_collapse_time(tri, now=0, sieve=find_gte):
     return event
 
 
-def compute_collapse_time_at_T(tri, time):
-    """Compute event for triangle that collapse at time
-    Somehow we know that the triangle collapse at this moment
+# FIXME: Rename method
+# it does not compute collapse time, it computes a new event
+# at a given time, the triangle should collapse, but which sides ??
+# also the type should probably be considered -> could lead to split of 2-triangle (parallel fan)
+def compute_new_edge_collapse_event(tri, time):
+    """Compute new edge event for triangle that collapse at time
+
+    Somehow we know that one or more of the edges of this triangle do collapse at this moment
     """
     o, d, a = tri.vertices
     dists = [d.distance2_at(a, time),
@@ -682,7 +687,7 @@ def collapse_time_edge(v1, v2):
         logging.debug("these two vertices move in parallel:")
         logging.debug(str(v1) + "|" + str(v2))
         logging.debug("edge collapse time: None (near) parallel movement")
-        # any time will do
+        # any time will do (we pick a time in the past, before the start of our event simulation)
         return -1.
 
 
@@ -822,8 +827,7 @@ def test_compute_collapse_times():
          KineticTriangle(InfiniteVertex((2., 4.)),
                          KineticVertex((2., 0.), (-0.5, -0.5)),
                          KineticVertex((1., 1.), (0.5, 0.)), True, True, True),
-         #(1.211102550928, "flip")
-         None
+         (1.211102550928, "flip")
          ),
         # infinite 0-triangle
         (0,
@@ -1074,7 +1078,7 @@ def test_solve():
 
 
 def main():
-    #test_compute_collapse_times()
+    test_compute_collapse_times()
     test_one_collapse()
 
 
@@ -1136,17 +1140,17 @@ def test_one_collapse():
 
 if __name__ == "__main__":
     # -- logging
-    import logging
-    import sys
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
+    # import logging
+    # import sys
+    # root = logging.getLogger()
+    # root.setLevel(logging.DEBUG)
 
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    ch.setFormatter(formatter)
-    root.addHandler(ch)
+    # ch = logging.StreamHandler(sys.stdout)
+    # ch.setLevel(logging.DEBUG)
+    # formatter = logging.Formatter(
+    #     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # ch.setFormatter(formatter)
+    # root.addHandler(ch)
     # -- main function
     main()
     #test_compute_collapse_times()

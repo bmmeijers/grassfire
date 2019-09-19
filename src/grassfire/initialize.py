@@ -1,5 +1,6 @@
-from tri.delaunay import TriangleIterator, StarEdgeIterator, Edge
-from tri.delaunay import cw, ccw, orient2d
+from tri.delaunay.iter import RegionatedTriangleIterator, \
+        StarEdgeIterator, Edge
+from tri.delaunay.tds import cw, ccw, orient2d
 
 from grassfire.primitives import Skeleton, SkeletonNode
 from grassfire.primitives import InfiniteVertex, KineticTriangle, KineticVertex
@@ -82,12 +83,11 @@ def make_unit_vectors(dt):
     """Make unit vectors for every constrained edge in Delaunay triangulation
     """
     # for every delaunay triangle
-    it = TriangleIterator(dt)
+#     it = TriangleIterator(dt)
     # but skip the external triangle (which is the first the iterator gives)
-    next(it)
     unit_vecs = {}
     # triangle -> list of unit vectors/None
-    for t in it:
+    for t in dt.triangles:
         unit_vecs[t] = [None, None, None]
         for i in range(3):
             edge = Edge(t, i)
@@ -160,36 +160,38 @@ def init_skeleton(dt):
 
     ktriangles = []         # all kinetic triangles
     # mapping from delaunay triangle to kinetic triangle
+
+    internal_triangles = set()
+    for _, depth, triangle in RegionatedTriangleIterator(dt):
+        if depth == 1:
+            internal_triangles.add(triangle)
+
     triangle2ktriangle = {}
-#     vertex2kvertex = {}
-    # for every delaunay triangle, make a kinetic triangle
-    it = TriangleIterator(dt)
-    # skip the external triangle (which is the first the iterator gives)
-    next(it)
-    # triangle -> kvertices triangle (position in ktriangles)
-    for t in it:
+    for t in dt.triangles:
         # skip the external triangle
         # if t is dt.external:
         #    continue
         k = KineticTriangle()
         triangle2ktriangle[t] = k
         ktriangles.append(k)
+        k.internal = t in internal_triangles  # whether triangle is internal to a polygon
 
     link_around = []
     # set up properly the neighbours of all kinetic triangles
     # blank out the neighbour, if a side is constrained
     unwanted = []
-    it = TriangleIterator(dt)
+    #it = TriangleIterator(dt)
     # skip the external triangle (which is the first the iterator gives)
-    next(it)
-    for t in it:
+#     next(it)
+    for t in dt.triangles:
         k = triangle2ktriangle[t]
         for j, n in enumerate(t.neighbours):
             # set neighbour pointer to None if constrained side
             if t.constrained[j]:
                 continue
             # skip linking to the external triangle
-            if n is dt.external or n is None:
+#             if n is None:
+            if n.external:
                 unwanted.append(k)
                 continue
             k.neighbours[j] = triangle2ktriangle[n]
@@ -231,6 +233,7 @@ def init_skeleton(dt):
             for edge in group:
                 ktriangle = triangle2ktriangle[edge.triangle]
                 ktriangle.vertices[edge.side] = kv
+                kv.internal = ktriangle.internal
             kvertices.append(kv)
             # link vertices to each other in circular list
             link_around.append(((last.triangle, cw(last.side)),
@@ -484,7 +487,8 @@ def init_skeleton(dt):
     infinites = {}
     for t in triangle2ktriangle:
         for i, v in enumerate(t.vertices):
-            if not v.is_finite:
+#             print(t, t.vertices)
+            if v is not None and not v.is_finite:
                 infv = InfiniteVertex()
                 infv.origin = (v[0], v[1])
                 infinites[(v[0], v[1])] = infv
@@ -492,7 +496,7 @@ def init_skeleton(dt):
     # link infinite triangles to the infinite vertex
     for (t, kt) in triangle2ktriangle.iteritems():
         for i, v in enumerate(t.vertices):
-            if not v.is_finite:
+            if v is not None and not v.is_finite:
                 kt.vertices[i] = infinites[(v[0], v[1])]
 
 #     # deal with added kinetic triangles at terminal vertices
@@ -571,6 +575,19 @@ def init_skeleton(dt):
     # INITIALIZATION FINISHES HERE
 
     return skel
+
+
+def internal_only_skeleton(skel):
+    """Filter a skeleton and only maintain internal elements
+
+    Internal means enclosed by a set of boundaries, this way the skeleton
+    to the interior of a polygon will be skeletonized.
+    """
+    new = Skeleton()
+    new.sk_nodes = skel.sk_nodes[:]
+    new.triangles = list(filter(lambda t: t.internal, skel.triangles))
+    new.vertices = list(filter(lambda v: v.internal, skel.vertices))
+    return new
 
 
 def check_ktriangles(L, now=0):

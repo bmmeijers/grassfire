@@ -1,5 +1,5 @@
 import logging
-from tri.delaunay import apex, orig, dest, ccw
+from tri.delaunay.tds import apex, orig, dest, ccw
 from grassfire.events.lib import replace_in_queue
 # ------------------------------------------------------------------------------
 # Flip

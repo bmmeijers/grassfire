@@ -1,6 +1,8 @@
-from tri import ToPointsAndSegments, triangulate
+from tri.delaunay.helpers import ToPointsAndSegments
+from tri.delaunay.insert_kd import triangulate
 from grassfire.initialize import make_unit_vectors
-from tri.delaunay import output_triangles, Edge
+from tri.delaunay.inout import output_triangles
+from tri.delaunay.tds import Edge
 from grassfire.vectorops import add
 
 

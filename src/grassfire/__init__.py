@@ -1,9 +1,10 @@
-from tri import ToPointsAndSegments, triangulate
-from tri.delaunay import FiniteEdgeIterator
-from tri.delaunay import output_triangles, TriangleIterator
+from tri.delaunay.helpers import ToPointsAndSegments
+from tri.delaunay.insert_kd import triangulate
+from tri.delaunay.iter import FiniteEdgeIterator, TriangleIterator
+from tri.delaunay.inout import output_triangles
 
 from grassfire.inout import output_offsets, output_skel
-from grassfire.initialize import init_skeleton
+from grassfire.initialize import init_skeleton, internal_only_skeleton
 from grassfire.events import init_event_list, event_loop
 from grassfire.transform import get_transform, get_box
 
@@ -15,7 +16,16 @@ __all__ = ["calc_skel"]
 # main function for calculating skeleton
 
 
-def calc_skel(conv, pause=False, output=False, shrink=True):
+# FIXME: API -- internal / external calculation
+# I E
+# t t -- both internal and external (default?)
+# t f -- internal only (or should this be default?)
+# f t -- external only
+# f f -- does not make sense (no skeleton)
+
+
+def calc_skel(conv, pause=False, output=False, shrink=True,
+              internal_only=False):
     """Perform the calculation of the skeleton, given points and segments
 
     Returns:
@@ -31,12 +41,12 @@ def calc_skel(conv, pause=False, output=False, shrink=True):
     # (so that we know after the construction what each node represents)
     else:
         pts = conv.points
-    dt = triangulate(pts, None, conv.segments)
+    dt = triangulate(pts, None, conv.segments, output)
     if output:
-        with open("/tmp/alltris.wkt", "w") as fh:
-            output_triangles([t for t in TriangleIterator(dt, 
-                                                          finite_only=False)],
-                             fh)
+#         with open("/tmp/alltris.wkt", "w") as fh:
+#             output_triangles([t for t in TriangleIterator(dt, 
+#                                                           finite_only=False)],
+#                              fh)
         with open("/tmp/edges.wkt", "w") as fh:
             fh.write("id;wkt\n")
             edgeit = FiniteEdgeIterator(dt, constraints_only=True)
@@ -45,10 +55,15 @@ def calc_skel(conv, pause=False, output=False, shrink=True):
                     "{0};LINESTRING({1[0][0]} {1[0][1]}, {1[1][0]} {1[1][1]})\n".format(
                         j,
                         edge.segment))
-    # step 2 -- copy over triangles and deal with
+    # step 2a -- copy over triangles and deal with
     # - terminal 1-vertices (add triangle)
     # - infinite triangles
     skel = init_skeleton(dt)
+    # step 2b -- do we have a polygon and only internal to its boundaries
+    # where do we want to obtain the skeleton?
+    if internal_only:
+        # keeps internal kinetic triangle/vertices only
+        skel = internal_only_skeleton(skel)
     # step 3 -- make initial event list
     el = init_event_list(skel)
     # step 4 -- handle events until finished

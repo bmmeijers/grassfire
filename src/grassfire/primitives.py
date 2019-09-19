@@ -67,7 +67,7 @@ class KineticVertex(object):
     __slots__ = ("origin", "velocity",
                  "starts_at", "stops_at",
                  "start_node", "stop_node",
-                 "_left", "_right", "id", "ul", "ur", "inf_fast"
+                 "_left", "_right", "id", "ul", "ur", "inf_fast", "internal"
                  )
 
     def __init__(self, origin=None, velocity=None, ul=None, ur=None):
@@ -92,6 +92,7 @@ class KineticVertex(object):
 
         self.id = id(self)
         self.inf_fast = False  # whether this vertex moves infinitely fast
+        self.internal = False
 
     def __str__(self):
         # FIXME: make other method (dependent on time as argument)
@@ -182,6 +183,7 @@ class InfiniteVertex(object):  # Stationary Vertex
         # infinitevertex does not have circular thing
         self.left = None
         self.right = None
+        self.internal = False
 
     def __repr__(self):
         return "InfiniteVertex({0})".format(self.origin)
@@ -220,6 +222,7 @@ class KineticTriangle(object):
         # garbage collection (strong cycle)
         self.info = None
         self.stops_at = None
+        self.internal = False
 
     def __repr__(self):
         """Get representation that we can use to make instance later

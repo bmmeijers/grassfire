@@ -1,9 +1,11 @@
 import unittest
 
-from tri import ToPointsAndSegments
+from tri.delaunay import ToPointsAndSegments
+
 from grassfire import calc_skel
 from grassfire.events import at_same_location
 
+from grassfire.test.intersection import segments_intersecting
 
 # FIXME:
 # we could test the geometric embedding of the skeleton generated
@@ -13,11 +15,28 @@ PAUSE = False
 OUTPUT = False
 LOGGING = False
 
+# class Simple(unittest.TestCase):
+#     def test_bottom_circle(self):
+#         """bottom circle"""
+#         from math import pi, cos, sin, degrees
+#         ring = []
+#         pi2 = 2 * pi
+#         ct = 8
+#         alpha = pi / ct
+#         for i in range(ct + 1):
+#             ring.append((cos(pi + i * alpha), sin(pi + i * alpha)))
+#         ring.append(ring[0])
+#         conv = ToPointsAndSegments()
+#         conv.add_polygon([ring])
+#         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
+#         assert len(skel.segments()) == (9 + 15)
+#         assert len(skel.sk_nodes) == 16, len(skel.sk_nodes)
+
+
 
 class TestGrassfire(unittest.TestCase):
     """Relatively simple test cases for Straight Skeleton"""
-
-
+ 
     def test_langejan(self):
         """Lange Jan church in 's Hertogenbosch."""
         segments = [((149497.682, 411022.277), (149499.497, 411022.347)), 
@@ -380,8 +399,8 @@ class TestGrassfire(unittest.TestCase):
                 assert at_same_location((v.stop_node, v), v.stops_at), \
                     "{} {} {}".format(id(v),
                                       v.stop_node.pos,
-                                      v.position_at(v.stops_at) )
-
+                                      v.position_at(v.stops_at))
+        assert not segments_intersecting(skel.segments())
 
     def test_diamantlike(self):
         conv = ToPointsAndSegments()
@@ -390,7 +409,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (7 + 6), len(skel.segments())
         assert len(skel.sk_nodes) == 8, len(skel.sk_nodes)
-
+        assert not segments_intersecting(skel.segments())
 
     def test_triangle(self):
         conv = ToPointsAndSegments()
@@ -403,7 +422,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 6
         assert len(skel.sk_nodes) == 4
-
+        assert not segments_intersecting(skel.segments())
 
     def test_symmetric_quad(self):
         """Quad"""
@@ -413,7 +432,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.sk_nodes) == 5, len(skel.segments())
         assert len(skel.segments()) == (4 + 4), len(skel.sk_nodes)
-
+        assert not segments_intersecting(skel.segments())
 
     def test_diamant(self):
         conv = ToPointsAndSegments()
@@ -421,7 +440,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 8, len(skel.segments())
         assert len(skel.sk_nodes) == 5, len(skel.sk_nodes)
-
+        assert not segments_intersecting(skel.segments())
 
     def test_simple_poly(self):
         conv = ToPointsAndSegments()
@@ -430,7 +449,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 12
         assert len(skel.sk_nodes) == 8
-
+        assert not segments_intersecting(skel.segments())
 
     def test_two_teeth(self):
         conv = ToPointsAndSegments()
@@ -440,7 +459,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 22
         assert len(skel.sk_nodes) == 15
-
+        assert not segments_intersecting(skel.segments())
 
     def test_quad(self):
         conv = ToPointsAndSegments()
@@ -458,7 +477,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 14
         assert len(skel.sk_nodes) == 9
-
+        assert not segments_intersecting(skel.segments())
 
     def test_simultaneous(self):
         # substitute with this and we get a lot of simultaneous events!
@@ -468,7 +487,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (8 + 4 + 8)
         assert len(skel.sk_nodes) == 13
-
+        assert not segments_intersecting(skel.segments())
 
     def test_squarish(self):
         conv = ToPointsAndSegments()
@@ -477,7 +496,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (12 + 8)
         assert len(skel.sk_nodes) == 13
-
+        assert not segments_intersecting(skel.segments())
 
     def test_bottom_circle(self):
         """bottom circle"""
@@ -494,7 +513,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (9 + 15)
         assert len(skel.sk_nodes) == 16, len(skel.sk_nodes)
-
+        assert not segments_intersecting(skel.segments())
 
     def test_poly(self):
         """Simple polygon with small dent"""
@@ -504,7 +523,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == (8 + 13)
         assert len(skel.sk_nodes) == 14
-
+        assert not segments_intersecting(skel.segments())
 
     def test_cocircular1(self):
         ok = (3.8, 0.8)  # this works
@@ -514,7 +533,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 13 + 8
         assert len(skel.sk_nodes) == 14
-
+        assert not segments_intersecting(skel.segments())
 
     def test_rocket2(self):
         """Contains zero triangle to flip ...
@@ -525,13 +544,13 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 15
         assert len(skel.sk_nodes) == 10
-
+        assert not segments_intersecting(skel.segments())
 
     def test_simple_house(self):
         s = """{
 "type": "FeatureCollection",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
-    
+     
 "features": [
 { "type": "Feature", "properties": { "id": 204 }, "geometry": { "type": "LineString", "coordinates": [ [ -0.0834448906737, 0.288710397143 ], [ -0.0986166889782, 0.387773315484 ] ] } },
 { "type": "Feature", "properties": { "id": 206 }, "geometry": { "type": "LineString", "coordinates": [ [ 0.0861222668452, 0.298527443105 ], [ 0.08255243195, 0.373493975902 ] ] } },
@@ -559,7 +578,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 18
         assert len(skel.sk_nodes) == 12, len(skel.sk_nodes)
-
+        assert not segments_intersecting(skel.segments())
 
     def test_house1(self):
         """House 1
@@ -592,7 +611,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 31, len(skel.segments())
         assert len(skel.sk_nodes) == 22, len(skel.sk_nodes)
-
+        assert not segments_intersecting(skel.segments())
 
     def test_house2(self):
         """House 2
@@ -635,9 +654,9 @@ class TestGrassfire(unittest.TestCase):
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
-        assert len(skel.segments()) == 50, len(skel.segments())
-        assert len(skel.sk_nodes) == 35, len(skel.sk_nodes)
-
+        assert len(skel.segments()) == 51, len(skel.segments())
+        assert len(skel.sk_nodes) == 36, len(skel.sk_nodes)
+        assert not segments_intersecting(skel.segments())
 
     def test_koch_rec1(self):
         """Koch curve recursing once"""
@@ -671,7 +690,7 @@ class TestGrassfire(unittest.TestCase):
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
-
+        assert not segments_intersecting(skel.segments())
 
     def test_chishape(self):
         """Large shape """
@@ -950,7 +969,7 @@ class TestGrassfire(unittest.TestCase):
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         assert len(skel.segments()) == 981
         assert len(skel.sk_nodes) == 732, len(skel.sk_nodes)
-
+        assert not segments_intersecting(skel.segments())
 
     def test_naaldwijk_church(self):
         """Church in Naaldwijk
@@ -1229,7 +1248,7 @@ class TestGrassfire(unittest.TestCase):
         conv = ToPointsAndSegments()
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
-
+        assert not segments_intersecting(skel.segments())
 
 if __name__ == "__main__":
     if LOGGING:
@@ -1243,4 +1262,4 @@ if __name__ == "__main__":
         ch.setFormatter(formatter)
         root.addHandler(ch)
 
-    unittest.main(verbosity=5)
+    unittest.main(verbosity=50)

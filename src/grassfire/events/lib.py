@@ -3,7 +3,7 @@ import logging
 from grassfire.primitives import SkeletonNode, KineticVertex
 
 from grassfire.collapse import compute_collapse_time, \
-    compute_collapse_time_at_T
+    compute_new_edge_collapse_event
 from grassfire.calc import near_zero
 from grassfire.vectorops import mul, add, bisector
 
@@ -103,12 +103,27 @@ def compute_new_kvertex(ul, ur, now, sk_node):
     return kv
 
 
+def get_fan(t, v, direction):
+    """Gets a list of triangles that are the fan of 
+    vertex *v*, while turning *direction*, starting at triangle *t*
+
+    This function assumes that the fan is finite (i.e. passes
+    a triangle that has as neighbour = None (wavefront))
+    """
+    fan = []
+    while t is not None:
+        side = t.vertices.index(v)
+        fan.append(t)
+        t = t.neighbours[direction(side)]
+    return fan
+
+
 def replace_kvertex(t, v, newv, now, direction, queue, immediate):
     """Replace kinetic vertex at incident triangles
 
     Returns fan of triangles that were replaced
     """
-    logging.debug("replace_kvertex, start at: {0}".format(id(t)))
+    logging.debug("replace_kvertex, start at: {0} [{1}]".format(id(t), direction))
     fan = []
     while t is not None:
         # assert t.stops_at is None, "{}: {}".format(
@@ -118,17 +133,18 @@ def replace_kvertex(t, v, newv, now, direction, queue, immediate):
         fan.append(t)
         t.vertices[side] = newv
         logging.debug(
-            "Placed vertex #{} at side {} of triangle {}".format(
-                id(newv),
-                # repr(newv),
+            "Placed vertex #{} (inf fast? {}) at side {} of triangle {}".format(
+                # id(newv),
+                repr(newv),
+                newv.inf_fast, 
                 side,
                 id(t)
                 # , repr(t)
                 ))
-        if newv.inf_fast and t.event is not None:  # infintely fast
+        if newv.inf_fast and t.event is not None:  # infinitely fast
             queue.discard(t.event)
             if t.event in immediate:
-                immediate.remove(tri.event)
+                immediate.remove(t.event)
         else:  # vertex moves with normal speed
             replace_in_queue(t, now, queue, immediate)
         t = t.neighbours[direction(side)]
@@ -140,7 +156,7 @@ def replace_in_queue(t, now, queue, immediate):
     if t.event is not None:
         queue.discard(t.event)
         if t.event in immediate:
-            immediate.remove(tri.event)
+            immediate.remove(t.event)
     else:
         logging.debug(
             "triangle #{0} without event not removed from queue".format(
@@ -191,10 +207,10 @@ def schedule_immediately(tri, now, queue, immediate):
     if tri.event in immediate:
         immediate.remove(tri.event)
     # compute new event and put in immediate queue
-    E = compute_collapse_time_at_T(tri, now)
+    E = compute_new_edge_collapse_event(tri, now)
     tri.event = E
     # if we have no neighbors around, then no matter what, all 3 sides will
-    # collapse (overrides what is determined by compute_collapse_time_at_T)
+    # collapse (overrides what is determined by compute_new_edge_collapse_event)
     if tri.neighbours.count(None) == 3:
-        tri.event.side = range(3)
+        tri.event.side = list(range(3))
     immediate.append(tri.event)
