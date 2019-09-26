@@ -388,14 +388,14 @@ class TestMoreAdvancedParallelEvents(unittest.TestCase):
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         # check the amount of segments in the skeleton
-        assert len(skel.segments()) == 25, len(skel.segments())
+        assert len(skel.segments()) == 24, len(skel.segments())
         # check the amount of skeleton nodes
-        assert len(skel.sk_nodes) == 15, len(skel.sk_nodes)
+        assert len(skel.sk_nodes) == 14, len(skel.sk_nodes)
         # check the amount of kinetic vertices that are (not) stopped
         not_stopped = filter(lambda v: v.stops_at is None, skel.vertices)
         stopped = filter(lambda v: v.stops_at is not None, skel.vertices)
-        assert len(not_stopped) == 12, len(not_stopped)
-        assert len(stopped) == 13, len(stopped)
+        assert len(not_stopped) == 10, len(not_stopped)
+        assert len(stopped) == 24-10, len(stopped)
         # check cross relationship between kinetic vertices and skeleton nodes
         for v in skel.vertices:
             assert at_same_location((v.start_node, v), v.starts_at)
@@ -659,15 +659,15 @@ class TestRandomlyBreaking(unittest.TestCase):
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         # check the amount of segments in the skeleton
-        assert len(skel.segments()) == 120, len(skel.segments())
+        assert len(skel.segments()) == 116, len(skel.segments())
         # check the amount of skeleton nodes
-        assert len(skel.sk_nodes) == 71, len(skel.sk_nodes)
+        assert len(skel.sk_nodes) == 69, len(skel.sk_nodes)
         # check the amount of kinetic vertices that are (not) stopped
         not_stopped = filter(lambda v: v.stops_at is None, skel.vertices)
         stopped = filter(lambda v: v.stops_at is not None, skel.vertices)
         assert len(stopped) + len(not_stopped) == len(skel.segments())
         assert len(not_stopped) == 26, len(not_stopped)
-        assert len(stopped) == 94, len(stopped)
+        assert len(stopped) == 116-26, len(stopped)
         # check cross relationship between kinetic vertices and skeleton nodes
         for v in skel.vertices:
             assert at_same_location((v.start_node, v), v.starts_at)
@@ -716,15 +716,15 @@ class TestRandomlyBreaking(unittest.TestCase):
         conv.add_polygon([ring])
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)#, pause=False, output=False)
         # check the amount of segments in the skeleton
-        assert len(skel.segments()) in (512, 513, 514), len(skel.segments())
+        self.assertEqual(len(skel.segments()), 492)
         # check the amount of skeleton nodes
         # FIXME Sometimes this number differs by one!!!
-        assert len(skel.sk_nodes) in (315, 316), len(skel.sk_nodes)
+        self.assertEqual(len(skel.sk_nodes), 301)
         # check the amount of kinetic vertices that are (not) stopped
         not_stopped = filter(lambda v: v.stops_at is None, skel.vertices)
         stopped = filter(lambda v: v.stops_at is not None, skel.vertices)
-        assert len(not_stopped) in (54,55), len(not_stopped)
-        assert len(stopped) in (512-54, 513-54, 514-54), len(stopped)
+        self.assertEqual(len(not_stopped), 63)
+        self.assertEqual(len(stopped), 492-63)
         # check cross relationship between kinetic vertices and skeleton nodes
         for v in skel.vertices:
             assert at_same_location((v.start_node, v), v.starts_at)

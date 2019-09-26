@@ -111,10 +111,12 @@ def get_fan(t, v, direction):
     a triangle that has as neighbour = None (wavefront))
     """
     fan = []
+    start = t
     while t is not None:
         side = t.vertices.index(v)
         fan.append(t)
         t = t.neighbours[direction(side)]
+        assert t is not start # prevent infinite loops
     return fan
 
 
@@ -201,7 +203,12 @@ def schedule_immediately(tri, now, queue, immediate):
 
     The original event is removed from the event queue and the new
     event is added to the immediate queue.
+
     """
+
+    # FIXME: should we not look at just the other side of the triangle?
+    # so, make explicit which side of this triangle now collapses?
+
     # remove from global queue
     queue.discard(tri.event)
     if tri.event in immediate:
@@ -211,6 +218,9 @@ def schedule_immediately(tri, now, queue, immediate):
     tri.event = E
     # if we have no neighbors around, then no matter what, all 3 sides will
     # collapse (overrides what is determined by compute_new_edge_collapse_event)
+    ### FIXME: bug? disable?
     if tri.neighbours.count(None) == 3:
         tri.event.side = list(range(3))
+    ###
+    assert len(tri.event.side) > 0
     immediate.append(tri.event)

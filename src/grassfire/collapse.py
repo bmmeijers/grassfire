@@ -133,7 +133,8 @@ def compute_event_0triangle(tri, now, sieve):
 
     logging.debug("dists^2 {}".format(dists))
     logging.debug("dists {}".format([math.sqrt(_) for _ in dists]))
-    logging.debug("near_zero dists {}".format([near_zero(math.sqrt(_)) for _ in dists]))
+    logging.debug("near_zero dists {}".format(
+        [near_zero(math.sqrt(_)) for _ in dists]))
     indices = []
     for i, _ in enumerate([math.sqrt(_) for _ in dists]):
         if near_zero(_):
@@ -517,7 +518,7 @@ def compute_event_3triangle(tri, now, sieve):
 # #     assert len(times) <= 1, times
 #     # we take this event only when it is >= now (now or in the future)
 #     zeros = map(near_zero, dists)
-    if time: # and all(zeros):
+    if time:  # and all(zeros):
         # time = find_gte(times, now) # can raise ValueError if no value found
         sides = tuple(range(3))
 #         pa = o.position_at(time)
@@ -595,6 +596,8 @@ def compute_event_inftriangle(tri, now, sieve):
 
 
 def compute_collapse_time(tri, now=0, sieve=find_gte):
+    """Computes Event that represents how a triangle collapses at a given time
+    """
     event = None
     if tri.stops_at is not None:
         # we have a triangle that has been stopped already, return None
@@ -636,9 +639,9 @@ def compute_new_edge_collapse_event(tri, time):
     Somehow we know that one or more of the edges of this triangle do collapse at this moment
     """
     o, d, a = tri.vertices
-    dists = [d.distance2_at(a, time),
+    dists = map(math.sqrt, [d.distance2_at(a, time),
              a.distance2_at(o, time),
-             o.distance2_at(d, time)]
+             o.distance2_at(d, time)])
     logging.debug("distances at time = {1}: {0}".format(dists, time))
     zeros = [near_zero(dist) for dist in dists]
     logging.debug("near zero at time = {1}: {0}".format(zeros, time))
@@ -1116,18 +1119,19 @@ def test_one_collapse():
 
     # infinite 0-triangle should flip at: 0.14372166332027514
     # tri = KineticTriangle(KineticVertex((0.8308871493803005, -
-                                         #0.35731302646132906), (1.248735516282837, 1.0000000000000002)), InfiniteVertex((0.035633287674778816, -
+    # 0.35731302646132906), (1.248735516282837, 1.0000000000000002)), InfiniteVertex((0.035633287674778816, -
 #                                                                                                                          0.06225382499568152)), KineticVertex((0.8534771264074428, -
 #                                                                                                                                                                0.06782665418758393), (1.0, -
 #                                                                                                                                                                                       1.0)), True, True, True)
-#     
+#
 #     tri = KineticTriangle(KineticVertex((0.2, 0.1), (-0.5, -1.0), (-0.0, -1.0), (-0.8, -0.6000000000000001)),
 # KineticVertex((0.2, -0.1), (-0.5, 1.0), (-0.8, 0.6000000000000001), (-0.0, 1.0)),
 # KineticVertex((1.0, 0.1), (-0.9999999999999999, -0.9999999999999999), (-1.0, 0.0), (-0.0, -1.0)), True, None, True)
 
     tri = KineticTriangle(KineticVertex((0.2, 0.1), (-0.5, -1.0), (-0.0, -1.0), (-0.8, -0.6000000000000001)),
-        KineticVertex((0.2, -0.1), (-0.5, 1.0), (-0.8, 0.6000000000000001), (-0.0, 1.0)),
-        KineticVertex((1.0, 0.1), (-0.9999999999999999, -0.9999999999999999), (-1.0, 0.0), (-0.0, -1.0)), True, None, True)
+                          KineticVertex((0.2, -0.1), (-0.5, 1.0),
+                                        (-0.8, 0.6000000000000001), (-0.0, 1.0)),
+                          KineticVertex((1.0, 0.1), (-0.9999999999999999, -0.9999999999999999), (-1.0, 0.0), (-0.0, -1.0)), True, None, True)
     now = 0.  # 0.6339745962123428
     evt = compute_collapse_time(tri, now)
 #     print evt
@@ -1137,6 +1141,7 @@ def test_one_collapse():
     for time in sorted(times):
         visualize_collapse(tri, time)
         raw_input("paused at " + str(time))
+
 
 if __name__ == "__main__":
     # -- logging
@@ -1153,4 +1158,4 @@ if __name__ == "__main__":
     # root.addHandler(ch)
     # -- main function
     main()
-    #test_compute_collapse_times()
+    # test_compute_collapse_times()

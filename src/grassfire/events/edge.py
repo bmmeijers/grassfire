@@ -53,7 +53,7 @@ def handle_edge_event(evt, skel, queue, immediate):
             return False
     is_inf_fast_a = is_infinitely_fast(get_fan(a, v2, cw))
     is_inf_fast_b = is_infinitely_fast(get_fan(b, v1, ccw))
-    if is_inf_fast_a or is_inf_fast_b:
+    if is_inf_fast_a and is_inf_fast_b:
         if not kv.inf_fast:
             logging.debug("New kinetic vertex: ***Upgrading*** to infinitely fast moving vertex!")
             kv.inf_fast = True
