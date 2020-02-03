@@ -158,7 +158,7 @@ def compute_event_0triangle(tri, now, sieve):
             dists = [d.distance2_at(a, time),
                      a.distance2_at(o, time),
                      o.distance2_at(d, time)]
-            zeros = [near_zero(_) for _ in dists]
+            zeros = [near_zero(d - min(dists)) for d in dists]
             sides_collapse = zeros.count(True)
             if sides_collapse == 3:
                 return Event(
@@ -456,9 +456,10 @@ def compute_event_2triangle(tri, now, sieve):
     time = sieve(times, now)
     logging.debug("Time found: " + str(time))
     if time is not None:
-        dists = [math.sqrt(d.distance2_at(a, time)),
-                 math.sqrt(a.distance2_at(o, time)),
-                 math.sqrt(o.distance2_at(d, time))]
+        dists = [d.distance2_at(a, time),
+                 a.distance2_at(o, time),
+                 o.distance2_at(d, time)]
+        dists = [d - min(dists) for d in dists]
         logging.debug("distances at time = {1}: {0}".format(dists, time))
         zeros = [near_zero(dist) for dist in dists]
         logging.debug("near_zero = {}".format(zeros))
@@ -508,7 +509,7 @@ def compute_event_3triangle(tri, now, sieve):
     logging.debug(sorted(times))
     #
     time = sieve(get_unique_times(times), now)
-#     logging.debug(time)
+    logging.debug(time)
 #     dists = [math.sqrt(d.distance2_at(a, time)),
 #              math.sqrt(a.distance2_at(o, time)),
 #              math.sqrt(o.distance2_at(d, time))]
@@ -539,6 +540,8 @@ def compute_event_3triangle(tri, now, sieve):
 #             when=time, tri=tri, side=sides, tp="split", tri_tp=tri.type)
     else:
         return None
+        # return Event(
+        #     when=now, tri=tri, side=tuple(range(3)), tp="edge", tri_tp=tri.type)
 
 
 def compute_event_inftriangle(tri, now, sieve):
@@ -643,7 +646,7 @@ def compute_new_edge_collapse_event(tri, time):
              a.distance2_at(o, time),
              o.distance2_at(d, time)])
     logging.debug("distances at time = {1}: {0}".format(dists, time))
-    zeros = [near_zero(dist) for dist in dists]
+    zeros = [near_zero(dist - min(dists)) for dist in dists]
     logging.debug("near zero at time = {1}: {0}".format(zeros, time))
     sides = []
     for i, zero in enumerate(zeros):
@@ -1081,11 +1084,12 @@ def test_solve():
 
 
 def main():
-    test_compute_collapse_times()
+    # test_compute_collapse_times()
     test_one_collapse()
 
 
 def test_one_collapse():
+
 
     from grassfire.primitives import KineticTriangle, KineticVertex
     # the vertex below should split the triangle in pieces!!!
@@ -1128,22 +1132,41 @@ def test_one_collapse():
 # KineticVertex((0.2, -0.1), (-0.5, 1.0), (-0.8, 0.6000000000000001), (-0.0, 1.0)),
 # KineticVertex((1.0, 0.1), (-0.9999999999999999, -0.9999999999999999), (-1.0, 0.0), (-0.0, -1.0)), True, None, True)
 
-    tri = KineticTriangle(KineticVertex((0.2, 0.1), (-0.5, -1.0), (-0.0, -1.0), (-0.8, -0.6000000000000001)),
-                          KineticVertex((0.2, -0.1), (-0.5, 1.0),
-                                        (-0.8, 0.6000000000000001), (-0.0, 1.0)),
-                          KineticVertex((1.0, 0.1), (-0.9999999999999999, -0.9999999999999999), (-1.0, 0.0), (-0.0, -1.0)), True, None, True)
-    now = 0.  # 0.6339745962123428
+
+
+
+    # tri = KineticTriangle(KineticVertex((0.2, 0.1), (-0.5, -1.0), (-0.0, -1.0), (-0.8, -0.6000000000000001)),
+    #                       KineticVertex((0.2, -0.1), (-0.5, 1.0),
+    #                                     (-0.8, 0.6000000000000001), (-0.0, 1.0)),
+    #                       KineticVertex((1.0, 0.1), (-0.9999999999999999, -0.9999999999999999), (-1.0, 0.0), (-0.0, -1.0)), True, None, True)
+    # now = 0.  # 0.6339745962123428
+
+    tri = KineticTriangle(KineticVertex((0.2173277124280331, 0.698416760614311), (0.41124654232084884, 0.919545641592878), (0.29546368892668795, 0.9553539702779454), (0.5151235666701907, 0.8571159262672592)),
+KineticVertex((0.21178657399529294, 0.9831390013046308), (-0.18724127375184607, -0.9872847139880617), (-0.28216706807814973, -0.9593652827219572), (-0.08868469195702208, -0.9960597499209011)),
+KineticVertex((-1.07262137319989, 1.0973611594703172), (9.311325418444167, -1.8329944831033405), (-0.08868469195702208, -0.9960597499209011), (0.29546368892668795, 0.9553539702779454)), None, None, True)
+    now = 0.1304109494714286443528550308
     evt = compute_collapse_time(tri, now)
-#     print evt
+    print evt
     # 0.00242630813252781, 0.6340506109731798, 0.004284474881621788,
     # 0.0022096098886525, 0.22933526207436553]
-    times = [0, 0.05, 0.1]
+    now = 0.13521997540
+    times = [now - 0.1, now+0, now+0.05, now+0.1]
     for time in sorted(times):
         visualize_collapse(tri, time)
         raw_input("paused at " + str(time))
 
 
 if __name__ == "__main__":
+
+    import logging
+    import sys
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(message)s')
+    ch.setFormatter(formatter)
+    root.addHandler(ch)
     # -- logging
     # import logging
     # import sys

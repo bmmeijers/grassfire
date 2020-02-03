@@ -81,9 +81,10 @@ def output_dt(dt):
 def output_offsets(skel, now=1000):
     """ """
     logging.debug("offsets for t= {}".format(now))
-    now = 10
+    # now = 10
     ct = 100
-    inc = 0.005 # now / float(ct)
+    # inc = 0.005 # 
+    inc = now / float(ct)
     #times = [0.0276]#[0.075] #[0.0375] #[0.15] #[0.075] #
     times = [t*inc for t in range(ct)]
     with open("/tmp/offsetsl.wkt", "w") as fh:

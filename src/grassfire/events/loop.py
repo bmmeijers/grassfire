@@ -14,7 +14,7 @@ from grassfire.collapse import compute_collapse_time, find_gt
 from grassfire.events.flip import handle_flip_event
 from grassfire.events.edge import handle_edge_event, handle_edge_event_3sides
 from grassfire.events.split import handle_split_event
-from grassfire.events.check import check_wavefront_links
+from grassfire.events.check import check_wavefront_links, check_kinetic_vertices, check_active_triangles
 
 from grassfire.inout import visualize
 
@@ -28,7 +28,7 @@ def choose_next_event(queue):
     """
     def sort_key(evt):
         """Key for sorting; first by event type, when these equal by time"""
-        types = {'flip': 2, 'split': 0, 'edge': 1}
+        types = {'flip': 2, 'split': 1, 'edge': 0}
 #         types = {'flip': 0, 'split': 1, 'edge': 2}
         # x = evt.triangle.vertices[0].position_at(evt.time)[0]
         # Do sort by event type (first split, than edge, than flip)
@@ -127,7 +127,7 @@ def make_frames(now, digits, skel, queue, immediate):
 # -----------------------------------------------------------------------------
 def event_loop(queue, skel, pause=False):
     """ The main event loop """
-    STOP_AFTER = 1
+    STOP_AFTER = 50
     VIDEO_DIGITS = 3
     make_video = False
     # -- clean out files for visualization
@@ -279,21 +279,24 @@ def event_loop(queue, skel, pause=False):
         if make_video:
             make_frames(NOW, VIDEO_DIGITS, skel, queue, immediate)
             # raw_input("paused...")
-        if False and not immediate:
+        if True and not immediate:
             # if we have immediate events, the linked list will not be
             # ok for a while
             try:
-                check_wavefront_links(skel.triangles)
+                # check_wavefront_links(skel.triangles)
+                # check_kinetic_vertices(skel.triangles)
+                check_active_triangles(skel.triangles)
             except AssertionError, err:
                 print "{}".format(err)
-                if False:
+                if True:
+                    visualize(queue, skel, NOW - 5e-4)
                     to_continue = raw_input('continue? [y|n]')
                     if to_continue == 'y':
                         pass
                     else:
                         break
                 else:
-                    pass
+                    raise
 #     if pause:
 #         for t in range(3):
 #             NOW += t

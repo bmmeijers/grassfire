@@ -1,6 +1,7 @@
 from tri.delaunay.tds import cw, ccw
 
 from grassfire.calc import near_zero
+from grassfire.primitives import KineticVertex
 
 
 def point_to_each_other(triangle, side):
@@ -22,6 +23,27 @@ def check_wavefront_links(tri):
                 if t.neighbours[side] is None:
                     point_to_each_other(t, side)  # t.neighbours[side]
 
+def check_active_triangles(tri):
+    """Check active triangles and their neighbours"""
+    for t in tri:
+        if t is None:
+            continue
+        if t.stops_at is None:
+            for side in range(3):
+                ngb = t.neighbours[side]
+                if ngb is not None:
+                    assert ngb.stops_at is None, "neighbour {} stopped (not active) @ {} \n {}".format(id(tri), id(ngb), {})
+
+def check_kinetic_vertices(tri):
+    """Check kinetic vertices of active triangles"""
+    for t in tri:
+        if t is None:
+            continue
+        if t.stops_at is None:
+            for side in range(3):
+                kv = t.vertices[side]
+                if isinstance(kv, KineticVertex):
+                    assert kv.stops_at is None,"problemo problemo @ {}".format(id(tri))
 
 def at_same_location(V, now):
     """Checks whether all vertices are more or less at same location of first

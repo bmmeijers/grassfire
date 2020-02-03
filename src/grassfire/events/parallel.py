@@ -26,6 +26,7 @@ def handle_parallel_edge_event(t, e, pivot, now, skel, queue, immediate):
     Cases 1a/1b can lead to new infinitely fast vertices, while
     Case 2 leads to having to process immediately a neighbouring triangle
     """
+    logging.debug('At start of handle_parallel_edge_event')
     logging.debug("Edge with inf fast vertex collapsing! {0}".format(t.neighbours[e] is None))
     assert pivot.inf_fast
 
@@ -118,7 +119,7 @@ def handle_parallel_edge_event(t, e, pivot, now, skel, queue, immediate):
                 schedule_immediately(n, now, queue, immediate)
 
         # visualize(queue, skel, now-1.0e-3)
-        # raw_input('continue after parallel')
+        # raw_input('continue after parallel -- one of two legs')
 
         # process parallel fan
         if kv and kv.inf_fast:
@@ -131,7 +132,7 @@ def handle_parallel_edge_event(t, e, pivot, now, skel, queue, immediate):
         # we are collapsing the edge opposite of the inf fast pivot vertex
         assert t.vertices.index(pivot) == e
         n = t.neighbours[e]
-        logging.debug("*** neighbour n: {} ".format("schedule adjacent neighbour for *IMMEDIATE* processing" if n is not None else ""))
+        logging.debug("*** neighbour n: {} ".format("schedule adjacent neighbour for *IMMEDIATE* processing" if n is not None else "no neighbour to collapse simultaneously"))
         if n is not None:
             n.neighbours[n.neighbours.index(t)] = None
             if n.event is not None and n.stops_at is None:
@@ -139,7 +140,7 @@ def handle_parallel_edge_event(t, e, pivot, now, skel, queue, immediate):
                 schedule_immediately(n, now, queue, immediate)
 
         # visualize(queue, skel, now-1.0e-3)
-        # raw_input('continue after parallel')
+        # raw_input('continue after parallel --  opposite pivot')
 
 
 # Parallel
@@ -174,14 +175,23 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate):
     assert pivot.inf_fast
 
     first_tri = fan[0]
+    # special case, infinite fast vertex in 1 corner
+    # no neighbours (3 wavefront edges)
+    # -> let's collapse the edge opposite of the pivot
+    if first_tri.neighbours.count(None) == 3:
+        # logging.debug('First tri **: {} is isolated = special case'.format(id(first_tri)))
+        handle_parallel_edge_event(first_tri, first_tri.vertices.index(pivot), pivot, now, skel, queue, immediate)
+        return
     logging.debug('First tri **: {}'.format(id(first_tri)))
 
     v1 = first_tri.vertices[ccw(first_tri.vertices.index(pivot))] # FIXME: should be a vertex from first_tri!
     v2 = first_tri.vertices[cw(first_tri.vertices.index(pivot))] # FIXME: should be a vertex from first_tri!
 
+
     logging.debug(' kvertices:' )
     logging.debug('  v1: {}'.format(id(v1)) )
     logging.debug('  v2: {}'.format(id(v2)) )
+    v0_leg = Edge(first_tri, first_tri.vertices.index(pivot))
 
     v2_leg = Edge(first_tri, ccw(first_tri.vertices.index(pivot)))
     v1_leg = Edge(first_tri, cw(first_tri.vertices.index(pivot)))
@@ -191,8 +201,11 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate):
     v1_dist = dist(*map(lambda x: x.position_at(now),
                            v1_leg.segment))
     dists = [v1_dist, v2_dist]
+    v0_dist = dist(*map(lambda x: x.position_at(now),
+                           v0_leg.segment))
 
     logging.debug('  distances: {}'.format(dists))
+    logging.debug('  DISTANCE v0: {}'.format(v0_dist))
 
     unique_dists = [near_zero(_ - max(dists)) for _ in dists]
     logging.debug(unique_dists)
@@ -201,11 +214,16 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate):
     # raw_input(' just before handling parallel event')
     # ----------------------------------------------------------
     # get neighbours around collapsing triangle
-    n = first_tri.neighbours[first_tri.vertices.index(pivot)]
-    new_direction = None # potentially new fan, how does it turn?
+    # n = first_tri.neighbours[first_tri.vertices.index(pivot)]
+    # new_direction = None # potentially new fan, how does it turn?
     if unique_max_dists == 2:
         logging.debug("Equal sized legs")
         handle_parallel_edge_event(first_tri, first_tri.vertices.index(pivot), pivot, now, skel, queue, immediate)
+        # handle_parallel_edge_event(first_tri, cw(first_tri.vertices.index(pivot)), pivot,  now, skel, queue, immediate)
+        # post condition: all triangles in the fan are stopped
+        # when we have 2 equal sized legs
+        for t in fan:
+            assert t.stops_at is not None
     elif longest_idx == 1:
         # left longest
         logging.debug("CW / left wavefront at pivot, ending at v2, is longest")

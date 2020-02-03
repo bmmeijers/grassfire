@@ -73,3 +73,20 @@ def calc_skel(conv, pause=False, output=False, shrink=True,
         output_offsets(skel, last_evt_time)
         output_skel(skel, last_evt_time + 10)
     return skel
+
+def calc_offsets(skel, now):
+    ct = 100
+    inc = now / ct
+    for t in range(ct):
+        t *= inc
+        for v in skel.vertices:
+            if (v.starts_at <= t and v.stops_at > t) or \
+                (v.starts_at <= t and v.stops_at is None): 
+                try:
+                    yield (v.position_at(t), 
+                            v.left_at(t).position_at(t), 
+                            t, 
+                            id(v),
+                            id(v.left_at(t)))
+                except AttributeError:
+                    continue

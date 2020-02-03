@@ -568,7 +568,7 @@ def init_skeleton(dt):
             if isinstance(v, InfiniteVertex):
                 kt.vertices[i] = centroid
     assert check_ktriangles(ktriangles)
-
+    ktriangles.sort(key=lambda t: (t.vertices[0].origin[1],t.vertices[0].origin[0]))
     skel.sk_nodes = nodes.values()
     skel.triangles = ktriangles
     skel.vertices = kvertices

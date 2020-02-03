@@ -70,8 +70,9 @@ def handle_edge_event(evt, skel, queue, immediate):
         b_idx = b.neighbours.index(t)
         b.neighbours[b_idx] = a
         fan_b = replace_kvertex(b, v1, kv, now, ccw, queue, immediate)
-    logging.debug("*** neighbour n: {} ".format("schedule adjacent neighbour for *IMMEDIATE* processing" if n is not None else ""))
+    
     if n is not None:
+        logging.debug("*** neighbour n: schedule adjacent neighbour for *IMMEDIATE* processing")
         n.neighbours[n.neighbours.index(t)] = None
         if n.event is not None and n.stops_at is None:
             schedule_immediately(n, now, queue, immediate)

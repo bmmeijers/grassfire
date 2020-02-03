@@ -91,7 +91,10 @@ def compute_new_kvertex(ul, ur, now, sk_node):
     kv.start_node = sk_node
     kv.velocity = bisector(ul, ur)
     # compute where this vertex would have been at time t=0
-    if kv.velocity == (0, 0):
+    # we set this vertex as infinitely fast, if velocity in one of the
+    # directions is really high, or when the bisectors of adjacent
+    # wavefronts cancel each other out
+    if kv.velocity == (0, 0) or abs(kv.velocity[0]) > 1500 or abs(kv.velocity[1]) > 1500:
         kv.inf_fast = True
         kv.origin = sk_node.pos
     else:
