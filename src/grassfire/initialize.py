@@ -71,7 +71,7 @@ def make_unit_vector(edge):
     """
     if edge.constrained:
         start, end = (edge.segment[0].x, edge.segment[0].y), \
-            (edge.segment[1].x, edge.segment[1].y)
+                     (edge.segment[1].x, edge.segment[1].y)
         v = make_vector(end, start)
         u = unit(rotate90ccw(v))
         return u
@@ -167,14 +167,16 @@ def init_skeleton(dt):
             internal_triangles.add(triangle)
 
     triangle2ktriangle = {}
-    for t in dt.triangles:
+    for idx, t in enumerate(dt.triangles, start = 1):
         # skip the external triangle
         # if t is dt.external:
         #    continue
         k = KineticTriangle()
+        k.info = idx
         triangle2ktriangle[t] = k
         ktriangles.append(k)
         k.internal = t in internal_triangles  # whether triangle is internal to a polygon
+    del idx
 
     link_around = []
     # set up properly the neighbours of all kinetic triangles
@@ -185,16 +187,23 @@ def init_skeleton(dt):
 #     next(it)
     for t in dt.triangles:
         k = triangle2ktriangle[t]
+
+        for i in range(3):
+            edge = Edge(t, i)
+            k.wavefront_directions[i] = make_unit_vector(edge)
+
         for j, n in enumerate(t.neighbours):
             # set neighbour pointer to None if constrained side
             if t.constrained[j]:
                 continue
-            # skip linking to the external triangle
-#             if n is None:
-            if n.external:
+            # skip linking to non-existing triangle
+            if n is None or n.vertices[2] is None:
+#            if n.external:
                 unwanted.append(k)
                 continue
             k.neighbours[j] = triangle2ktriangle[n]
+
+
 
     unit_vectors = make_unit_vectors(dt)
     # make kinetic vertices
@@ -205,6 +214,7 @@ def init_skeleton(dt):
 #     one_ktri_between = {}
 #     with open("/tmp/bisectors.wkt", "w") as bisector_fh:
 #         print >> bisector_fh, "wkt"
+    ct = 0
     for v in dt.vertices:
         assert v.is_finite, "infinite vertex found"
 
@@ -222,8 +232,9 @@ def init_skeleton(dt):
 #             print v, ul, ur, bi
 #             for edge in group:
 #                 print "", edge.triangle
-
+            ct += 1
             kv = KineticVertex()
+            kv.info = ct
             kv.origin = (v.x, v.y)
             kv.velocity = bi
             kv.start_node = nodes[v]

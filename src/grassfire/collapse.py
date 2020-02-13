@@ -56,7 +56,7 @@ def vertex_crash_time(org, dst, apx):
     Mv = tuple(sub(apx.origin, org.origin))
     logging.debug("Vector Mv: " + str(Mv))
     assert org.ur is not None
-    assert org.ur == dst.ul
+    assert org.ur == dst.ul, "#{} #{} :: {} vs {}".format(id(org), id(dst), org.ur, dst.ul)
     n = org.ur
     logging.debug("Vector n: " + str(n))
     # Normalize, to get unit vector
@@ -357,6 +357,7 @@ def compute_event_1triangle(tri, now, sieve):
                 sides = (dists.index(max(dists)),)  # longest side
                 return Event(
                     when=time, tri=tri, side=sides, tp="flip", tri_tp=tri.type)
+
     elif time_edge_collapse is not None and time_vertex_crash is None:
         # -- Only edge collapse time
         logging.debug(" case C")
@@ -365,6 +366,7 @@ def compute_event_1triangle(tri, now, sieve):
                      side=(wavefront_side,),
                      tp="edge",
                      tri_tp=tri.type)
+
     elif time_edge_collapse is not None and time_vertex_crash is not None:
         # -- Both edge collapse time and vertex crash time
         logging.debug(" case D")
@@ -375,20 +377,31 @@ def compute_event_1triangle(tri, now, sieve):
             # wavefront edge collapses, because edge collapse time is earlier
             # or equal to vertex crash time
             time = time_edge_collapse
-            dists = [math.sqrt(d.distance2_at(a, time)),
-                     math.sqrt(a.distance2_at(o, time)),
-                     math.sqrt(o.distance2_at(d, time))]
-            logging.debug('dists {}'.format(dists))
+            sides = [wavefront_side]
+#            dists = [math.sqrt(d.distance2_at(a, time)),
+#                     math.sqrt(a.distance2_at(o, time)),
+#                     math.sqrt(o.distance2_at(d, time))]
+
+#            dists_squared = [d.distance2_at(a, time),
+#                             a.distance2_at(o, time),
+#                             o.distance2_at(d, time)]
+#            logging.debug('dists squared {}'.format(dists_squared))
             tp = "edge"
-            zeros = [near_zero(dist) for dist in dists]
-            logging.debug('zeros {}'.format(zeros))
-            if True not in zeros:
-                #raise ValueError("no event?")
-                return None
-            sides = [zeros.index(True)]
-            assert len(sides) == 1
-            return Event(
-                when=time, tri=tri, side=sides, tp=tp, tri_tp=tri.type)
+
+            # shortest edge at that time collapses
+#            sides = [dists_squared.index(min(dists_squared))]
+#            # the collapsing shortest edge should be a wavefront edge
+#            assert tri.neighbours[sides[0]] is None
+#            assert len(sides) == 1
+
+#            zeros = [near_zero(dist) for dist in dists]
+#            logging.debug('zeros {}'.format(zeros))
+#            if True not in zeros:
+#                raise ValueError("no event?")
+                # return None
+#            sides = [zeros.index(True)]
+
+            return Event(when=time, tri=tri, side=sides, tp=tp, tri_tp=tri.type)
         elif time_vertex_crash < time_edge_collapse:
             # wavefront edge is split
             logging.debug("vertex crash time strictly "
@@ -455,10 +468,14 @@ def compute_event_2triangle(tri, now, sieve):
     logging.debug("Unique times: " + str(times))
     time = sieve(times, now)
     logging.debug("Time found: " + str(time))
+    if time is None:
+        logging.debug("Checking if area collapse says different, so we don't miss it collapsing")
+        time = sieve(area_collapse_times(o, d, a), now)
+
     if time is not None:
-        dists = [d.distance2_at(a, time),
-                 a.distance2_at(o, time),
-                 o.distance2_at(d, time)]
+        dists = [math.sqrt(d.distance2_at(a, time)),
+                 math.sqrt(a.distance2_at(o, time)),
+                 math.sqrt(o.distance2_at(d, time))]
         dists = [d - min(dists) for d in dists]
         logging.debug("distances at time = {1}: {0}".format(dists, time))
         zeros = [near_zero(dist) for dist in dists]
@@ -486,7 +503,7 @@ def compute_event_2triangle(tri, now, sieve):
             return None
             #raise ValueError("This is not possible with this type of triangle")
     else:
-        # -- Triangle does not collapse
+        # -- Triangle does not collapse in the future
         return None
 
 
@@ -606,25 +623,27 @@ def compute_collapse_time(tri, now=0, sieve=find_gte):
         # we have a triangle that has been stopped already, return None
         return event
     if tri.is_finite:
-        logging.debug("=-=-= finite triangle {} =-=-= ".format(id(tri)))
-        logging.debug(repr(tri))
+        logging.debug("")
+        logging.debug("=-=-= finite triangle #{} [{}]=-=-= ".format(id(tri), tri.info))
+###########        logging.debug(repr(tri))
         # finite triangles
         tp = tri.type
         if tp == 0:
-            logging.debug("event for 0-triangle")
+            logging.debug(" event for 0-triangle")
             event = compute_event_0triangle(tri, now, sieve)
         elif tp == 1:
-            logging.debug("event for 1-triangle")
+            logging.debug(" event for 1-triangle")
             event = compute_event_1triangle(tri, now, sieve)
         elif tp == 2:
-            logging.debug("event for 2-triangle")
+            logging.debug(" event for 2-triangle")
             event = compute_event_2triangle(tri, now, sieve)
         elif tp == 3:
-            logging.debug("event for 3-triangle")
+            logging.debug(" event for 3-triangle")
             event = compute_event_3triangle(tri, now, sieve)
     else:
         # flip or collapse to point
-        logging.debug("=-=-= infinite triangle {} =-=-=".format(id(tri)))
+        logging.debug("")
+        logging.debug("=-=-= infinite triangle #{} [{}] =-=-=".format(id(tri), tri.info))
         event = compute_event_inftriangle(tri, now, sieve)
     if event is not None:
         tri.event = event
@@ -672,8 +691,8 @@ def collapse_time_edge(v1, v2):
     - they run in parallel, so they never cross
     - they never cross, but there exists a point in time when they are closest
     """
-    logging.debug("edge collapse time for v1 = {} and v2 = {}".format(id(v1),
-                                                                      id(v2)))
+    logging.debug("edge collapse time for v1 = {} [{}] and v2 = {} [{}]".format(id(v1), v1.info,
+                                                                      id(v2), v2.info))
     s1 = v1.velocity
     s2 = v2.velocity
     o1 = v1.origin
@@ -733,12 +752,12 @@ def solve_quadratic(A, B, C):
     D = C / A   # a*d - b*c
     centre = T * 0.5
     under = 0.25 * pow(T, 2) - D
-    if under < 0:
-        # -- imaginary roots
-        return []
-    elif near_zero(under):
+    if near_zero(under):
         # -- one root
         return [centre]
+    elif under < 0:
+        # -- imaginary roots
+        return []
     else:
         # return L1, L2 (the Eigen values of M)
         plus_min = pow(under, 0.5)
@@ -800,7 +819,7 @@ def visualize_collapse(tri, T=0):
             bisector_fh.write(
                 "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(
                     p1, add(p1, bi)))
-
+    
     with open("/tmp/ktris.wkt", "w") as fh:
         output_triangles_at_T([tri], T, fh)
 
@@ -808,11 +827,14 @@ def visualize_collapse(tri, T=0):
         output_vertices_at_T(tri.vertices, T, fh)
 
     with open("/tmp/wavefront.wkt", "w") as fh:
-        edges = []
-        for i, n in enumerate(tri.neighbours):
-            if n is None:
-                edges.append(Edge(tri, i))
-        output_edges_at_T(edges, T, fh)
+        try:
+            edges = []
+            for i, n in enumerate(tri.neighbours):
+                if n is None:
+                    edges.append(Edge(tri, i))
+            output_edges_at_T(edges, T, fh)
+        except:
+            pass
 
     with open("/tmp/rays.wkt", "w") as bisector_fh:
         bisector_fh.write("wkt\n")
@@ -1141,15 +1163,47 @@ def test_one_collapse():
     #                       KineticVertex((1.0, 0.1), (-0.9999999999999999, -0.9999999999999999), (-1.0, 0.0), (-0.0, -1.0)), True, None, True)
     # now = 0.  # 0.6339745962123428
 
-    tri = KineticTriangle(KineticVertex((0.2173277124280331, 0.698416760614311), (0.41124654232084884, 0.919545641592878), (0.29546368892668795, 0.9553539702779454), (0.5151235666701907, 0.8571159262672592)),
-KineticVertex((0.21178657399529294, 0.9831390013046308), (-0.18724127375184607, -0.9872847139880617), (-0.28216706807814973, -0.9593652827219572), (-0.08868469195702208, -0.9960597499209011)),
-KineticVertex((-1.07262137319989, 1.0973611594703172), (9.311325418444167, -1.8329944831033405), (-0.08868469195702208, -0.9960597499209011), (0.29546368892668795, 0.9553539702779454)), None, None, True)
-    now = 0.1304109494714286443528550308
+#    def KineticVertex(origin=None, velocity=None, ul=None, ur=None)
+
+    tri = KineticTriangle(KineticVertex((-0.2941460749857284, -1.9944028440429675),
+        #(-31.916444710007777, 625.4387471202283),
+        (0, 0), # static
+        (-0.9987805884988515, -0.049369383608547396),
+        (0.998617829332686, 0.05255883311941421)),
+
+        KineticVertex((-0.3764671693980948, -0.4303110631701819),
+        (0.9986179074408387,
+        0.052557349064511094),
+        (0.998617829332686,
+        0.05255883311941421),
+        (0.9986179855445806,
+        0.05255586500937582)),
+
+        KineticVertex((-0.37147762485121205, -0.4299261332026524),
+        (-0.9986662884239297,
+        -0.05168176200486036),
+        (-0.9985412823874946,
+        -0.05399358635928628),
+        (-0.9987805884988515,
+        -0.049369383608547396)),
+        True,
+        None,
+        None)
+
+#    tri = KineticTriangle(KineticVertex((0.2173277124280331, 0.698416760614311), (0.41124654232084884, 0.919545641592878), (0.29546368892668795, 0.9553539702779454), (0.5151235666701907, 0.8571159262672592)),
+#KineticVertex((0.21178657399529294, 0.9831390013046308), (-0.18724127375184607, -0.9872847139880617), (-0.28216706807814973, -0.9593652827219572), (-0.08868469195702208, -0.9960597499209011)),
+#KineticVertex((-1.07262137319989, 1.0973611594703172), (9.311325418444167, -1.8329944831033405), (-0.08868469195702208, -0.9960597499209011), (0.29546368892668795, 0.9553539702779454)), None, None, True)
+#    now = 0.1304109494714286443528550308
+
+    for info, v in enumerate(tri.vertices, start = 1):
+        v.info = info
+
+    now = 0.002501211215806990045829039104
+    print(now)
     evt = compute_collapse_time(tri, now)
-    print evt
+    print(evt)
     # 0.00242630813252781, 0.6340506109731798, 0.004284474881621788,
     # 0.0022096098886525, 0.22933526207436553]
-    now = 0.13521997540
     times = [now - 0.1, now+0, now+0.05, now+0.1]
     for time in sorted(times):
         visualize_collapse(tri, time)

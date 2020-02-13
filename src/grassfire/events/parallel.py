@@ -31,6 +31,9 @@ def handle_parallel_edge_event(t, e, pivot, now, skel, queue, immediate):
     assert pivot.inf_fast
 
     # vertices, that are not inf fast, need to stop
+    # FIXME: this is not necessarily correct ... 
+    #  where they need to stop depends on the configuration
+    #  -- now they are *always* snapped to same location
     v1 = t.vertices[ccw(e)]
     v2 = t.vertices[cw(e)]
     to_stop = []
@@ -64,8 +67,8 @@ def handle_parallel_edge_event(t, e, pivot, now, skel, queue, immediate):
     # i.e. the edge is one of the two adjacent legs at
     # the pivot
     if t.vertices.index(pivot) != e:
-        kv = compute_new_kvertex(v1.ul, v2.ur, now, sk_node)
-        logging.debug("Computed new kinetic vertex {}".format(id(kv)))
+        kv = compute_new_kvertex(v1.ul, v2.ur, now, sk_node, len(skel.vertices) + 1)
+        logging.debug("Computed new kinetic vertex {} [{}]".format(id(kv), kv.info))
         if kv.inf_fast:
             logging.debug("New kinetic vertex moves infinitely fast!")
         # append to skeleton structure, new kinetic vertex
@@ -112,14 +115,14 @@ def handle_parallel_edge_event(t, e, pivot, now, skel, queue, immediate):
             b.neighbours[b_idx] = a
             fan_b = replace_kvertex(b, v1, kv, now, ccw, queue, immediate)
         #
-        logging.debug("*** neighbour n: {} ".format("schedule adjacent neighbour for *IMMEDIATE* processing" if n is not None else ""))
+        logging.debug("*** neighbour n: {} ".format("schedule adjacent neighbour for *IMMEDIATE* processing" if n is not None else "no neighbour to collapse simultaneously"))
         if n is not None:
             n.neighbours[n.neighbours.index(t)] = None
             if n.event is not None and n.stops_at is None:
                 schedule_immediately(n, now, queue, immediate)
 
-        # visualize(queue, skel, now-1.0e-3)
-        # raw_input('continue after parallel -- one of two legs')
+        #visualize(queue, skel, now-1.0e-3)
+        #raw_input('continue after parallel -- one of two legs')
 
         # process parallel fan
         if kv and kv.inf_fast:
@@ -132,15 +135,16 @@ def handle_parallel_edge_event(t, e, pivot, now, skel, queue, immediate):
         # we are collapsing the edge opposite of the inf fast pivot vertex
         assert t.vertices.index(pivot) == e
         n = t.neighbours[e]
-        logging.debug("*** neighbour n: {} ".format("schedule adjacent neighbour for *IMMEDIATE* processing" if n is not None else "no neighbour to collapse simultaneously"))
+        msg = "schedule adjacent neighbour for *IMMEDIATE* processing" if n is not None else "no neighbour to collapse simultaneously"
+        logging.debug("*** neighbour n: {} ".format(msg))
         if n is not None:
             n.neighbours[n.neighbours.index(t)] = None
             if n.event is not None and n.stops_at is None:
                 logging.debug(n.event)
                 schedule_immediately(n, now, queue, immediate)
 
-        # visualize(queue, skel, now-1.0e-3)
-        # raw_input('continue after parallel --  opposite pivot')
+            #visualize(queue, skel, now-1.0e-3)
+            #raw_input('continue after parallel --  opposite pivot')
 
 
 # Parallel
@@ -160,8 +164,8 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate):
     if not fan:
         return
 
-    # visualize(queue, skel, now-5e-2)
-    # raw_input('pause @ start of parallel event')
+    #visualize(queue, skel, now-5e-2)
+    #raw_input('pause @ start of parallel event')
 
     logging.debug("""
 # ---------------------------------------------------------
@@ -170,7 +174,7 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate):
 """)
 
     logging.debug(" -- {}".format(len(fan)))
-    logging.debug(" -- triangles in the fan: {}".format([id(_) for _ in fan]))
+    logging.debug(" -- triangles in the fan: {}".format([(id(_), _.info) for _ in fan]))
 
     assert pivot.inf_fast
 
@@ -182,15 +186,15 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate):
         # logging.debug('First tri **: {} is isolated = special case'.format(id(first_tri)))
         handle_parallel_edge_event(first_tri, first_tri.vertices.index(pivot), pivot, now, skel, queue, immediate)
         return
-    logging.debug('First tri **: {}'.format(id(first_tri)))
+    logging.debug('First tri **: #{} [{}]'.format(id(first_tri), first_tri.info))
 
     v1 = first_tri.vertices[ccw(first_tri.vertices.index(pivot))] # FIXME: should be a vertex from first_tri!
     v2 = first_tri.vertices[cw(first_tri.vertices.index(pivot))] # FIXME: should be a vertex from first_tri!
 
 
     logging.debug(' kvertices:' )
-    logging.debug('  v1: {}'.format(id(v1)) )
-    logging.debug('  v2: {}'.format(id(v2)) )
+    logging.debug('  v1: #{} [{}]'.format(id(v1), v1.info) )
+    logging.debug('  v2: #{} [{}]'.format(id(v2), v2.info) )
     v0_leg = Edge(first_tri, first_tri.vertices.index(pivot))
 
     v2_leg = Edge(first_tri, ccw(first_tri.vertices.index(pivot)))

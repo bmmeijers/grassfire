@@ -80,21 +80,30 @@ def stop_kvertices(V, now):
     return sk_node, is_new_node
 
 
-def compute_new_kvertex(ul, ur, now, sk_node):
+def compute_new_kvertex(ul, ur, now, sk_node, info):
     """Based on the two wavefront directions and time t=now, compute the
     velocity and position at t=0 and return a new kinetic vertex
 
     Returns: KineticVertex
     """
     kv = KineticVertex()
+    kv.info = info
     kv.starts_at = now
     kv.start_node = sk_node
+
+    logging.debug('bisector calc')
+    logging.debug(' ul: {}'.format(ul))
+    logging.debug(' ur: {}'.format(ur))
+    logging.debug(' sk_node.pos: {}'.format(sk_node.pos))
     kv.velocity = bisector(ul, ur)
+    logging.debug(' kv.velocity: {}'.format(kv.velocity))
+
+
     # compute where this vertex would have been at time t=0
     # we set this vertex as infinitely fast, if velocity in one of the
     # directions is really high, or when the bisectors of adjacent
     # wavefronts cancel each other out
-    if kv.velocity == (0, 0) or abs(kv.velocity[0]) > 1500 or abs(kv.velocity[1]) > 1500:
+    if kv.velocity == (0, 0) or abs(kv.velocity[0]) > 500 or abs(kv.velocity[1]) > 500:
         kv.inf_fast = True
         kv.origin = sk_node.pos
     else:
@@ -128,22 +137,25 @@ def replace_kvertex(t, v, newv, now, direction, queue, immediate):
 
     Returns fan of triangles that were replaced
     """
-    logging.debug("replace_kvertex, start at: {0} [{1}]".format(id(t), direction))
+    logging.debug("replace_kvertex, start at: {0} [{1}] dir: {2}".format(id(t), t.info, direction))
     fan = []
     while t is not None:
         # assert t.stops_at is None, "{}: {}".format(
         #     id(t), [id(n) for n in t.neighbours])
-        logging.debug(" @ {}".format(id(t)))
+        logging.debug(" @ {} [{}]".format(id(t), t.info))
         side = t.vertices.index(v)
         fan.append(t)
         t.vertices[side] = newv
         logging.debug(
-            "Placed vertex #{} (inf fast? {}) at side {} of triangle {}".format(
+            "Placed vertex #{} [{}] (inf fast? {}) at side {} of triangle {} [{}]".format(
                 # id(newv),
-                repr(newv),
+                #repr(newv),
+                id(newv),
+                newv.info,
                 newv.inf_fast, 
                 side,
-                id(t)
+                id(t),
+                t.info
                 # , repr(t)
                 ))
         if newv.inf_fast and t.event is not None:  # infinitely fast
@@ -166,6 +178,8 @@ def replace_in_queue(t, now, queue, immediate):
         logging.debug(
             "triangle #{0} without event not removed from queue".format(
                 id(t)))
+
+    logging.debug(" collapse time computation for: {}".format(str(repr(t)).replace(",",",\n\t")))
     e = compute_collapse_time(t, now)
     if e is not None:
         logging.debug("new event in queue {}".format(e))
@@ -186,14 +200,18 @@ def update_circ(v_left, v_right, now):
     # v_left.right o    o v_right.left
     #                ->
     if v_left is not None:
-        logging.debug("update_circ at right of #{} lies #{}".format(
+        logging.debug("update_circ at right of #{} [{}] lies #{} [{}]".format(
                                                   id(v_left),
-                                                  id(v_right)))
+                                                  v_left.info,
+                                                  id(v_right),
+                                                  v_right.info if v_right is not None else ""))
         v_left.right = v_right, now
     if v_right is not None:
-        logging.debug("update_circ at left  of #{} lies #{}".format(
+        logging.debug("update_circ at left  of #{} [{}] lies #{} [{}]".format(
                                                   id(v_right),
-                                                  id(v_left)))
+                                                  v_right.info,
+                                                  id(v_left),
+                                                  v_left.info if v_left is not None else ""))
         v_right.left = v_left, now
 
 

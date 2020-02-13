@@ -29,9 +29,9 @@ def handle_split_event(evt, skel, queue, immediate):
         skel.sk_nodes.append(sk_node)
 #     assert v1.right is v2
 #     assert v2.left is v1
-    vb = compute_new_kvertex(v.ul, v2.ul, now, sk_node)
+    vb = compute_new_kvertex(v.ul, v2.ul, now, sk_node, len(skel.vertices) + 1)
     skel.vertices.append(vb)
-    va = compute_new_kvertex(v1.ur, v.ur, now, sk_node)
+    va = compute_new_kvertex(v1.ur, v.ur, now, sk_node, len(skel.vertices) + 1)
     skel.vertices.append(va)
     update_circ(v.left, vb, now)
     update_circ(vb, v2, now)

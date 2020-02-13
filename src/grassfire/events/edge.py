@@ -18,6 +18,8 @@ def handle_edge_event(evt, skel, queue, immediate):
     # take edge e
     e = evt.side[0]
     logging.debug("wavefront edge collapsing? {0}".format(t.neighbours[e] is None))
+    if t.neighbours.count(None) == 2:
+        assert t.neighbours[e] is None
     now = evt.time
     v1 = t.vertices[ccw(e)]
     v2 = t.vertices[cw(e)]
@@ -26,8 +28,21 @@ def handle_edge_event(evt, skel, queue, immediate):
     sk_node, newly_made = stop_kvertices([v1, v2], now)
     if newly_made:
         skel.sk_nodes.append(sk_node)
-    kv = compute_new_kvertex(v1.ul, v2.ur, now, sk_node)
-    logging.debug("Computed new kinetic vertex {}".format(id(kv)))
+    kv = compute_new_kvertex(v1.ul, v2.ur, now, sk_node, len(skel.vertices) + 1)
+    logging.debug("Computed new kinetic vertex {} [{}]".format(id(kv), kv.info))
+    logging.debug("v1 := {} [{}]".format(id(v1), v1.info))
+    logging.debug("v2 := {} [{}]".format(id(v2), v2.info))
+    logging.debug(kv.position_at(now))
+    logging.debug(kv.position_at(now+1))
+
+    if v1.left:
+        logging.debug(v1.left.position_at(now))
+    else:
+        logging.warning("no v1.left")
+    if v2.right:
+        logging.debug(v2.right.position_at(now))
+    else:
+        logging.warning("no v2.right")
     if kv.inf_fast:
         logging.debug("New kinetic vertex moves infinitely fast!")
     # append to skeleton structure, new kinetic vertex
@@ -76,6 +91,9 @@ def handle_edge_event(evt, skel, queue, immediate):
         n.neighbours[n.neighbours.index(t)] = None
         if n.event is not None and n.stops_at is None:
             schedule_immediately(n, now, queue, immediate)
+
+#    if t.info == 134:
+#        raise NotImplementedError('problem: #134 exists now')
 
     # we "remove" the triangle itself
     t.stops_at = now

@@ -1,5 +1,6 @@
-from tri.delaunay.tds import cw, ccw
+from tri.delaunay.tds import cw, ccw, orient2d
 
+from grassfire.vectorops import add
 from grassfire.calc import near_zero
 from grassfire.primitives import KineticVertex
 
@@ -12,6 +13,20 @@ def point_to_each_other(triangle, side):
     assert v0.left is v1, "@triangle: {} - v0 := {}, v0.left {} != {}".format(id(triangle), id(v0), id(v0.left), id(v1))
     assert v1.right is v0, "@triangle: {} - v1 := {}, v1.right {} != {}".format(id(triangle), id(v1), id(v1.right), id(v0))
 
+def check_bisectors(skel, now):
+    for t in skel.triangles:
+        if t.stops_at is None:
+            for side, n in enumerate(t.neighbours):
+                if n is None:
+                    check_bisector_direction(t, side, now)
+
+def check_bisector_direction(triangle, side, time):
+    """Asserts that orientation of bisector is straight or turning left wrt unconstrained edge on its left"""
+    v0, v1 = triangle.vertices[ccw(side)], triangle.vertices[cw(side)]
+    pos2 = add(v1.position_at(time), v1.velocity)
+    pos0, pos1 = v0.position_at(time), v1.position_at(time)
+    ori = orient2d(pos0, pos1, pos2)
+    assert ori > 0 or near_zero(ori), "v0, v1: {}, {} | orientation: {} | positions: {}; {}; {}".format(v0.info, v1.info, orient2d(pos0, pos1, pos2), pos0, pos1, pos2) # left / straight
 
 def check_wavefront_links(tri):
     """Check links of the kinetic vertices along the wavefront"""

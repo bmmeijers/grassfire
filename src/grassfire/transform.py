@@ -27,6 +27,7 @@ def get_transform(box):
     scx, scy = (sxmin + sxmax) * 0.5, (symin + symax) * 0.5
     sdx, sdy = (sxmax - sxmin), (symax - symin)
     scale = max(sdx / tdx, sdy / tdy)
+#    print("scale {}".format(scale))
     return Transform((scale, scale), (scx, scy))
 
 

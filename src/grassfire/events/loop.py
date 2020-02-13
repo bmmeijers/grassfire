@@ -14,7 +14,7 @@ from grassfire.collapse import compute_collapse_time, find_gt
 from grassfire.events.flip import handle_flip_event
 from grassfire.events.edge import handle_edge_event, handle_edge_event_3sides
 from grassfire.events.split import handle_split_event
-from grassfire.events.check import check_wavefront_links, check_kinetic_vertices, check_active_triangles
+from grassfire.events.check import check_wavefront_links, check_kinetic_vertices, check_active_triangles, check_bisectors
 
 from grassfire.inout import visualize
 
@@ -117,30 +117,48 @@ def make_frames(now, digits, skel, queue, immediate):
             time.sleep(0.25)
             visualize(queue, skel, cur) # N + TIME / scale)
             time.sleep(0.5)
-            with open("/tmp/signal", "w") as fh:
+            with open("/tmpfast/signal", "w") as fh:
                 # FIXME -- write a number for the frames to the file
                 fh.write("{0}".format(random.randint(0, int(1e6))))
             time.sleep(0.25)
+
+
+def log_queue_content(ct, immediate, queue):
+    logging.debug("")
+    logging.debug("STEP := " + str(ct))
+    logging.debug("")
+
+    logging.debug("=" * 80)
+    for i, e in enumerate(immediate):
+        logging.debug("{0:5d} {1}".format(i, e))
+    logging.debug("-" * 80)
+    for i, e in enumerate(queue):
+        logging.debug("{0:5d} {1}".format(i, e))
+        if i >= 20:
+            break
+    if len(queue) >= 20:
+        logging.debug("... skipping display of {} events".format(len(queue) - 20))
+    logging.debug("=" * 80)
 
 
 # Main event loop
 # -----------------------------------------------------------------------------
 def event_loop(queue, skel, pause=False):
     """ The main event loop """
-    STOP_AFTER = 50
+    STOP_AFTER = 340
     VIDEO_DIGITS = 3
     make_video = False
     # -- clean out files for visualization
     if pause:
         for file_nm in [
-            "/tmp/sknodes_progress.wkt",
-            "/tmp/bisectors_progress.wkt",
-            "/tmp/segments_progress.wkt",
-            '/tmp/queue.wkt',
+            "/tmpfast/sknodes_progress.wkt",
+            "/tmpfast/bisectors_progress.wkt",
+            "/tmpfast/segments_progress.wkt",
+            '/tmpfast/queue.wkt',
             # also contains next triangle to be visualised!
-            "/tmp/vertices0_progress.wkt",
-            "/tmp/vertices1_progress.wkt",
-            '/tmp/ktri_progress.wkt',
+            "/tmpfast/vertices0_progress.wkt",
+            "/tmpfast/vertices1_progress.wkt",
+            '/tmpfast/ktri_progress.wkt',
         ]:
             with open(file_nm, 'w') as fh:
                 pass
@@ -164,27 +182,13 @@ def event_loop(queue, skel, pause=False):
         make_frames(NOW, VIDEO_DIGITS, skel, queue, immediate)
 #     step = prev = 0.025
 #     FILTER_CT = 220
+    check_bisectors(skel, 0.)
     while queue or immediate:
         #         if len(queue) < FILTER_CT:
         #             pause = True
         ct += 1
-        logging.debug("")
-        logging.debug("STEP := " + str(ct))
-        logging.debug("")
-
-        logging.debug("=" * 80)
-        for i, e in enumerate(immediate):
-            logging.debug("{0:5d} {1}".format(i, e))
-        logging.debug("-" * 80)
-        for i, e in enumerate(queue):
-            logging.debug("{0:5d} {1}".format(i, e))
-            if i >= 20:
-                break
-        if len(queue) >= 20:
-            logging.debug("... skipping display of {} events".format(len(queue) - 20))
-        logging.debug("=" * 80)
-
-        if True and pause:  # and ct >= STOP_AFTER: # (ct % STOP_AFTER == 0):
+        log_queue_content(ct, immediate, queue)
+        if False and pause:  # and ct >= STOP_AFTER: # (ct % STOP_AFTER == 0):
             visualize(queue, skel, NOW - 5e-4)
             raw_input(str(ct) + ' > before event')
 
@@ -200,6 +204,7 @@ def event_loop(queue, skel, pause=False):
         else:
             evt = choose_next_event(queue)
             NOW = evt.time
+#            check_bisectors(skel, NOW)
 #             peek = next(iter(queue))
 #             NOW = peek.time
 #             if pause and False:  # visualize progressively
@@ -257,8 +262,13 @@ def event_loop(queue, skel, pause=False):
             handle_split_event(evt, skel, queue, immediate)
 
 #         check_ktriangles(skel.triangles, NOW)
+
+
+
+        log_queue_content(ct, immediate, queue)
         if pause and ct >= STOP_AFTER:
-            visualize(queue, skel, NOW)
+            visualize(queue, skel, NOW) # - 0.0001)
+          # visualize(queue, skel, NOW - 0.0000000001)
             raw_input(str(ct) + ' > after event')
 
         if False:  # len(queue) < FILTER_CT:
@@ -279,7 +289,7 @@ def event_loop(queue, skel, pause=False):
         if make_video:
             make_frames(NOW, VIDEO_DIGITS, skel, queue, immediate)
             # raw_input("paused...")
-        if True and not immediate:
+        if False and not immediate:
             # if we have immediate events, the linked list will not be
             # ok for a while
             try:

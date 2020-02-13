@@ -1,6 +1,7 @@
 from collections import namedtuple
 from grassfire.calc import near_zero
 
+import logging
 
 class Event(object):
     """ """
@@ -19,8 +20,8 @@ class Event(object):
         finite_txt = "finite"
         if not self.triangle.is_finite:
             finite_txt = "infinite"
-        return """<Event ({3:5s}) at {0:.9g}, {4}-triangle: {1}, side: {2}, finite: {5}>""".format(
-            self.time, id(self.triangle), self.side, self.tp, self.triangle.type, finite_txt)
+        return """<Event ({3:5s}) at {0:.9g}, {4}-triangle: {1} [{6}], side: {2}, finite: {5}>""".format(
+            self.time, id(self.triangle), self.side, self.tp, self.triangle.type, finite_txt, self.triangle.info)
 
 
 class Skeleton(object):
@@ -67,7 +68,7 @@ class KineticVertex(object):
     __slots__ = ("origin", "velocity",
                  "starts_at", "stops_at",
                  "start_node", "stop_node",
-                 "_left", "_right", "id", "ul", "ur", "inf_fast", "internal"
+                 "_left", "_right", "info", "ul", "ur", "inf_fast", "internal"
                  )
 
     def __init__(self, origin=None, velocity=None, ul=None, ur=None):
@@ -90,7 +91,7 @@ class KineticVertex(object):
         self.ul = ul  # unit vector of wavefront to the left
         self.ur = ur  # or right
 
-        self.id = id(self)
+        self.info = id(self)
         self.inf_fast = False  # whether this vertex moves infinitely fast
         self.internal = False
 
@@ -121,7 +122,33 @@ class KineticVertex(object):
     def position_at(self, time):
         if not self.inf_fast:
             return (self.origin[0] + time * self.velocity[0],
-                    self.origin[1] + time * self.velocity[1])
+                self.origin[1] + time * self.velocity[1])
+        else:
+            return self.start_node.pos
+
+    def visualize_at(self, time):
+        if not self.inf_fast:
+            v = tuple(self.velocity[:])
+#            logging.debug("{} {}".format(self.info, v))
+#            d = (v[0]**2 + v[1]**2)**0.5
+#            if v[0] > 100 or v[1] > 100:
+#                print(v)
+#            v0 = min(1, abs(v[0]))
+#            v1 = min(1, abs(v[1]))
+#            if v[0] < 0:
+#                v0 *= -1
+#            if v[1] < 0:
+#                v1 *= -1
+#            if v[0] > 100 or v[1] > 100:
+#                print((v0,v1))
+
+
+            if (abs(self.velocity[0]) > 50 or abs(self.velocity[1]) > 50):
+            ####    ## FIXME: position_at is used in logic as well -> should have one only for display!
+                return self.start_node.pos
+            else:
+                return (self.origin[0] + time * self.velocity[0],
+                        self.origin[1] + time * self.velocity[1])
         else:
             return self.start_node.pos
 
@@ -184,6 +211,7 @@ class InfiniteVertex(object):  # Stationary Vertex
         self.left = None
         self.right = None
         self.internal = False
+        self.info = id(self)
 
     def __repr__(self):
         return "InfiniteVertex({0})".format(self.origin)
@@ -201,7 +229,9 @@ class InfiniteVertex(object):  # Stationary Vertex
     def position_at(self, time):
         """ """
         return self.origin
-
+    def visualize_at(self, time):
+        """ """
+        return self.origin
 #     @property
 #     def origin(self):
 #         return self.origin
@@ -217,6 +247,7 @@ class KineticTriangle(object):
                  n0=None, n1=None, n2=None):
         self.vertices = [v0, v1, v2]
         self.neighbours = [n0, n1, n2]
+        self.wavefront_directions = [None, None, None]
         self.event = None  # point back to event,
         # note this might prevent
         # garbage collection (strong cycle)
@@ -264,13 +295,23 @@ class KineticTriangle(object):
             vertices.append(vertices[0])
         return "POLYGON(({0}))".format(", ".join(vertices))
 
-    def str_at(self, t):
+    def position_at(self, t):
+        """ """
+        vertices = []
+        for idx in range(3):
+            v = self.vertices[idx]
+            vertices.append("{0[0]} {0[1]}".format(v.position_at(t)))
+        if vertices:
+            vertices.append(vertices[0])
+        return "POLYGON(({0}))".format(", ".join(vertices))
+
+    def visualize_at(self, t):
         """ """
         vertices = []
 #         if self.is_finite:
         for idx in range(3):
             v = self.vertices[idx]
-            vertices.append("{0[0]} {0[1]}".format(v.position_at(t)))
+            vertices.append("{0[0]} {0[1]}".format(v.visualize_at(t)))
 #         else:
 #             # -- find infinite vertex
 #             for infinite in range(3):

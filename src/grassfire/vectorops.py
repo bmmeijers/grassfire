@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-15 -*-
 """Operations that allow tuples/lists (or any type that implements __getitem__
 and __iter__) to be used as vectors"""
 
@@ -141,9 +142,12 @@ def angle_unit(v1, v2):
     """angle between 2 *unit* vectors"""
     d = dot(v1, v2)
     if d > 1.0 or d < -1.0:
-        logging.debug("dot not in [-1, 1] -- clamp")
+        logging.warning("dot not in [-1, 1] -- clamp")
     d = max(-1.0, min(1.0, d))
-    return math.acos(d)
+    acos_d = math.acos(d)
+    logging.debug(" d : {}".format(d))
+    logging.debug(" degrees(acos(d)): {}°".format(math.degrees(acos_d)))
+    return acos_d
 
 
 def bisector(u1, u2):
@@ -155,16 +159,18 @@ def bisector(u1, u2):
     the 2 wavefront edges
     """
     direction = add(u1, u2)
-    logging.debug("direction: {}; unitvec1 {} | unitvec2 {}".format(direction, u1, u2))
+    logging.debug(" direction: {}".format(direction))
     if all(map(near_zero, direction)):
         return (0, 0)
         #raise ValueError("parallel wavefront")
     alpha = 0.5 * math.pi + 0.5 * angle_unit(u1, u2)
-    # print "angle :=", math.degrees(alpha)
+    logging.debug(" degrees(alpha): {}°".format(math.degrees(alpha)))
     magnitude = math.sin(alpha)
+    logging.debug(" magnitude: {}".format(magnitude))
     # print magnitude
-    return div(unit(direction), magnitude)
-
+    bisector = div(unit(direction), magnitude)
+    logging.debug(" bisector: {}".format(bisector))
+    return bisector
 
 def rotate90ccw(v):
     """Rotate 2d vector 90 degrees counter clockwise

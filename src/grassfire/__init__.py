@@ -47,7 +47,7 @@ def calc_skel(conv, pause=False, output=False, shrink=True,
 #             output_triangles([t for t in TriangleIterator(dt, 
 #                                                           finite_only=False)],
 #                              fh)
-        with open("/tmp/edges.wkt", "w") as fh:
+        with open("/tmpfast/edges.wkt", "w") as fh:
             fh.write("id;wkt\n")
             edgeit = FiniteEdgeIterator(dt, constraints_only=True)
             for j, edge in enumerate(edgeit):
@@ -72,6 +72,8 @@ def calc_skel(conv, pause=False, output=False, shrink=True,
     if output:
         output_offsets(skel, last_evt_time)
         output_skel(skel, last_evt_time + 10)
+        from grassfire.inout import visualize
+        visualize([], skel, last_evt_time + 10)
     return skel
 
 def calc_offsets(skel, now):

@@ -9,21 +9,21 @@ from grassfire.vectorops import mul, dist, add
 
 
 def output_edges_at_T(edges, T, fh):
-    fh.write("id;side;wkt\n")
+    fh.write("id;info;side;wkt\n")
     for e in edges:
         segment = e.segment
-        s = segment[0].position_at(T), segment[1].position_at(T)
-        fh.write("{0};{1};LINESTRING({2[0][0]} {2[0][1]}, {2[1][0]} {2[1][1]})\n".format(id(e.triangle), e.side, s))
+        s = segment[0].visualize_at(T), segment[1].visualize_at(T)
+        fh.write("{0};{3};{1};LINESTRING({2[0][0]} {2[0][1]}, {2[1][0]} {2[1][1]})\n".format(id(e.triangle), e.side, s, e.triangle.info))
 
 
 def output_triangles_at_T(tri, T, fh):
     """Output list of triangles as WKT to text file (for QGIS)"""
-    fh.write("id;time;wkt;n0;n1;n2;v0;v1;v2;finite;info\n")
+    fh.write("id;time;wkt;n0;n1;n2;v0;v1;v2;finite;info;wavefront_directions\n")
     for t in tri:
         if t is None:
             continue
         if t.stops_at is None:
-            fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), t.str_at(T), [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.is_finite, t.info, T))
+            fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5};{7}\n".format(id(t), t.visualize_at(T), [(id(n), n.info if n is not None and n is not True else "") for n in t.neighbours], [(id(v), v.info if v is not None else "") for v in t.vertices], t.is_finite, t.info, T, t.wavefront_directions))
         else:
             # we skip the triangle if it has a timestamp associated
             pass
@@ -32,7 +32,7 @@ def output_triangles_at_T(tri, T, fh):
 def output_kdt(skel, time):
     """ """
 #     time = 0
-    with open("/tmp/ktris.wkt", "w") as fh:
+    with open("/tmpfast/ktris.wkt", "w") as fh:
         fh.write("id;wkt;n0;n1;n2;v0;v1;v2\n")
         for t in skel.triangles:
             if not t.finite:
@@ -42,39 +42,39 @@ def output_kdt(skel, time):
             if valid:
                 L = []
                 for v in t.vertices:
-                    L.append("{0[0]} {0[1]}".format(v.position_at(time)))
+                    L.append("{0[0]} {0[1]}".format(v.visualize_at(time)))
                 L.append(L[0])
                 poly = "POLYGON(({0}))" .format(", ".join(L))
                 if t is None:
                     continue
                 fh.write("{0};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]}\n".format(id(t), poly, [id(n) for n in t.neighbours], [id(v) for v in t.vertices]))
-            #fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.position_at(t), id(v.left), id(v.right)))
-    with open("/tmp/kvertices.wkt", "w") as fh:
+            #fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.visualize_at(t), id(v.left), id(v.right)))
+    with open("/tmpfast/kvertices.wkt", "w") as fh:
         fh.write("id;wkt;left cw;right ccw\n")
         for v in skel.vertices:
 #         if v.stops_at is not None:
             if (v.starts_at <= time and v.stops_at >= time) or v.stops_at is None:
-                fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.position_at(time), id(v.left), id(v.right)))
+                fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.visualize_at(time), id(v.left), id(v.right)))
 
 
 def output_vertices_at_T(V, T, fh):
     """Output list of vertices as WKT to text file (for QGIS)"""
-    fh.write("id;wkt;left cw;right ccw\n")
+    fh.write("id;info;wkt;left cw;right ccw\n")
     for v in V:
 #         if v.stops_at is not None:
-        fh.write("{0};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.position_at(T), id(v.left), id(v.right)))
+        fh.write("{0};{4};POINT({1[0]} {1[1]});{2};{3}\n".format(id(v), v.visualize_at(T), id(v.left), id(v.right), v.info))
 
 
 def output_dt(dt):
     """ """
-    with open("/tmp/vertices.wkt", "w") as fh:
+    with open("/tmpfast/vertices.wkt", "w") as fh:
         output_vertices([v for v in dt.vertices], fh)
 
     it = TriangleIterator(dt)
-    with open("/tmp/tris.wkt", "w") as fh:
+    with open("/tmpfast/tris.wkt", "w") as fh:
         output_triangles([t for t in it], fh)
 
-    with open("/tmp/segments.wkt", "w") as fh:
+    with open("/tmpfast/segments.wkt", "w") as fh:
         output_edges([e for e in FiniteEdgeIterator(dt, True)], fh)
 
 
@@ -87,15 +87,15 @@ def output_offsets(skel, now=1000):
     inc = now / float(ct)
     #times = [0.0276]#[0.075] #[0.0375] #[0.15] #[0.075] #
     times = [t*inc for t in range(ct)]
-    with open("/tmp/offsetsl.wkt", "w") as fh:
+    with open("/tmpfast/offsetsl.wkt", "w") as fh:
         fh.write("wkt;time;from;to\n")
         for t in times:
             for v in skel.vertices:
                 if (v.starts_at <= t and v.stops_at > t) or \
                     (v.starts_at <= t and v.stops_at is None): 
                     try:
-                        s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{4}".format(v.position_at(t), 
-                                                                              v.left_at(t).position_at(t),
+                        s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{4}".format(v.visualize_at(t), 
+                                                                              v.left_at(t).visualize_at(t),
                                                                               t,
                                                                               id(v), id(v.left_at(t)))
                         fh.write(s)
@@ -104,7 +104,7 @@ def output_offsets(skel, now=1000):
                         #print "*"
                         pass
 
-    with open("/tmp/offsetsr.wkt", "w") as fh:
+    with open("/tmpfast/offsetsr.wkt", "w") as fh:
         fh.write("wkt;time;from;to\n")
         for t in times:
             for v in skel.vertices:
@@ -112,8 +112,8 @@ def output_offsets(skel, now=1000):
                     (v.starts_at <= t and v.stops_at is None):
                 # finite ranges only (not None is filtered out)
                     try:
-                        s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{4}".format(v.position_at(t), 
-                                                                              v.right_at(t).position_at(t),
+                        s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{4}".format(v.visualize_at(t), 
+                                                                              v.right_at(t).visualize_at(t),
                                                                               t,
                                                                               id(v), id(v.right_at(t)))
                         fh.write(s)
@@ -125,7 +125,7 @@ def output_offsets(skel, now=1000):
 
 def output_skel(skel, when):
     """ """
-    with open("/tmp/skel.wkt", "w") as fh:
+    with open("/tmpfast/skel.wkt", "w") as fh:
         fh.write("id;wkt;stopped;length\n")
         for v in skel.vertices:
             fh.write(str(id(v))+";")
@@ -136,12 +136,12 @@ def output_skel(skel, when):
                 fh.write(s)
                 fh.write(";True;" + str(dist(v.start_node.pos, v.stop_node.pos)) + "\n")
             else:
-                s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.position_at(v.starts_at), 
-                                                                      v.position_at(when))
+                s = "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format(v.visualize_at(v.starts_at), 
+                                                                      v.visualize_at(when))
                 fh.write(s)
-                fh.write(";False;" + str(dist(v.position_at(v.starts_at), v.position_at(when))) + "\n")
+                fh.write(";False;" + str(dist(v.visualize_at(v.starts_at), v.visualize_at(when))) + "\n")
 
-    with open("/tmp/skelnodes.wkt", "w") as fh:
+    with open("/tmpfast/skelnodes.wkt", "w") as fh:
         fh.write("wkt\n")
         for n in skel.sk_nodes:
             fh.write("POINT({0[0]} {0[1]})\n".format(n.pos))
@@ -150,12 +150,12 @@ def output_skel(skel, when):
 def visualize(queue, skel, NOW):
     """ Visualize progress by writing geometry to WKT files to be viewed with
     QGIS """
-    with open('/tmp/queue.wkt', 'w') as fh:
-        fh.write("pos;wkt;evttype;evttime;tritype;id;n0;n1;n2;finite\n")
+    with open('/tmpfast/queue.wkt', 'w') as fh:
+        fh.write("pos;wkt;evttype;evttime;tritype;id;n0;n1;n2;finite;info;wavefront_directions\n")
         for i, evt in enumerate(queue):
-            fh.write("{0};{1};{2};{3};{4};{5};{6};{7};{8};{9}\n".format(
+            fh.write("{0};{1};{2};{3};{4};{5};{6};{7};{8};{9};{10}\n".format(
                 i,
-                evt.triangle.str_at(NOW),
+                evt.triangle.visualize_at(NOW),
                 evt.tp,
                 evt.time,
                 evt.triangle.type,
@@ -164,29 +164,31 @@ def visualize(queue, skel, NOW):
                 id(evt.triangle.neighbours[1]),
                 id(evt.triangle.neighbours[2]),
                 evt.triangle.is_finite,
+                evt.triangle.info,
+                evt.triangle.wavefront_directions
             )
             )
 
-    with open('/tmp/ktri_progress.wkt', 'w') as fh:
+    with open('/tmpfast/ktri_progress.wkt', 'w') as fh:
         output_triangles_at_T(skel.triangles, NOW, fh)
 
-    with open("/tmp/sknodes_progress.wkt", 'w') as fh:
+    with open("/tmpfast/sknodes_progress.wkt", 'w') as fh:
         fh.write("wkt\n")
         for node in skel.sk_nodes:
             fh.write("POINT({0[0]} {0[1]})\n".format(node.pos))
 
-    with open("/tmp/bisectors_progress.wkt", "w") as bisector_fh:
-        bisector_fh.write("wkt\n")
+    with open("/tmpfast/bisectors_progress.wkt", "w") as bisector_fh:
+        bisector_fh.write("wkt;info;velocity;unitvec_left;unitvec_right\n")
         for kvertex in skel.vertices:
             if kvertex.stops_at is None:
-                p1 = kvertex.position_at(NOW)
+                p1 = kvertex.visualize_at(NOW)
                 bi = kvertex.velocity
                 bisector_fh.write(
-                    "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})\n".format(
+                    "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{4};{5}\n".format(
                         p1, add(p1,
-                                mul(bi, 0.1)
-                                )))
-    with open("/tmp/segments_progress.wkt", "w") as fh:
+                                mul(bi, 1/2140.1) # 0.0005)
+                                ),kvertex.info,kvertex.velocity, kvertex.ul, kvertex.ur))
+    with open("/tmpfast/segments_progress.wkt", "w") as fh:
         fh.write("id;wkt;finished;length\n")
         for kvertex in skel.vertices:
             if kvertex.start_node is not None and kvertex.stop_node is not None:
@@ -201,7 +203,7 @@ def visualize(queue, skel, NOW):
                             end),
                         id(kvertex)))
             elif kvertex.start_node is not None and kvertex.stop_node is None:
-                start, end = kvertex.start_node.pos, kvertex.position_at(NOW)
+                start, end = kvertex.start_node.pos, kvertex.visualize_at(NOW)
                 fh.write(
                     "{4};LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3}\n".format(
                         start,
@@ -212,11 +214,11 @@ def visualize(queue, skel, NOW):
                             end),
                         id(kvertex)))
 
-    with open("/tmp/vertices1_progress.wkt", 'w') as fh1:
-        fh1.write("id;wkt;leftid;rightid\n")
+    with open("/tmpfast/vertices1_progress.wkt", 'w') as fh1:
+        fh1.write("id;wkt;leftid;rightid;info\n")
         for kvertex in skel.vertices:
             #             if kvertex.start_node is not None and kvertex.stop_node is not None:
-            #                 fh0.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.position_at(kvertex.starts_at), id(kvertex)))
+            #                 fh0.write("{1};POINT({0[0]} {0[1]})\n".format(kvertex.visualize_at(kvertex.starts_at), id(kvertex)))
             #             else:
             left = kvertex.left_at(NOW)
             right = kvertex.right_at(NOW)
@@ -231,13 +233,13 @@ def visualize(queue, skel, NOW):
             if kvertex.stop_node is None:
                 assert kvertex.stops_at is None
                 fh1.write(
-                    "{1};POINT({0[0]} {0[1]});{2};{3}\n".format(
-                        kvertex.position_at(NOW),
+                    "{1};POINT({0[0]} {0[1]});{2};{3};{4}\n".format(
+                        kvertex.visualize_at(NOW),
                         id(kvertex),
                         left_id,
-                        right_id))
+                        right_id, kvertex.info))
 
-    with open("/tmp/wavefront_edges_progress.wkt", "w") as fh:
+    with open("/tmpfast/wavefront_edges_progress.wkt", "w") as fh:
         edges = []
         for tri in skel.triangles:
             if tri.stops_at is None:
@@ -249,5 +251,5 @@ def visualize(queue, skel, NOW):
                     edges.append(Edge(tri, side))
         output_edges_at_T(edges, NOW, fh)
 
-    with open('/tmp/signal', 'w') as fh:
+    with open('/tmpfast/signal', 'w') as fh:
         fh.write('{}'.format(NOW))
