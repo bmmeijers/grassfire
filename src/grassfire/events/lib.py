@@ -27,11 +27,15 @@ def stop_kvertices(V, now):
     # at more or less the same location
 #     assert at_same_location(V, now)
     sk_node = None
+
+    logging.debug("stopping kinetic vertices:")
+    for v in V:
+        logging.debug(" - kv #{} [{}]".format(id(v), v.info))
+
     for v in V:
         stopped = v.stops_at is not None
         time_close = near_zero(v.starts_at - now)
-        logging.debug(
-            "Vertex starts at same time as now: {}".format(time_close))
+        logging.debug("Vertex starts at same time as now: {}".format(time_close))
         logging.debug("Kinetic vertex is not stopped: {}".format(stopped))
         # vertex already stopped
         if stopped:
