@@ -33,8 +33,11 @@ def handle_split_event(evt, skel, queue, immediate):
     skel.vertices.append(vb)
     va = compute_new_kvertex(v1.ur, v.ur, now, sk_node, len(skel.vertices) + 1)
     skel.vertices.append(va)
+
+    logging.debug("-- update circular list at B-side: {} [{}]".format(id(vb), vb.info))
     update_circ(v.left, vb, now)
     update_circ(vb, v2, now)
+    logging.debug("-- update circular list at A-side: {} [{}]".format(id(va), va.info))
     update_circ(v1, va, now)
     update_circ(va, v.right, now)
     # updates (triangle fan) at neighbour 1

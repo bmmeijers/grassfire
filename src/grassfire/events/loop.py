@@ -145,7 +145,7 @@ def log_queue_content(ct, immediate, queue):
 # -----------------------------------------------------------------------------
 def event_loop(queue, skel, pause=False):
     """ The main event loop """
-    STOP_AFTER = 340
+    STOP_AFTER = 770
     VIDEO_DIGITS = 3
     make_video = False
     # -- clean out files for visualization
@@ -204,7 +204,14 @@ def event_loop(queue, skel, pause=False):
         else:
             evt = choose_next_event(queue)
             NOW = evt.time
-#            check_bisectors(skel, NOW)
+####
+#            try:
+#                check_bisectors(skel, NOW)
+#            except AssertionError:
+#                visualize(queue, skel, NOW - 5e-4)
+#                raise
+###
+
 #             peek = next(iter(queue))
 #             NOW = peek.time
 #             if pause and False:  # visualize progressively
@@ -242,6 +249,9 @@ def event_loop(queue, skel, pause=False):
                       str(evt.triangle.type) +
                       " " +
                       str(id(evt.triangle)) +
+                      " [" +
+                      str(evt.triangle.info) +
+                      "] " +
                       " at time " +
                       "{0:.28g}".format(evt.time))
         # precondition: this triangle has not yet been dealt with before
@@ -267,7 +277,7 @@ def event_loop(queue, skel, pause=False):
 
         log_queue_content(ct, immediate, queue)
         if pause and ct >= STOP_AFTER:
-            visualize(queue, skel, NOW) # - 0.0001)
+            visualize(queue, skel, NOW - 0.0001)
           # visualize(queue, skel, NOW - 0.0000000001)
             raw_input(str(ct) + ' > after event')
 

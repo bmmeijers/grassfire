@@ -139,7 +139,10 @@ def angle(v1, v2):
 
 
 def angle_unit(v1, v2):
-    """angle between 2 *unit* vectors"""
+    """angle between 2 *unit* vectors
+
+    does not compute the norm(v1)*norm(v2), as it would be 1
+    """
     d = dot(v1, v2)
     if d > 1.0 or d < -1.0:
         logging.warning("dot not in [-1, 1] -- clamp")
@@ -163,6 +166,7 @@ def bisector(u1, u2):
     if all(map(near_zero, direction)):
         return (0, 0)
         #raise ValueError("parallel wavefront")
+###    logging.debug(" unit(direction): {}".format(unit(direction)))
     alpha = 0.5 * math.pi + 0.5 * angle_unit(u1, u2)
     logging.debug(" degrees(alpha): {}°".format(math.degrees(alpha)))
     magnitude = math.sin(alpha)

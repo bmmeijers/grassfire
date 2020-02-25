@@ -95,19 +95,20 @@ def compute_new_kvertex(ul, ur, now, sk_node, info):
     kv.starts_at = now
     kv.start_node = sk_node
 
+    logging.debug('/=-= New vertex: {} [{}] =-=\\'.format(id(kv), kv.info))
     logging.debug('bisector calc')
     logging.debug(' ul: {}'.format(ul))
     logging.debug(' ur: {}'.format(ur))
     logging.debug(' sk_node.pos: {}'.format(sk_node.pos))
     kv.velocity = bisector(ul, ur)
     logging.debug(' kv.velocity: {}'.format(kv.velocity))
-
+    logging.debug('\=-= New vertex =-=/')
 
     # compute where this vertex would have been at time t=0
     # we set this vertex as infinitely fast, if velocity in one of the
     # directions is really high, or when the bisectors of adjacent
     # wavefronts cancel each other out
-    if kv.velocity == (0, 0) or abs(kv.velocity[0]) > 500 or abs(kv.velocity[1]) > 500:
+    if kv.velocity == (0, 0) or abs(kv.velocity[0]) > 100 or abs(kv.velocity[1]) > 100:
         kv.inf_fast = True
         kv.origin = sk_node.pos
     else:

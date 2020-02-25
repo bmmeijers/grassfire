@@ -18,8 +18,8 @@ def handle_edge_event(evt, skel, queue, immediate):
     # take edge e
     e = evt.side[0]
     logging.debug("wavefront edge collapsing? {0}".format(t.neighbours[e] is None))
-    if t.neighbours.count(None) == 2:
-        assert t.neighbours[e] is None
+#    if t.neighbours.count(None) == 2:
+#        assert t.neighbours[e] is None
     now = evt.time
     v1 = t.vertices[ccw(e)]
     v2 = t.vertices[cw(e)]

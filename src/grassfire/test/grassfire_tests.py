@@ -40,14 +40,14 @@ def make_test_cases(fixtures):
     return cases
 
 
-#CASES = make_test_cases([all_tests()[30]])
+#CASES = make_test_cases([all_tests()[0]])
 #INTERACTIVE = True
 
-#CASES = make_test_cases(all_tests())
-#INTERACTIVE = False
-
-CASES = make_test_cases([all_tests()[53]])
+CASES = make_test_cases(all_tests())
 INTERACTIVE = False
+
+#CASES = make_test_cases([all_tests()[53]])
+#INTERACTIVE = True
 
 # After: https://stackoverflow.com/a/20870875
 class TestSequenceMeta(type):
@@ -59,6 +59,7 @@ class TestSequenceMeta(type):
                 if INTERACTIVE:
                     skel = calc_skel(
                         data, pause=True, output=True, internal_only=False, shrink=True
+#                        data, pause=False, output=False, internal_only=False, shrink=True
                     )
                 else:
                     skel = calc_skel(data)

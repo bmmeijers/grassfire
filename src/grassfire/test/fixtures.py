@@ -1017,7 +1017,7 @@ def test_tudelft_logo():
                 dedup.append(cur)
         dedup += [dedup[0]]
         conv.add_polygon([dedup])
-    return conv, 1398, 1042, 14
+    return conv, 1399, 1042, 17
 
 
 def test_tudelft_logo_E():
@@ -2317,7 +2317,7 @@ def cbs_vlissingen_parallel():
     conv = ToPointsAndSegments()
     conv.add_polygon(poly)
     ## FIXME: not completely correct (parallel part in south contains 'snapped' segments)
-    return conv, 719, 538, 5
+    return conv, 719, 538, 6
 
 
 # def missing_event():

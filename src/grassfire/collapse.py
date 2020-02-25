@@ -469,8 +469,12 @@ def compute_event_2triangle(tri, now, sieve):
     time = sieve(times, now)
     logging.debug("Time found: " + str(time))
     if time is None:
-        logging.debug("Checking if area collapse says different, so we don't miss it collapsing")
         time = sieve(area_collapse_times(o, d, a), now)
+        if time is not None:
+            logging.warning("Area collapse detects collapse, while edge collapse time does not")
+            logging.warning("Infinite fast vertex in place ???")
+            logging.warning("Time found: " + str(time))
+            logging.warning("")
 
     if time is not None:
         dists = [math.sqrt(d.distance2_at(a, time)),
@@ -716,6 +720,42 @@ def collapse_time_edge(v1, v2):
         return -1.
 
 
+
+
+
+def solve_quadratic_whatevery(A, B, C):
+    if near_zero(A) and not near_zero(B):
+        # A near zero, not a quadratic =>
+        # we solve a linear equation:
+        # B*x + C = 0
+        # B*x = -C
+        # x = -C / B
+        return [-C / B]
+    elif near_zero(A) and near_zero(B):
+        # No solution, line parallel to the x-axis, not crossing the x-axis
+        # raise NotImplementedError("Not done yet")
+        return []
+    try:
+        d = math.sqrt(B*B-4*A*C)
+    except ValueError:
+        return []
+
+    def div(n, d):
+        """Divide, with a useful interpretation of division by zero."""
+    #    try:
+        return n/d
+    #    except ZeroDivisionError:
+    #        if n:
+    #            return n*float('inf')
+    #        return float('nan')
+
+    if B > 0:
+        return [div(2*C, (-B-d)), div((-B-d), 2*A)]
+    else:
+        return [div((-B+d), 2*A), div(2*C, (-B+d))]
+ 
+
+
 def solve_quadratic(A, B, C):
     """Get the roots for quadratic equation, defined by A, B and C
 
@@ -760,9 +800,85 @@ def solve_quadratic(A, B, C):
         return []
     else:
         # return L1, L2 (the Eigen values of M)
-        plus_min = pow(under, 0.5)
+        plus_min = math.sqrt(under)
         return [centre - plus_min, centre + plus_min]
 
+
+
+##def solve_quadratic(A, B, C):
+##    """Get the roots for quadratic equation, defined by A, B and C
+
+##    The quadratic equation A*x^2 + B*x + C = 0 can be
+##    described with its companion matrix M, where
+
+##    M = [[a b], [c d]] == [[0 -C/A], [1 -B/A]]
+
+##    The roots that we want to find are the eigenvalues L1, L2
+##    of this 2x2 matrix.
+
+##    L1 = 0.5*T + (0.25*T^2 - D)^0.5
+##    L2 = 0.5*T - (0.25*T^2 - D)^0.5
+
+##    with:
+
+##    T = a + d
+##    D = a*d - b*c
+
+##    Note, if A == 0 and B != 0 gives the answer for B*x + C = 0
+##    """
+##    if near_zero(A) and not near_zero(B):
+##        # A near zero, not a quadratic =>
+##        # we solve a linear equation:
+##        # B*x + C = 0
+##        # B*x = -C
+##        # x = -C / B
+##        return [-C / B]
+##    elif near_zero(A) and near_zero(B):
+##        # No solution, line parallel to the x-axis, not crossing the x-axis
+##        # raise NotImplementedError("Not done yet")
+##        return []
+
+##    elif B >= 0:
+##        one = -B - math.sqrt(B * B - 4 * A * C)
+##        x1 = one / 2 * A
+##        x2 = 2 * C / one
+##        roots = [x1, x2]
+##        roots.sort()
+##        return roots
+
+##    elif B < 0:
+##        one = -B + math.sqrt(B * B - 4 * A * C)
+##        x1 = 2 * C / one
+##        x2 = one / 2 * A
+##        roots = [x1, x2]
+##        roots.sort()
+##        return roots
+
+#    T = -B / A  # a + d
+#    D = C / A   # a*d - b*c
+#    centre = T * 0.5
+#    under = 0.25 * pow(T, 2) - D
+#    if near_zero(under):
+#        # -- one root
+#        return [centre]
+#    elif under < 0:
+#        # -- imaginary roots
+#        return []
+#    else:
+#        # return L1, L2 (the Eigen values of M)
+#        plus_min = pow(under, 0.5)
+#        return [centre - plus_min, centre + plus_min]
+
+
+## Investigate whether this works better:
+##double a = 3.0, b = 1.0e9, c = 5.0;
+##double d = b*b - 4.0*a*c;
+##double r1 = (-b - sqrt(d))/(2.0*a);
+##double r2 = -2.0*c/(b + sqrt(d));
+## https://www.codeproject.com/Articles/25294/Avoiding-Overflow-Underflow-and-Loss-of-Precision
+
+## also check: https://github.com/linebender/kurbo/pull/59
+## linked from: https://math.stackexchange.com/questions/866331/numerically-stable-algorithm-for-solving-the-quadratic-equation-when-a-is-very
 
 def area_collapse_time_coeff(kva, kvb, kvc):
     """Returns coefficients of quadratic in t
