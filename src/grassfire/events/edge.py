@@ -10,7 +10,7 @@ from grassfire.events.parallel import handle_parallel_fan
 
 # ------------------------------------------------------------------------------
 # Edge event handlers
-def handle_edge_event(evt, skel, queue, immediate):
+def handle_edge_event(evt, skel, queue, immediate, pause):
     """Handles triangle collapse, where exactly 1 edge collapses"""
     t = evt.triangle
     logging.debug(evt.side)
@@ -101,9 +101,9 @@ def handle_edge_event(evt, skel, queue, immediate):
     # process parallel fan
     if kv.inf_fast:
         if fan_a:
-            handle_parallel_fan(fan_a, kv, now, cw, skel, queue, immediate)
+            handle_parallel_fan(fan_a, kv, now, cw, skel, queue, immediate, pause)
         if fan_b:
-            handle_parallel_fan(fan_b, kv, now, ccw, skel, queue, immediate)
+            handle_parallel_fan(fan_b, kv, now, ccw, skel, queue, immediate, pause)
 
 
 def handle_edge_event_3sides(evt, skel, queue, immediate):

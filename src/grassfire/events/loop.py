@@ -14,7 +14,7 @@ from grassfire.collapse import compute_collapse_time, find_gt
 from grassfire.events.flip import handle_flip_event
 from grassfire.events.edge import handle_edge_event, handle_edge_event_3sides
 from grassfire.events.split import handle_split_event
-from grassfire.events.check import check_wavefront_links, check_kinetic_vertices, check_active_triangles, check_bisectors
+from grassfire.events.check import check_wavefront_links, check_kinetic_vertices, check_active_triangles, check_bisectors, check_active_triangles_orientation
 
 from grassfire.inout import visualize
 
@@ -123,9 +123,9 @@ def make_frames(now, digits, skel, queue, immediate):
             time.sleep(0.25)
 
 
-def log_queue_content(ct, immediate, queue):
+def log_queue_content(step, immediate, queue):
     logging.debug("")
-    logging.debug("STEP := " + str(ct))
+    logging.debug("STEP := " + str(step))
     logging.debug("")
 
     logging.debug("=" * 80)
@@ -145,7 +145,7 @@ def log_queue_content(ct, immediate, queue):
 # -----------------------------------------------------------------------------
 def event_loop(queue, skel, pause=False):
     """ The main event loop """
-    STOP_AFTER = 770
+    STOP_AFTER = 50300
     VIDEO_DIGITS = 3
     make_video = False
     # -- clean out files for visualization
@@ -177,20 +177,21 @@ def event_loop(queue, skel, pause=False):
     for i, e in enumerate(queue):
         logging.debug("{0:5d} {1}".format(i, e))
     logging.debug("=" * 80)
-    ct = 0
+    step = 0
     if make_video:
         make_frames(NOW, VIDEO_DIGITS, skel, queue, immediate)
 #     step = prev = 0.025
 #     FILTER_CT = 220
     check_bisectors(skel, 0.)
+    check_active_triangles_orientation(skel.triangles, 0)
     while queue or immediate:
         #         if len(queue) < FILTER_CT:
         #             pause = True
-        ct += 1
-        log_queue_content(ct, immediate, queue)
+        step += 1
+        log_queue_content(step, immediate, queue)
         if False and pause:  # and ct >= STOP_AFTER: # (ct % STOP_AFTER == 0):
             visualize(queue, skel, NOW - 5e-4)
-            raw_input(str(ct) + ' > before event')
+            raw_input(str(step) + ' > before event')
 
         #         if parallel:
         #             evt = parallel.popleft()
@@ -204,7 +205,7 @@ def event_loop(queue, skel, pause=False):
         else:
             evt = choose_next_event(queue)
             NOW = evt.time
-####
+
 #            try:
 #                check_bisectors(skel, NOW)
 #            except AssertionError:
@@ -265,21 +266,25 @@ def event_loop(queue, skel, pause=False):
             # collapse to *single* point
             handle_edge_event_3sides(evt, skel, queue, immediate)
         elif evt.tp == "edge":
-            handle_edge_event(evt, skel, queue, immediate)
+            handle_edge_event(evt, skel, queue, immediate, pause and step >= STOP_AFTER)
         elif evt.tp == "flip":
             handle_flip_event(evt, skel, queue, immediate)
         elif evt.tp == "split":
-            handle_split_event(evt, skel, queue, immediate)
+            handle_split_event(evt, skel, queue, immediate, pause and step >= STOP_AFTER)
 
 #         check_ktriangles(skel.triangles, NOW)
 
+        log_queue_content(step, immediate, queue)
 
-
-        log_queue_content(ct, immediate, queue)
-        if pause and ct >= STOP_AFTER:
-            visualize(queue, skel, NOW - 0.0001)
+        if pause and step >= STOP_AFTER:
+            visualize(queue, skel, NOW)#- 0.0001)
           # visualize(queue, skel, NOW - 0.0000000001)
-            raw_input(str(ct) + ' > after event')
+
+        check_active_triangles_orientation(skel.triangles, NOW)
+
+        if pause and step >= STOP_AFTER:
+            raw_input(str(step) + ' > after event')
+
 
         if False:  # len(queue) < FILTER_CT:
             logging.debug("=" * 80)

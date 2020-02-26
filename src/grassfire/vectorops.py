@@ -149,6 +149,7 @@ def angle_unit(v1, v2):
     d = max(-1.0, min(1.0, d))
     acos_d = math.acos(d)
     logging.debug(" d : {}".format(d))
+    logging.debug(" acos(d) : {}".format(acos_d))
     logging.debug(" degrees(acos(d)): {}°".format(math.degrees(acos_d)))
     return acos_d
 
@@ -164,6 +165,7 @@ def bisector(u1, u2):
     direction = add(u1, u2)
     logging.debug(" direction: {}".format(direction))
     if all(map(near_zero, direction)):
+        logging.debug(" vectors cancel each other out -> parallel wavefront!")
         return (0, 0)
         #raise ValueError("parallel wavefront")
 ###    logging.debug(" unit(direction): {}".format(unit(direction)))

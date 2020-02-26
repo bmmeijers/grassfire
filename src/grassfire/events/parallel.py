@@ -29,7 +29,7 @@ def is_infinitely_fast(fan, now):
 
 # Parallel
 # -----------------------------------------------------------------------------
-def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate):
+def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate, pause):
     """Dispatches to correct function for handling parallel wavefronts
 
     fan: list of triangles, sorted (in *direction* order)
@@ -50,11 +50,15 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate):
 # ---------------------------------------------------------
 """)
 
-#    visualize(queue, skel, now - 0.0005)
-#    logging.debug(" -- {}".format(len(fan)))
-#    logging.debug("    triangles in the fan: {}".format([(id(_), _.info) for _ in fan]))
-#    logging.debug("    fan turns: {}".format(direction))
-#    raw_input('pause @ start of parallel event')
+    if pause:
+        visualize(queue, skel, now - 0.0005)
+        logging.debug(" -- {}".format(len(fan)))
+        logging.debug("    triangles in the fan: {}".format([(id(_), _.info) for _ in fan]))
+        logging.debug("    fan turns: {}".format(direction))
+        raw_input('pause @ start of parallel event -- showing with time rewinded!')
+    if pause:
+        visualize(queue, skel, now)
+        raw_input('pause @ start of parallel event -- showing with time as-is!')
 
     assert pivot.inf_fast
 
@@ -143,15 +147,15 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate):
         shortest_idx = dists_sub_min.index(True)
         if shortest_idx == 1: # right is shortest, left is longest
             logging.debug("CW / left wavefront at pivot, ending at v2, is longest")
-            handle_parallel_edge_event_shorter_leg(right_leg.triangle, right_leg.side, pivot,  now, skel, queue, immediate)
+            handle_parallel_edge_event_shorter_leg(right_leg.triangle, right_leg.side, pivot,  now, skel, queue, immediate, pause)
         elif shortest_idx == 0: # left is shortest, right is longest
             logging.debug("CCW / right wavefront at pivot, ending at v1, is longest")
-            handle_parallel_edge_event_shorter_leg(left_leg.triangle, left_leg.side, pivot,  now, skel, queue, immediate)
+            handle_parallel_edge_event_shorter_leg(left_leg.triangle, left_leg.side, pivot,  now, skel, queue, immediate, pause)
 
 
 
 
-def handle_parallel_edge_event_shorter_leg(t, e, pivot, now, skel, queue, immediate):
+def handle_parallel_edge_event_shorter_leg(t, e, pivot, now, skel, queue, immediate, pause):
     """Handles triangle collapse, where exactly 1 edge collapses
     
     One of the vertices of the triangle moves *infinitely* fast.
@@ -241,15 +245,17 @@ def handle_parallel_edge_event_shorter_leg(t, e, pivot, now, skel, queue, immedi
         a_idx = a.neighbours.index(t)
         a.neighbours[a_idx] = b
         fan_a = replace_kvertex(a, v2, kv, now, cw, queue, immediate)
-####        visualize(queue, skel, now) #-0.00001)
-####        raw_input('replaced neighbour A')
+        if pause:
+            visualize(queue, skel, now) #-0.00001)
+            raw_input('replaced neighbour A')
     if b is not None:
         logging.debug("- replacing vertex for neighbours at side B {} [{}]".format(id(b), b.info))
         b_idx = b.neighbours.index(t)
         b.neighbours[b_idx] = a
         fan_b = replace_kvertex(b, v1, kv, now, ccw, queue, immediate)
-#####        visualize(queue, skel, now)#-0.00001)
-#####        raw_input('replaced neighbour B')
+        if pause:
+            visualize(queue, skel, now)#-0.00001)
+            raw_input('replaced neighbour B')
     #
     logging.debug("*** neighbour n: {} ".format("schedule adjacent neighbour for *IMMEDIATE* processing" if n is not None else "no neighbour to collapse simultaneously"))
     if n is not None:
@@ -261,9 +267,9 @@ def handle_parallel_edge_event_shorter_leg(t, e, pivot, now, skel, queue, immedi
     # process parallel fan
     if kv and kv.inf_fast:
         if fan_a:
-            handle_parallel_fan(fan_a, kv, now, cw, skel, queue, immediate)
+            handle_parallel_fan(fan_a, kv, now, cw, skel, queue, immediate, pause)
         if fan_b:
-            handle_parallel_fan(fan_b, kv, now, ccw, skel, queue, immediate)
+            handle_parallel_fan(fan_b, kv, now, ccw, skel, queue, immediate, pause)
 
 
 

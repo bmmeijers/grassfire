@@ -9,7 +9,7 @@ from grassfire.events.lib import get_fan
 
 # ------------------------------------------------------------------------------
 # Split event handler
-def handle_split_event(evt, skel, queue, immediate):
+def handle_split_event(evt, skel, queue, immediate, pause):
     """Handles a split event where a wavefront edge is hit on its interior
     This splits the wavefront in two pieces
     """
@@ -77,6 +77,6 @@ def handle_split_event(evt, skel, queue, immediate):
 
     # handle infinitely fast vertices
     if va.inf_fast:
-        handle_parallel_fan(fan_a, va, now, cw, skel, queue, immediate)
+        handle_parallel_fan(fan_a, va, now, cw, skel, queue, immediate, pause)
     if vb.inf_fast:
-        handle_parallel_fan(fan_b, vb, now, ccw, skel, queue, immediate)
+        handle_parallel_fan(fan_b, vb, now, ccw, skel, queue, immediate, pause)

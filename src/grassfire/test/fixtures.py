@@ -306,7 +306,7 @@ def nested_hexagon():
     # convert to triangulation input
     conv = ToPointsAndSegments()
     conv.add_polygon(poly)
-    return conv, 38, 25, 6
+    return conv, 36, 25, 6
 
 
 def nested_hexagon_stretched():
@@ -336,7 +336,7 @@ def nested_hexagon_stretched():
     conv.add_polygon(poly)
     conv = ToPointsAndSegments()
     conv.add_polygon(poly)
-    return conv, 37, 24, 6
+    return conv, 35, 24, 6
 
 
 def L_0():
@@ -1017,7 +1017,7 @@ def test_tudelft_logo():
                 dedup.append(cur)
         dedup += [dedup[0]]
         conv.add_polygon([dedup])
-    return conv, 1399, 1042, 17
+    return conv, 1399, 1043, 14
 
 
 def test_tudelft_logo_E():
@@ -2317,7 +2317,7 @@ def cbs_vlissingen_parallel():
     conv = ToPointsAndSegments()
     conv.add_polygon(poly)
     ## FIXME: not completely correct (parallel part in south contains 'snapped' segments)
-    return conv, 719, 538, 6
+    return conv, 720, 539, 5
 
 
 # def missing_event():

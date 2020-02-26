@@ -28,6 +28,19 @@ def check_bisector_direction(triangle, side, time):
     ori = orient2d(pos0, pos1, pos2)
     assert ori > 0 or near_zero(ori), "v0, v1: {}, {} | orientation: {} | positions: {}; {}; {}".format(v0.info, v1.info, orient2d(pos0, pos1, pos2), pos0, pos1, pos2) # left / straight
 
+
+def check_active_triangles_orientation(tri, now):
+    for t in tri:
+        if t is None:
+            continue
+        if t.stops_at is None:
+            pos = [t.vertices[side].position_at(now) for side in range(3)]
+            ori = orient2d(*pos)
+            if all(isinstance(t.vertices[side], KineticVertex) for side in range(3)):
+                assert ori >= 0 or near_zero(ori), "triangle ({} [{}]) is not turning CCW @ t={}".format(id(t), t.info, now)
+            else:
+                assert ori <= 0 or near_zero(ori), "inf-triangle ({} [{}]) is not turning CW @ t={}".format(id(t), t.info, now)
+
 def check_wavefront_links(tri):
     """Check links of the kinetic vertices along the wavefront"""
     for t in tri:
@@ -48,6 +61,8 @@ def check_active_triangles(tri):
                 ngb = t.neighbours[side]
                 if ngb is not None:
                     assert ngb.stops_at is None, "neighbour {} stopped (not active) @ {} \n {}".format(id(tri), id(ngb), {})
+
+
 
 def check_kinetic_vertices(tri):
     """Check kinetic vertices of active triangles"""

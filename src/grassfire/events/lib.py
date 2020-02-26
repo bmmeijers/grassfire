@@ -28,9 +28,9 @@ def stop_kvertices(V, now):
 #     assert at_same_location(V, now)
     sk_node = None
 
-    logging.debug("stopping kinetic vertices:")
+    logging.debug("stopping kinetic vertices, @t:={}".format(now))
     for v in V:
-        logging.debug(" - kv #{} [{}]".format(id(v), v.info))
+        logging.debug(" - kv #{} [{}] inf-fast:={}".format(id(v), v.info, v.inf_fast))
 
     for v in V:
         stopped = v.stops_at is not None
@@ -67,6 +67,10 @@ def stop_kvertices(V, now):
             sumx += x
             sumy += y
         pos = sumx / ct, sumy / ct
+#        for x, y in l:
+#            dx, dy = near_zero(x - pos[0]), near_zero(y - pos[1])
+#            assert dx, x - pos[0]
+#            assert dy, y - pos[1]
         sk_node = SkeletonNode(pos)
         for v in V:
             v.stop_node = sk_node
@@ -108,7 +112,7 @@ def compute_new_kvertex(ul, ur, now, sk_node, info):
     # we set this vertex as infinitely fast, if velocity in one of the
     # directions is really high, or when the bisectors of adjacent
     # wavefronts cancel each other out
-    if kv.velocity == (0, 0) or abs(kv.velocity[0]) > 100 or abs(kv.velocity[1]) > 100:
+    if kv.velocity == (0, 0): ### or abs(kv.velocity[0]) > 100 or abs(kv.velocity[1]) > 100:
         kv.inf_fast = True
         kv.origin = sk_node.pos
     else:

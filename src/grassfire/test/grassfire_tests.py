@@ -40,14 +40,14 @@ def make_test_cases(fixtures):
     return cases
 
 
-#CASES = make_test_cases([all_tests()[0]])
+#CASES = make_test_cases([all_tests()[30]])
 #INTERACTIVE = True
 
 CASES = make_test_cases(all_tests())
 INTERACTIVE = False
 
-#CASES = make_test_cases([all_tests()[53]])
-#INTERACTIVE = True
+CASES = make_test_cases([all_tests()[53]])
+INTERACTIVE = True
 
 # After: https://stackoverflow.com/a/20870875
 class TestSequenceMeta(type):
