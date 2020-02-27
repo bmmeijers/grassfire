@@ -135,13 +135,17 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate, paus
 
     if unique_dists == 2:
         logging.debug("Equal sized legs")
-        handle_parallel_edge_event_even_legs(first_tri, first_tri.vertices.index(pivot), pivot, now, skel, queue, immediate)
+        if len(fan) == 1:
+            handle_parallel_edge_event_even_legs(first_tri, first_tri.vertices.index(pivot), pivot, now, skel, queue, immediate)
+        else:
+            raise NotImplementedError('multiple triangles in parallel fan that should be stopped')
         # handle_parallel_edge_event(first_tri, cw(first_tri.vertices.index(pivot)), pivot,  now, skel, queue, immediate)
 
         # post condition: all triangles in the fan are stopped
         # when we have 2 equal sized legs -- does not hold for Koch-rec-level-3 ???
-#        for t in fan:
-#            assert t.stops_at is not None
+        for t in fan:
+            assert t.stops_at is not None
+
     else:
         # check what is the shortest of the two distances
         shortest_idx = dists_sub_min.index(True)
@@ -151,6 +155,8 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate, paus
         elif shortest_idx == 0: # left is shortest, right is longest
             logging.debug("CCW / right wavefront at pivot, ending at v1, is longest")
             handle_parallel_edge_event_shorter_leg(left_leg.triangle, left_leg.side, pivot,  now, skel, queue, immediate, pause)
+
+
 
 
 

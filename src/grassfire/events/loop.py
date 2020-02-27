@@ -1,6 +1,5 @@
 import logging
 
-from random import shuffle
 from collections import deque
 
 from oseq import OrderedSequence
@@ -145,7 +144,7 @@ def log_queue_content(step, immediate, queue):
 # -----------------------------------------------------------------------------
 def event_loop(queue, skel, pause=False):
     """ The main event loop """
-    STOP_AFTER = 50300
+    STOP_AFTER = 30
     VIDEO_DIGITS = 3
     make_video = False
     # -- clean out files for visualization
@@ -278,12 +277,15 @@ def event_loop(queue, skel, pause=False):
 
         if pause and step >= STOP_AFTER:
             visualize(queue, skel, NOW)#- 0.0001)
+            raw_input(str(step) + ' > after event')
+            visualize(queue, skel, NOW - 0.0001)
+            raw_input(str(step) + ' > after event (rewinded)')
           # visualize(queue, skel, NOW - 0.0000000001)
 
         check_active_triangles_orientation(skel.triangles, NOW)
 
         if pause and step >= STOP_AFTER:
-            raw_input(str(step) + ' > after event')
+            raw_input(str(step) + ' > after event (orientation checked)')
 
 
         if False:  # len(queue) < FILTER_CT:
