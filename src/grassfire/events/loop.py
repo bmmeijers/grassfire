@@ -48,7 +48,7 @@ def choose_next_event(queue):
         # just one event happening now
         item = events[0]
     elif all([_.tp == 'flip' for _ in events]):
-        logging.debug("Only flip events, picking flip event with longest side")
+        logging.debug("Only flip events, picking flip event with longest side, should guarantee progress")
         # only flip events happening, pick event with longest side
         dist_events = []
         for evt in events:
@@ -144,7 +144,7 @@ def log_queue_content(step, immediate, queue):
 # -----------------------------------------------------------------------------
 def event_loop(queue, skel, pause=False):
     """ The main event loop """
-    STOP_AFTER = 30
+    STOP_AFTER = 30057
     VIDEO_DIGITS = 3
     make_video = False
     # -- clean out files for visualization
@@ -286,7 +286,6 @@ def event_loop(queue, skel, pause=False):
 
         if pause and step >= STOP_AFTER:
             raw_input(str(step) + ' > after event (orientation checked)')
-
 
         if False:  # len(queue) < FILTER_CT:
             logging.debug("=" * 80)

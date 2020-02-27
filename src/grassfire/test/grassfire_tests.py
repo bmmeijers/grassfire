@@ -96,7 +96,7 @@ class TestSequenceMeta(type):
                 if True:
                     last_evt_time = max(v.stops_at for v in skel.vertices)
                     offset_segments = [
-                        (line[0], line[1]) for line in calc_offsets(skel, last_evt_time)
+                        (line[0], line[1]) for line in calc_offsets(skel, last_evt_time, 25)
                     ]
                     self.assertFalse(
                         segments_intersecting(offset_segments),

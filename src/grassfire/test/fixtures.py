@@ -1698,7 +1698,7 @@ def test_koch_rec3():
     ]
     conv = ToPointsAndSegments()
     conv.add_polygon([ring])
-    return conv, 498, 295, 56
+    return conv, 498, 295, 48
 
 
 def corner_same_inwards():
@@ -2084,6 +2084,20 @@ def needle_parallel():
         conv.add_point(line[1])
         conv.add_segment(*line)
     return conv, 11, 7, 5
+
+def test_many_flips1():
+    """stairs with sharp corner opposite of it, no. 1"""
+    ring = [(128.0, 576.0), (144.0, 576.0), (144.0, 560.0), (160.0, 560.0), (160.0, 544.0), (176.0, 544.0), (176.0, 528.0), (192.0, 528.0), (192.0, 512.0), (208.0, 512.0), (208.0, 496.0), (224.0, 496.0), (224.0, 480.0), (240.0, 480.0), (240.0, 352.0), (480.0, 352.0), (560.0, 400.0), (560.0, 784.0), (508.16, 796.96), (400.0, 752.0), (496.0, 800.0), (256.0, 784.0), (32.0, 784.0), (32.0, 512.0), (128.0, 576.0)]
+    conv = ToPointsAndSegments()
+    conv.add_polygon([ring])
+    return conv, 88, 65, 5
+
+def test_many_flips2():
+    """stairs with sharp corner opposite of it, no. 2"""
+    ring = [(128.0, 768.0), (128.0, 576.0), (160.0, 576.0), (160.0, 544.0), (192.0, 544.0), (192.0, 512.0), (224.0, 512.0), (224.0, 480.0), (256.0, 480.0), (256.0, 448.0), (288.0, 448.0), (288.0, 416.0), (320.0, 416.0), (320.0, 384.0), (352.0, 384.0), (352.0, 352.0), (480.0, 352.0), (480.0, 720.0), (352.0, 608.0), (480.0, 768.0), (128.0, 768.0)]
+    conv = ToPointsAndSegments()
+    conv.add_polygon([ring])
+    return conv, 58, 39, 19
 
 
 def split_event_from_top10nl():

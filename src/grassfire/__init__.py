@@ -76,8 +76,7 @@ def calc_skel(conv, pause=False, output=False, shrink=True,
         visualize([], skel, last_evt_time + 10)
     return skel
 
-def calc_offsets(skel, now):
-    ct = 100
+def calc_offsets(skel, now, ct = 100):
     inc = now / ct
     for t in range(ct):
         t *= inc

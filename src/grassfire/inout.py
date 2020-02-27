@@ -78,11 +78,10 @@ def output_dt(dt):
         output_edges([e for e in FiniteEdgeIterator(dt, True)], fh)
 
 
-def output_offsets(skel, now=1000):
+def output_offsets(skel, now=1000, ct=1000):
     """ """
-    logging.debug("offsets for t= {}".format(now))
+    logging.debug("offsets for t={}, ct={}".format(now, ct))
     # now = 10
-    ct = 100
     # inc = 0.005 # 
     inc = now / float(ct)
     #times = [0.0276]#[0.075] #[0.0375] #[0.15] #[0.075] #

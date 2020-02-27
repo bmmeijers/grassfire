@@ -23,10 +23,6 @@ def is_infinitely_fast(fan, now):
         return False
 
 
-#LEFT_CCW = 0
-#RIGHT_CW = 1
-
-
 # Parallel
 # -----------------------------------------------------------------------------
 def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate, pause):
@@ -43,13 +39,11 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate, paus
     """
     if not fan:
         return
-
     logging.debug("""
 # ---------------------------------------------------------
 # -- PARALLEL event handler invoked                      --
 # ---------------------------------------------------------
 """)
-
     if pause:
         visualize(queue, skel, now - 0.0005)
         logging.debug(" -- {}".format(len(fan)))
@@ -59,9 +53,7 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate, paus
     if pause:
         visualize(queue, skel, now)
         raw_input('pause @ start of parallel event -- showing with time as-is!')
-
     assert pivot.inf_fast
-
     first_tri = fan[0]
     last_tri = fan[-1]
     # special case, infinite fast vertex in 1 corner
@@ -73,10 +65,8 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate, paus
         # logging.debug('First tri **: {} is isolated = special case'.format(id(first_tri)))
         handle_parallel_edge_event_even_legs(first_tri, first_tri.vertices.index(pivot), pivot, now, skel, queue, immediate)
         return
-
     if first_tri is last_tri:
         assert len(fan) == 1
-
     if direction is cw:
         left = fan[0]
         right = fan[-1]
@@ -84,68 +74,35 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate, paus
         assert direction is ccw
         left = fan[-1]
         right = fan[0]
-
     left_leg_idx = ccw(left.vertices.index(pivot))
     left_leg = Edge(left, left_leg_idx)
-#    assert left.neighbours[left_leg_idx] is None
     if left.neighbours[left_leg_idx] is not None:
         logging.warning("inf-fast pivot, but not over wavefront edge? -- left side")
     left_dist = dist(*map(lambda x: x.position_at(now), left_leg.segment))
-
     right_leg_idx = cw(right.vertices.index(pivot))
     right_leg = Edge(right, right_leg_idx)
-#    assert right.neighbours[right_leg_idx] is None
     if right.neighbours[right_leg_idx] is not None:
         logging.warning("inf-fast pivot, but not over wavefront edge? -- right side")
     right_dist = dist(*map(lambda x: x.position_at(now), right_leg.segment))
-
-
-#    logging.debug('First tri **: #{} [{}]'.format(id(first_tri), first_tri.info))
-
-#    v1 = first_tri.vertices[ccw(first_tri.vertices.index(pivot))] # FIXME: should be a vertex from first_tri!
-#    v2 = first_tri.vertices[cw(first_tri.vertices.index(pivot))] # FIXME: should be a vertex from first_tri!
-
-#    logging.debug(' kvertices:' )
-#    logging.debug('  v1: #{} [{}]'.format(id(v1), v1.info) )
-#    logging.debug('  v2: #{} [{}]'.format(id(v2), v2.info) )
-#    v0_leg = Edge(first_tri, first_tri.vertices.index(pivot))
-
-#    v2_leg = Edge(first_tri, ccw(first_tri.vertices.index(pivot)))
-#    v1_leg = Edge(first_tri, cw(first_tri.vertices.index(pivot)))
-
-#    v2_dist = dist(*map(lambda x: x.position_at(now), v2_leg.segment))
-#    v1_dist = dist(*map(lambda x: x.position_at(now), v1_leg.segment))
-#    dists = [v1_dist, v2_dist]
-#    v0_dist = dist(*map(lambda x: x.position_at(now), v0_leg.segment))
-
     dists = [left_dist, right_dist]
-
     logging.debug('  distances: {}'.format(dists))
-#    logging.debug('  DISTANCE v0: {}'.format(v0_dist))
-
     dists_sub_min = [near_zero(_ - min(dists)) for _ in dists]
     logging.debug(dists_sub_min)
     unique_dists = dists_sub_min.count(True)
-
-    # raw_input(' just before handling parallel event')
-    # ----------------------------------------------------------
-    # get neighbours around collapsing triangle
-    # n = first_tri.neighbours[first_tri.vertices.index(pivot)]
-    # new_direction = None # potentially new fan, how does it turn?
-
     if unique_dists == 2:
         logging.debug("Equal sized legs")
         if len(fan) == 1:
             handle_parallel_edge_event_even_legs(first_tri, first_tri.vertices.index(pivot), pivot, now, skel, queue, immediate)
         else:
-            raise NotImplementedError('multiple triangles in parallel fan that should be stopped')
-        # handle_parallel_edge_event(first_tri, cw(first_tri.vertices.index(pivot)), pivot,  now, skel, queue, immediate)
-
+#            handle_parallel_edge_event_even_legs(first_tri, first_tri.vertices.index(pivot), pivot, now, skel, queue, immediate)
+#            handle_parallel_edge_event_even_legs(last_tri, last_tri.vertices.index(pivot), pivot, now, skel, queue, immediate)
+            for t in fan:
+                handle_parallel_edge_event_even_legs(t, t.vertices.index(pivot), pivot, now, skel, queue, immediate)
+#            raise NotImplementedError('multiple triangles in parallel fan that should be stopped')
         # post condition: all triangles in the fan are stopped
         # when we have 2 equal sized legs -- does not hold for Koch-rec-level-3 ???
         for t in fan:
             assert t.stops_at is not None
-
     else:
         # check what is the shortest of the two distances
         shortest_idx = dists_sub_min.index(True)
@@ -155,10 +112,6 @@ def handle_parallel_fan(fan, pivot, now, direction, skel, queue, immediate, paus
         elif shortest_idx == 0: # left is shortest, right is longest
             logging.debug("CCW / right wavefront at pivot, ending at v1, is longest")
             handle_parallel_edge_event_shorter_leg(left_leg.triangle, left_leg.side, pivot,  now, skel, queue, immediate, pause)
-
-
-
-
 
 
 def handle_parallel_edge_event_shorter_leg(t, e, pivot, now, skel, queue, immediate, pause):
