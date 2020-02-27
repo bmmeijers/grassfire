@@ -282,7 +282,8 @@ def event_loop(queue, skel, pause=False):
             raw_input(str(step) + ' > after event (rewinded)')
           # visualize(queue, skel, NOW - 0.0000000001)
 
-        check_active_triangles_orientation(skel.triangles, NOW)
+        if False:
+            check_active_triangles_orientation(skel.triangles, NOW)
 
         if pause and step >= STOP_AFTER:
             raw_input(str(step) + ' > after event (orientation checked)')
