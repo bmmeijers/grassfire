@@ -384,14 +384,14 @@ class TestGrassfire(unittest.TestCase):
             conv.add_segment(*line)
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT)
         # check the amount of skeleton nodes
-        assert len(skel.sk_nodes) == 991, len(skel.sk_nodes)
+        assert len(skel.sk_nodes) == 992, len(skel.sk_nodes)
         # check the amount of segments in the skeleton
         assert len(skel.segments()) == 1329, len(skel.segments())
         # check the amount of kinetic vertices that are (not) stopped
         not_stopped = filter(lambda v: v.stops_at is None, skel.vertices)
         stopped = filter(lambda v: v.stops_at is not None, skel.vertices)
-        assert len(not_stopped) == 23, len(not_stopped)
-        assert len(stopped) == 1306, len(stopped)
+        assert len(not_stopped) == 20, len(not_stopped)
+        assert len(stopped) == 1309, len(stopped)
         # check cross relationship between kinetic vertices and skeleton nodes
         for v in skel.vertices:
             assert at_same_location((v.start_node, v), v.starts_at)

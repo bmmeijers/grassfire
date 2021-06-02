@@ -1,17 +1,23 @@
 import logging
 from tri.delaunay.tds import apex, orig, dest, ccw
 from grassfire.events.lib import replace_in_queue
+
+
+
 # ------------------------------------------------------------------------------
 # Flip
 
 
-def handle_flip_event(evt, skel, queue, immediate):
+def handle_flip_event(evt, step, skel, queue, immediate):
     """Take the two triangles that need to be flipped, flip them and replace
     their time in the event queue
     """
     now = evt.time
     assert len(evt.side) == 1
     t, t_side = evt.triangle, evt.side[0]
+
+    logging.info("* flip           :: tri>> #{} [{}]".format(id(t), t.info))
+
     n = t.neighbours[t_side]
     assert n is not None
     n_side = n.neighbours.index(t)

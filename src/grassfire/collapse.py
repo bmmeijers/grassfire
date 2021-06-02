@@ -6,12 +6,17 @@ import math
 # from operator import sub, add
 from tri.delaunay.tds import cw, ccw, Edge
 
+###from geompreds import orient2d
+###from grassfire.vectorops import norm, cross, dot, make_vector, unit, rotate90ccw, add, div
+
 from grassfire.primitives import Event
 from grassfire.calc import near_zero, get_unique_times
 from grassfire.primitives import InfiniteVertex
 from grassfire.inout import output_vertices_at_T, output_triangles_at_T, \
     output_edges_at_T
 from grassfire.vectorops import dot, mul, add, sub, norm
+
+
 # ------------------------------------------------------------------------------
 # solve
 
@@ -19,10 +24,10 @@ from grassfire.vectorops import dot, mul, add, sub, norm
 def find_gt(a, x):
     """Find value greater than x, ignores None values"""
     # -- filter None values
-    a = filter(lambda x: x is not None, a)
+    a = [x for x in a if x is not None]
     # -- filter values that are really close to x
     # (even if value is slightly greater)
-    a = filter(lambda v: not near_zero(v - x), a)
+    a = [v for v in a if not near_zero(v - x)]
     # -- sort the list
     L = sorted(a)
     # -- find leftmost value greater than x, if it is there
@@ -35,8 +40,9 @@ def find_gt(a, x):
 
 def find_gte(a, x):
     """Find greater than or equal to x, ignores None values"""
+    logging.debug("gte a: {} ; x: {}".format(a,x))
     # -- filter None values and sort
-    L = sorted(filter(lambda x: x is not None, a))
+    L = sorted([x for x in a if x is not None])
     i = bisect.bisect_left(L, x)
     if i != len(L):
         return L[i]
@@ -57,7 +63,16 @@ def vertex_crash_time(org, dst, apx):
     logging.debug("Vector Mv: " + str(Mv))
     assert org.ur is not None
     assert org.ur == dst.ul, "#{} #{} :: {} vs {}".format(id(org), id(dst), org.ur, dst.ul)
-    n = org.ur
+
+
+    #logging.error("DISTANCE {}".format(org.ur.signed_distance(apx.position_at(0))))
+
+#    print(org.ur)
+#    print(dst.ul)
+#    assert org.ur.w == dst.ul.w
+#    n = org.ur.w[:]
+    n = tuple(org.ur.w) # was: org.ur
+
     logging.debug("Vector n: " + str(n))
     # Normalize, to get unit vector
     s = apx.velocity
@@ -77,9 +92,11 @@ def vertex_crash_time(org, dst, apx):
     # The distance between is traveled by each vertex that each move
     # this amount of units per time tick
     denom = 1.0 - s_proj
+    #logging.error("DENOMINATOR {}".format(denom))
     if not near_zero(denom):
         # It takes this amount of time units to crash
         t_v = dist_v_e / denom
+        #logging.error("DISTANCE t_v {}".format(org.ur.signed_distance(apx.position_at(t_v))))
         return t_v
     else:
         return None
@@ -120,6 +137,32 @@ def compute_event_0triangle(tri, now, sieve):
     # where the vanishing spoke was indeed an edge of the wavefront.
     assert tri.neighbours.count(None) == 0
     o, d, a = tri.vertices
+
+    times_area_collapse = area_collapse_times(o, d, a)
+    for time in times_area_collapse:
+        # as we are degenerate now, flip it, or if a spoke collapses handle as edge collapse
+        if near_zero(abs(time-now)):
+            dists = [d.distance2_at(a, now),
+                     a.distance2_at(o, now),
+                     o.distance2_at(d, now)]
+
+            indices = []
+            for i, _ in enumerate([math.sqrt(_) for _ in dists]):
+                if near_zero(_):
+                    indices.append(i)
+            if len(indices) == 1:
+                # spoke collapse, leading to split of wavefront
+                # we handle this as an edge collapse (the neighbour is not None, we will schedule_immediately this neighbour)
+                side = indices[0]
+                tp = "edge"
+                return Event(when=now, tri=tri, side=(side,), tp="edge", tri_tp=tri.type)
+            elif len(indices) == 3:
+                raise ValueError('0-triangle collapsing to point')
+            else:
+                largest_dist = max(dists)
+                side = dists.index(largest_dist)
+                return Event(when=now, tri=tri, side=(side,), tp="flip", tri_tp=tri.type)
+
     times_edge_collapse = [
         collapse_time_edge(o, d),
         collapse_time_edge(d, a),
@@ -144,9 +187,20 @@ def compute_event_0triangle(tri, now, sieve):
         t_e_c.append(times_edge_collapse[i])
     logging.debug("t e c {}".format(t_e_c))
     time_edge_collapse = sieve(t_e_c, now)
-    time_area_collapse = sieve(area_collapse_times(o, d, a), now)
+    time_area_collapse = sieve(times_area_collapse, now)
     logging.debug(">> time_edge_collapse: {0}".format(time_edge_collapse))
     logging.debug(">> time_area_collapse: {0}".format(time_area_collapse))
+
+    # spoke can be overrun by vertex -- should be witnessed by (inaccurate) area collapse
+    # vertex_crash_times = [
+    #     vertex_crash_time(o, d, a),
+    #     vertex_crash_time(a, o, d),
+    #     vertex_crash_time(d, a, o)
+    # ]
+    # logging.debug("vertex crash times " + str(time_vertex_crash))
+    # time_vertex_crash = sieve(vertex_crash_times, now)
+    # logging.debug("time vertex crash " + str(time_vertex_crash))
+
 
     if time_edge_collapse is None and time_area_collapse is None:
         # if we do not have a time for either, no collapse will happen
@@ -172,7 +226,15 @@ def compute_event_0triangle(tri, now, sieve):
                     when=time,
                     tri=tri, side=(side,), tp="edge", tri_tp=tri.type)
             else:
-                return None
+                time = time_area_collapse
+                dists = [d.distance2_at(a, time),
+                        a.distance2_at(o, time),
+                        o.distance2_at(d, time)]
+                largest_dist = max(dists)
+                side = dists.index(largest_dist)
+                return Event(when=time, tri=tri, side=(side,), tp="flip", tri_tp=tri.type)
+                # return None
+#            return None
         elif time_area_collapse < time_edge_collapse:
             logging.debug("area < edge")
             #
@@ -183,8 +245,7 @@ def compute_event_0triangle(tri, now, sieve):
             largest_dist = max(dists)
             side = dists.index(largest_dist)
             tp = "flip"
-            return Event(
-                when=time, tri=tri, side=(side,), tp=tp, tri_tp=tri.type)
+            return Event(when=time, tri=tri, side=(side,), tp=tp, tri_tp=tri.type)
         elif time_edge_collapse is not None:
             logging.debug("edge collapse")
             time = time_edge_collapse
@@ -203,7 +264,11 @@ def compute_event_0triangle(tri, now, sieve):
                     when=time, tri=tri, side=(side,),
                     tp="edge", tri_tp=tri.type)
             else:
+                raise ValueError('can this happen?')
                 return None
+#            return None
+
+
 #     largest_dist = max(dists)
 #     side = dists.index(largest_dist)
 #     return Event(when=time, tri=tri, side = (side,), tp="flip", tri_tp=tri.type)
@@ -283,18 +348,82 @@ def compute_event_1triangle(tri, now, sieve):
                   tri.vertices[cw(wavefront_side)],
                   tri.vertices[wavefront_side]]
     # what are the times the triangle collapses
-    logging.debug("time area collapse " +
-                  str(solve_quadratic(*area_collapse_time_coeff(*tri.vertices)
-                                      )))
+    
+    # vertex crash time of the opposite vertex into the wavefront edge
+    times_vertex_crash = [vertex_crash_time(ow, dw, aw)]
+    # check unhandled event flip/split event
+    for time in times_vertex_crash:
+        if time is None:
+            continue
+        if near_zero(abs(time-now)):
+            # as we have a vertex on the support line of the triangle *now*
+            # we will have to flip or split *right now*
+            logging.debug("OVERWRITE VERTEX CRASH")
+            time = now
+
+            ## --\\ spoke_collapse
+            dists = [d.distance2_at(a, now),
+                     a.distance2_at(o, now),
+                     o.distance2_at(d, now)]
+            indices = []
+            for i, _ in enumerate([math.sqrt(_) for _ in dists]):
+                if near_zero(_):
+                    indices.append(i)
+            if len(indices) == 1:
+                # spoke collapse, leading to split of wavefront
+                # we handle this as an edge collapse (the neighbour is not None, we will schedule_immediately this neighbour)
+                side = indices[0]
+                tp = "edge"
+                return Event(when=now, tri=tri, side=(side,), tp="edge", tri_tp=tri.type)
+            ## --// spoke_collapse
+
+            dists = [math.sqrt(d.distance2_at(a, time)),
+                            math.sqrt(a.distance2_at(o, time)),
+                            math.sqrt(o.distance2_at(d, time))]
+            longest_side = dists.index(max(dists))
+            if longest_side == wavefront_side:
+                tp = "split"
+            else:
+                tp = "flip"
+            return Event(when=time,
+                            tri=tri,
+                            side=(longest_side,),
+                            tp=tp,
+                            tri_tp=tri.type)
+    time_vertex_crash = sieve(times_vertex_crash, now)
+    logging.debug("time vertex crash " + str(time_vertex_crash))
+
+    # area collapse times
+    time_area_collapse = sieve(area_collapse_times(o, d, a), now)
+    logging.debug("time area collapse " + str(time_area_collapse))
     # edge collapse times
     time_edge_collapse = sieve([collapse_time_edge(ow, dw)], now)
     logging.debug([collapse_time_edge(ow, dw),
                    collapse_time_edge(dw, aw),
                    collapse_time_edge(aw, ow)])
-    # vertex crash time of the opposite vertex into the wavefront edge
-    time_vertex_crash = sieve([vertex_crash_time(ow, dw, aw)], now)
     logging.debug("time edge collapse " + str(time_edge_collapse))
-    logging.debug("time vertex crash " + str(time_vertex_crash))
+
+
+    # FLIP FIX not working
+    # if time_area_collapse is not None and time_edge_collapse is not None and time_vertex_crash is not None and time_area_collapse < time_edge_collapse and time_area_collapse < time_vertex_crash:
+    #     time = time_area_collapse 
+    #     sides = []
+    #     for i, n in enumerate(tri.neighbours):
+    #         if n is not None:
+    #             sides.append(i)
+    #     dists = [d.distance2_at(a, time),
+    #                  a.distance2_at(o, time),
+    #                  o.distance2_at(d, time)]
+    #     new_dists = []
+    #     for i, d in enumerate(dists):
+    #         if i in sides:
+    #             new_dists.append(d)
+    #         else:
+    #             new_dists.append(-1)
+    #     sides = (new_dists.index(max(new_dists)),)
+    #     return Event(
+    #             when=time, tri=tri, side=sides, tp="flip", tri_tp=tri.type)
+
     if time_edge_collapse is None and time_vertex_crash is None:
         # -- No edge collapse time and no vertex crash time
         logging.debug(" case A")
@@ -303,11 +432,28 @@ def compute_event_1triangle(tri, now, sieve):
             now)
         if time is None:
             return None
+        elif near_zero(time-now) == True:
+            #raise NotImplementedError("time of flip is now -- can also be vertex crash")
+            
+            # -- area collapses now
+            # dependent on the geometric config we have several outcomes for a 1-triangle
+            # -- one option is: the vertex opposite lies on the interior of the wavefront side
+            #    --> split the wavefront in 2
+            return Event(when=now,
+                            tri=tri,
+                            side=(wavefront_side,),
+                            tp="split",
+                            tri_tp=tri.type)
         else:
+            
             # we assume a flip event because no edge, nor vertex crash time
-            dists = [d.distance2_at(a, time),
-                     a.distance2_at(o, time),
-                     o.distance2_at(d, time)]
+            # but area collapse in the future
+            # as we flip, take only the distances of unconstrained edges into account
+            # (wavefront edges can not flip)
+            dists = [d.distance2_at(a, time) if tri.neighbours[0] is not None else -1,
+                     a.distance2_at(o, time) if tri.neighbours[1] is not None else -1,
+                     o.distance2_at(d, time) if tri.neighbours[2] is not None else -1]
+            logging.debug(" {}".format(dists))
             sides = (dists.index(max(dists)),)
             return Event(
                 when=time, tri=tri, side=sides, tp="flip", tri_tp=tri.type)
@@ -324,7 +470,16 @@ def compute_event_1triangle(tri, now, sieve):
         # NOTE, this logic might be numerically unstable (because depends on
         # length calculations...
         logging.debug(" case B, time vertex crash " + str(time_vertex_crash))
-        time = time_vertex_crash
+
+        if time_area_collapse is not None and time_area_collapse < time_vertex_crash:
+            logging.debug(" flip witnessed by area collapse time is earlier than vertex crash time -> we use the area collapse time, instead of vertex crash time")
+            time = time_area_collapse
+            # dists = [math.sqrt(d.distance2_at(a, time)),
+            #         math.sqrt(a.distance2_at(o, time)),
+            #         math.sqrt(o.distance2_at(d, time))]
+        else:
+            time = time_vertex_crash
+
         dists = [math.sqrt(d.distance2_at(a, time)),
                  math.sqrt(a.distance2_at(o, time)),
                  math.sqrt(o.distance2_at(d, time))]
@@ -354,7 +509,16 @@ def compute_event_1triangle(tri, now, sieve):
                 return Event(
                     when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
             else:
+#                sides = (dists.index(max(dists)),)  # longest side
+### FIXME: ###
+#                if time_area_collapse is not None and time_area_collapse < time:
+#                    logging.debug(" flip witnessed by area collapse time is earlier than vertex crash time -> we use the area collapse time, instead of vertex crash time")
+#                    time = time_area_collapse
+#                    dists = [math.sqrt(d.distance2_at(a, time)),
+#                             math.sqrt(a.distance2_at(o, time)),
+#                             math.sqrt(o.distance2_at(d, time))]
                 sides = (dists.index(max(dists)),)  # longest side
+### END FIXME: ###
                 return Event(
                     when=time, tri=tri, side=sides, tp="flip", tri_tp=tri.type)
 
@@ -382,16 +546,25 @@ def compute_event_1triangle(tri, now, sieve):
 #                     math.sqrt(a.distance2_at(o, time)),
 #                     math.sqrt(o.distance2_at(d, time))]
 
-#            dists_squared = [d.distance2_at(a, time),
-#                             a.distance2_at(o, time),
-#                             o.distance2_at(d, time)]
+            dists_squared = [d.distance2_at(a, time),
+                             a.distance2_at(o, time),
+                             o.distance2_at(d, time)]
 #            logging.debug('dists squared {}'.format(dists_squared))
-            tp = "edge"
+
 
             # shortest edge at that time collapses
-#            sides = [dists_squared.index(min(dists_squared))]
-#            # the collapsing shortest edge should be a wavefront edge
-#            assert tri.neighbours[sides[0]] is None
+            sides = [dists_squared.index(min(dists_squared))]
+
+            assert len(sides) == 1
+            tp = "edge"
+##            # the collapsing shortest edge should be a wavefront edge
+#            if tri.neighbours[sides[0]] is None:
+#                tp = "edge"
+#            else:
+#                logging.debug('split detected, as non-wavefront edge collapses')
+#                tp = "split"
+#                sides = (wavefront_side,)
+
 #            assert len(sides) == 1
 
 #            zeros = [near_zero(dist) for dist in dists]
@@ -419,10 +592,16 @@ def compute_event_1triangle(tri, now, sieve):
                 logging.debug("one edge that has no length -> edge event")
                 tp = 'edge'
                 sides = (zeros.index(True), )
+#                if tri.neighbours[sides[0]] is None:
+#                    tp = "edge"
+#                else:
+#                    logging.debug('split detected, as non-wavefront edge collapses')
+#                    tp = "split"
+#                    sides = (wavefront_side,)
             elif True in zeros and zeros.count(True) == 3:
                 logging.debug("3 edges that have no length -> edge event")
                 tp = 'edge'
-                sides = range(3)
+                sides = list(range(3))
             else:
                 max_dist = max(dists)
                 max_dist_side = dists.index(max_dist)
@@ -470,11 +649,11 @@ def compute_event_2triangle(tri, now, sieve):
     logging.debug("Time found: " + str(time))
     if time is None:
         time = sieve(area_collapse_times(o, d, a), now)
-        if time is not None:
-            logging.warning("Area collapse detects collapse, while edge collapse time does not")
-            logging.warning("Infinite fast vertex in place ???")
-            logging.warning("Time found: " + str(time))
-            logging.warning("")
+##        if time is not None:
+##            logging.warning("Area collapse detects collapse, while edge collapse time does not")
+##            logging.warning("Infinite fast vertex in place ???")
+##            logging.warning("Time found: " + str(time))
+##            logging.warning("")
 
     if time is not None:
         dists = [math.sqrt(d.distance2_at(a, time)),
@@ -496,7 +675,7 @@ def compute_event_2triangle(tri, now, sieve):
         elif sides_collapse == 2:
             # hopefully never happens --
             # or some weird robustness error did occur
-            raise ValueError("This is not possible with this type of triangle")
+            raise ValueError("This is not possible with this type of triangle [{}]".format(tri.info))
         elif sides_collapse == 1:
             smallest_dist = min(dists)
             side = dists.index(smallest_dist)
@@ -511,26 +690,107 @@ def compute_event_2triangle(tri, now, sieve):
         return None
 
 
+
+###def signed_turn(u, v):
+###    """turn angle at vertex going from head via mid to tail
+###    angle in radians
+
+###    + == left turn
+###    - == right turn
+###    0 == straight
+###    """
+###    return math.atan2(cross(u, v), dot(u, v))
+
+
+###def unitvecs(head, mid, tail):
+###    u = make_vector(mid, head)
+###    v = make_vector(tail, mid)
+###    return unit(u), unit(v)
+
+###def bisector_3tri(tri):
+###    """ from 3 points, around constrained triangle -- determine collapse event time """
+###    p0, p1, p2 = tri
+###    print(p0)
+###    print(p1)
+###    print(p2)
+###    # pre-condition: triangle turns ccw -- i.e. is still valid now
+###    assert orient2d(p0, p1, p2) >= 0
+
+###    # walk around the 3 points of the triangle -> origin's of kinetic vertices
+###    its = [p2, p0, p1], [p0, p1, p2], [p1, p2, p0]
+###    for it in its:
+####        print(it)
+###        p0, p1, p2 = it
+###        u, v = unitvecs(p0, p1, p2)
+####        print(u, v)
+###        theta = signed_turn(u,v) 
+####        theta = signed_turn(p0, p1, p2)
+####        assert theta == theta2  
+####        print("theta:", theta, theta2)
+###        alpha = 0.5 * (math.pi - theta)
+###        magnitude = math.sin(alpha)
+####        print(alpha, math.degrees(alpha), magnitude)
+###        # unit left / right of point moving in correct direction
+###        # FIXME: computed multiple times 
+###        ul, ur = rotate90ccw(u), rotate90ccw(v)
+###        direction = add(ul, ur)
+###        # the 'velocity' of the kinetic vertices
+###        bisector_vec = div(unit(direction), magnitude)
+####        print("l / r", ul, ur, direction, bisector_vec)
+
+###        print("LINESTRING({0[0]:.6f} {0[1]:.6f}, {1[0]:.6f} {1[1]:.6f})".format(p1, add(p1,bisector_vec)))
+
+
 def compute_event_3triangle(tri, now, sieve):
     # a 3-triangle can:
     # - collapse to a point
     # - collapse to 2 line segments (split)
 
     # Calculate 3 edge collapse times
-    # These should all be similar
+    # These should all be similar for collapsing to a point
+
+###    bisector_3tri([v.position_at(now) for v in tri.vertices])
+
+    a, o, d = tri.vertices
+    t_e_c = [
+        collapse_time_edge(o, d),
+        collapse_time_edge(d, a),
+        collapse_time_edge(a, o)
+    ]
+    logging.debug("times edge collapse {}".format(t_e_c))
+
+    dists = [o.distance2_at(d, t_e_c[0]),
+             d.distance2_at(a, t_e_c[1]),
+             a.distance2_at(o, t_e_c[2])]
+
+    logging.debug("dists^2 {}".format(dists))
+    logging.debug("dists {}".format([math.sqrt(_) for _ in dists]))
+    logging.debug("near_zero dists {}".format(
+        [near_zero(math.sqrt(_)) for _ in dists]))
+    indices = []
+    for i, _ in enumerate([math.sqrt(_) for _ in dists]):
+        if near_zero(_):
+            indices.append(i)
+
     assert tri.neighbours.count(None) == 3
-    o, d, a = tri.vertices
-    times = []
-    time = collapse_time_edge(o, d)
-    times.append(time)
-    time = collapse_time_edge(d, a)
-    times.append(time)
-    time = collapse_time_edge(a, o)
-    times.append(time)
-    logging.debug(sorted(times))
-    #
-    time = sieve(get_unique_times(times), now)
-    logging.debug(time)
+
+    time_edge_collapse = sieve(t_e_c, now)
+    time_area_collapse = sieve(area_collapse_times(o, d, a), now)
+    logging.debug(">> time_edge_collapse: {0}".format(time_edge_collapse))
+    logging.debug(">> time_area_collapse: {0}".format(time_area_collapse))
+#    o, d, a = tri.vertices
+#    times = []
+#    time = collapse_time_edge(o, d)
+#    times.append(time)
+#    time = collapse_time_edge(d, a)
+#    times.append(time)
+#    time = collapse_time_edge(a, o)
+#    times.append(time)
+#    logging.debug(sorted(times))
+#    #
+#    time = sieve(get_unique_times(times), now)
+#    logging.debug(time)
+#        raise NotImplementedError('not a poiint collapse')
 #     dists = [math.sqrt(d.distance2_at(a, time)),
 #              math.sqrt(a.distance2_at(o, time)),
 #              math.sqrt(o.distance2_at(d, time))]
@@ -540,29 +800,31 @@ def compute_event_3triangle(tri, now, sieve):
 # #     assert len(times) <= 1, times
 #     # we take this event only when it is >= now (now or in the future)
 #     zeros = map(near_zero, dists)
-    if time:  # and all(zeros):
-        # time = find_gte(times, now) # can raise ValueError if no value found
-        sides = tuple(range(3))
-#         pa = o.position_at(time)
-#         pb = d.position_at(time)
-#         pc = a.position_at(time)
-#         dists = [d.distance2_at(a, time),
-#                  a.distance2_at(o, time),
-#                  o.distance2_at(d, time)]
-# #         assert all_close(dists, abs_tol=1e-8)
-#         avg = []
-#         for i in range(2):
-#             avg.append(sum(map(lambda x: x[i], (pa, pb, pc))) / 3.)
+    if time_edge_collapse:  # and all(zeros):
+        sides = tuple(indices)
+        if len(sides) == 0:
+            logging.error('3-triangle: override # of sides collapsing -- instead of 0!, we collapse all 3')
+            sides = list(range(3))
+        # somehow we missed 1 edge collapse (due to distance tolerance)
+        if len(sides) == 2:
+            logging.warning('3-triangle: override # of sides collapsing -- instead of 2, we collapse all 3')
+            sides = list(range(3))
+#        sides = range(3)
         return Event(
-            when=time, tri=tri, side=sides, tp="edge", tri_tp=tri.type)
+            when=time_edge_collapse , tri=tri, side=sides, tp="edge", tri_tp=tri.type)
+    elif time_area_collapse:
+        logging.error('3-triangle: using area collapse time as fall back not to miss out')
+        sides = list(range(3))
+        return Event(
+            when=time_area_collapse , tri=tri, side=sides, tp="edge", tri_tp=tri.type)
 #     elif time and zeros.count(True) == 1:
 #         sides = (dists.index(max(dists)),)
 #         return Event(
 #             when=time, tri=tri, side=sides, tp="split", tri_tp=tri.type)
     else:
         return None
-        # return Event(
-        #     when=now, tri=tri, side=tuple(range(3)), tp="edge", tri_tp=tri.type)
+#        return Event(
+#             when=now, tri=tri, side=tuple(range(3)), tp="edge", tri_tp=tri.type)
 
 
 def compute_event_inftriangle(tri, now, sieve):
@@ -570,7 +832,7 @@ def compute_event_inftriangle(tri, now, sieve):
         if isinstance(v, InfiniteVertex):
             break
     side = inf_idx
-    logging.debug(repr(tri))
+#    logging.debug(repr(tri))
     logging.debug("side " + str(side))
     o, d, a = tri.vertices[cw(side)], \
         tri.vertices[ccw(side)], \
@@ -644,6 +906,24 @@ def compute_collapse_time(tri, now=0, sieve=find_gte):
         elif tp == 3:
             logging.debug(" event for 3-triangle")
             event = compute_event_3triangle(tri, now, sieve)
+
+        # if we do not have any infinite fast vertices
+        # the triangle halfway between now and when it will collapse according to the event
+        # should have consistent orientation of its vertices
+        if event is not None and all(not v.inf_fast for v in tri.vertices) == True:
+            assert event is not None
+            verts = [v.position_at(((event.time - now) * 0.5) + now) for v in tri.vertices]
+            from geompreds import orient2d
+            if orient2d(*verts) < 0:
+                logging.warning("TRIANGLE TAKES POSSIBLY WRONG ORIENTATION -- we may miss out on handling an event -- triangle turns wrong way")
+                # raise ValueError('wrongly turning triangle, we maybe will miss an event; New event: {}'.format(event))
+        if event is None:
+            verts = [v.position_at(now + 10) for v in tri.vertices]
+            from geompreds import orient2d
+            if orient2d(*verts) < 0:
+                logging.error("TRIANGLE HAS WRONG ORIENTATION and will not collapse -- we missed out on handling an event -- triangle turns wrong way")
+                # raise ValueError('triangle will not collapse, but turns wrongly :: we missed an event')
+
     else:
         # flip or collapse to point
         logging.debug("")
@@ -652,6 +932,9 @@ def compute_collapse_time(tri, now=0, sieve=find_gte):
     if event is not None:
         tri.event = event
     logging.debug("{} --- {}".format(id(tri), event))
+
+
+            # raise NotImplementedError('we missed an event as triangle is not valid until next event time')
     return event
 
 
@@ -665,9 +948,9 @@ def compute_new_edge_collapse_event(tri, time):
     Somehow we know that one or more of the edges of this triangle do collapse at this moment
     """
     o, d, a = tri.vertices
-    dists = map(math.sqrt, [d.distance2_at(a, time),
+    dists = list(map(math.sqrt, [d.distance2_at(a, time),
              a.distance2_at(o, time),
-             o.distance2_at(d, time)])
+             o.distance2_at(d, time)]))
     logging.debug("distances at time = {1}: {0}".format(dists, time))
     zeros = [near_zero(dist - min(dists)) for dist in dists]
     logging.debug("near zero at time = {1}: {0}".format(zeros, time))
@@ -1152,12 +1435,12 @@ def test_compute_collapse_times():
     do_test = True
     if do_test:
         for i, (now, tri, expected) in enumerate(cases, start=0):
-            print
-            print "Case", i
-            print "=" * 10
+            print()
+            print(( "Case", i))
+            print(( "=" * 10))
             visualize_collapse(tri, now)
             evt = compute_collapse_time(tri, now)
-            print evt, expected
+            print(( evt, expected))
             if evt is not None:
                 if expected is None:
                     assert False, "incorrect None"
@@ -1175,7 +1458,7 @@ def test_compute_collapse_times():
 
     try:
         evt = compute_collapse_time(tri, now)
-        print evt
+        print (evt)
     except:
         pass
     visualize_collapse(tri, now)
@@ -1212,13 +1495,13 @@ def test_compute_collapse_times():
 
 def test_solve():
     A, B, C = 3.0, 4.5, 9.0
-    print solve_quadratic(A, B, C) == []
+    print((solve_quadratic(A, B, C) == []))
 
     A, B, C = 2.0, 0.0, 0.0
-    print solve_quadratic(A, B, C) == [0.0]
+    print((solve_quadratic(A, B, C) == [0.0]))
 
     A, B, C = 1.0, 3.0, 2.0
-    print solve_quadratic(A, B, C) == [-2.0, -1.0]
+    print((solve_quadratic(A, B, C) == [-2.0, -1.0]))
 
 
 def main():
@@ -1354,7 +1637,7 @@ def test_one_collapse():
     times = [now - 0.1, now+0, now+0.05, now+0.1]
     for time in sorted(times):
         visualize_collapse(tri, time)
-        raw_input("paused at " + str(time))
+        input("paused at " + str(time))
 
 
 if __name__ == "__main__":

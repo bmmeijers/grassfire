@@ -141,17 +141,20 @@ def angle(v1, v2):
 def angle_unit(v1, v2):
     """angle between 2 *unit* vectors
 
-    does not compute the norm(v1)*norm(v2), as it would be 1
+    does not compute the norm(v1)*norm(v2), as it is assumed to be 1
     """
     d = dot(v1, v2)
     if d > 1.0 or d < -1.0:
-        logging.warning("dot not in [-1, 1] -- clamp")
+        logging.debug("dot not in [-1, 1] -- clamp")
     d = max(-1.0, min(1.0, d))
     acos_d = math.acos(d)
     logging.debug(" d : {}".format(d))
     logging.debug(" acos(d) : {}".format(acos_d))
+    logging.debug("  › near zero? {}".format(near_zero(acos_d - math.pi)))
     logging.debug(" degrees(acos(d)): {}°".format(math.degrees(acos_d)))
-    return acos_d
+    logging.debug("  › d < cos(179.999)? {}".format(d < math.cos(math.radians(179.9999)) ))
+    
+    return d, acos_d
 
 
 def bisector(u1, u2):
@@ -164,12 +167,15 @@ def bisector(u1, u2):
     """
     direction = add(u1, u2)
     logging.debug(" direction: {}".format(direction))
-    if all(map(near_zero, direction)):
-        logging.debug(" vectors cancel each other out -> parallel wavefront!")
+    d, acos_d = angle_unit(u1, u2)
+ 
+#    if all(map(near_zero, direction)) or near_zero(acos_d - math.pi): # 
+    if all(map(near_zero, direction)) or (near_zero(acos_d - math.pi) or d < math.cos(math.radians(179.9999))):
+        logging.debug(" vectors cancel each other out / angle ~180° -> parallel wavefront!")
         return (0, 0)
         #raise ValueError("parallel wavefront")
 ###    logging.debug(" unit(direction): {}".format(unit(direction)))
-    alpha = 0.5 * math.pi + 0.5 * angle_unit(u1, u2)
+    alpha = 0.5 * math.pi + 0.5 * acos_d
     logging.debug(" degrees(alpha): {}°".format(math.degrees(alpha)))
     magnitude = math.sin(alpha)
     logging.debug(" magnitude: {}".format(magnitude))
@@ -215,14 +221,14 @@ def test():
     assert angle((1, 1), (-1, 1)) == math.pi * 0.5
 
     # test almost equal
-    print unit((1, 1)) == (0.5 * math.sqrt(2.), 0.5 * math.sqrt(2.))
+#    print unit((1, 1)) == (0.5 * math.sqrt(2.), 0.5 * math.sqrt(2.))
 
 #     assert distance((0, 0), (3, 4)) == 5
 #     assert distance2((0, 0), (3, 4)) == 25
 
 
 def test_bisector():
-    print "Bisector", bisector((1., 0.), (0., 1.))
+#    print "Bisector", bisector((1., 0.), (0., 1.))
 
     v1 = make_vector((0, 0), (1, -1))
     u1 = unit(rotate90cw(v1))
@@ -231,8 +237,8 @@ def test_bisector():
     u2 = unit(rotate90cw(v2))
 
     # test almost equal
-    print bisector(u1, u2)
-    print (0., math.sqrt(2.))
+#    print bisector(u1, u2)
+#    print (0., math.sqrt(2.))
 #
     v1 = make_vector((0, 0), (0.01, -10))
     v2 = make_vector((-0.01, -10), (0, 0))
@@ -240,16 +246,16 @@ def test_bisector():
     u1 = unit(rotate90cw(v1))
     u2 = unit(rotate90cw(v2))
 
-    print u1
-    print u2
-    print bisector(u1, u2)
+#    print u1
+#    print u2
+#    print bisector(u1, u2)
 
-    print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((0, 0),
-                                                            (0.01, -1000))
-    print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((-0.01, -1000),
-                                                            (0, 0))
-    print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((0, 0),
-                                                            bisector(u1, u2))
+#    print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((0, 0),
+#                                                            (0.01, -1000))
+#    print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((-0.01, -1000),
+#                                                            (0, 0))
+#    print "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]})".format((0, 0),
+#                                                            bisector(u1, u2))
 #     print "angle between vectors", angle(u1, u2), math.degrees(angle(u1, u2))
 #     alpha = 0.5 * math.pi + 0.5 * angle(u1, u2)
 #     print math.degrees(alpha)

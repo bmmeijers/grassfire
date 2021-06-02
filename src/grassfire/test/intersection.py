@@ -153,4 +153,4 @@ if __name__ == "__main__":
     test_small()
     segments = [[(0, 0), (10, 10)],
                 [(5, -10), (5, 10)]]
-    print segments_intersecting(segments)
+    print (segments_intersecting(segments))

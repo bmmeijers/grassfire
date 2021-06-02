@@ -125,9 +125,9 @@ class TestSimpleParallelEvents(unittest.TestCase):
             conv.add_segment(start, end)
         skel = calc_skel(conv, pause=PAUSE, output=OUTPUT, shrink=True)
         # check the amount of skeleton nodes
-        assert len(skel.sk_nodes) == 16, len(skel.sk_nodes)
+        assert len(skel.sk_nodes) == 15, len(skel.sk_nodes)
         # check the amount of segments in the skeleton
-        assert len(skel.segments()) == 23, len(skel.segments())
+        assert len(skel.segments()) == 22, len(skel.segments())
         # check the amount of kinetic vertices that are (not) stopped
         assert len(filter(lambda v: v.stops_at is None, skel.vertices)) == 6
         assert len(

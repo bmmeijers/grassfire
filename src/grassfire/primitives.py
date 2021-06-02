@@ -1,5 +1,6 @@
 from collections import namedtuple
 from grassfire.calc import near_zero
+from grassfire.vectorops import norm
 
 import logging
 
@@ -35,26 +36,42 @@ class Skeleton(object):
         # kinetic primitives --> (traced) wavefront
         self.vertices = []
         self.triangles = []
+        # when we 'shrink' the geometry to get more floating point accuracy, 
+        # we can get back with this object to the original location
+        self.transform = None
+
 
     def segments(self):
         """ """
         segments = []
         for v in self.vertices:
             if v.stops_at is not None:
-                s = (v.start_node.pos, v.stop_node.pos)
+                if v.start_node is v.stop_node:
+                    logging.info('skipping segment with same start / end node')
+                    continue
+                else:
+                    if self.transform is not None:
+                        pt = self.transform.backward(v.start_node.pos), self.transform.backward(v.stop_node.pos)
+                    else:
+                        pt = (v.start_node.pos, v.stop_node.pos)
+                    s = (pt, (v.start_node.info, v.stop_node.info))
             else:
-                s = (v.start_node.pos, v.position_at(1000))
+                s = ((v.start_node.pos, v.position_at(1000)), (v.start_node.info, None))
             segments.append(s)
         return segments
 
-Vector = namedtuple("Vector", "x y")
-
 
 class SkeletonNode(object):
-    __slots__ = ("pos", "info",)
+    __slots__ = ("pos", "step", "info",)
 
-    def __init__(self, pos, info=None):
+    def __init__(self, pos, step, info=None):
         self.pos = pos
+
+        x, y = pos
+        assert -2.0 <= x <= 2.0, (x, "construct")
+        assert -2.0 <= y <= 2.0, (y, "construct")
+
+        self.step = step
         self.info = info  # the info of the vertex in the triangulation
 
     def position_at(self, time):
@@ -68,7 +85,7 @@ class KineticVertex(object):
     __slots__ = ("origin", "velocity",
                  "starts_at", "stops_at",
                  "start_node", "stop_node",
-                 "_left", "_right", "info", "ul", "ur", "inf_fast", "internal"
+                 "_left", "_right", "info", "ul", "ur", "inf_fast", "internal", "wfl", "wfr", "turn"
                  )
 
     def __init__(self, origin=None, velocity=None, ul=None, ur=None):
@@ -91,9 +108,14 @@ class KineticVertex(object):
         self.ul = ul  # unit vector of wavefront to the left
         self.ur = ur  # or right
 
+        self.wfl = None  # wavefront to the left of this vertex
+        self.wfr = None
+
         self.info = id(self)
         self.inf_fast = False  # whether this vertex moves infinitely fast
         self.internal = False
+
+        self.turn = None
 
     def __str__(self):
         # FIXME: make other method (dependent on time as argument)
@@ -105,6 +127,10 @@ class KineticVertex(object):
         """ """
         return "KineticVertex({0}, {1}, {2}, {3})".format(
             self.origin, self.velocity, self.ul, self.ur)
+
+    @property
+    def is_stopped(self):
+        return self.stop_node is not None
 
     def distance2(self, other):
         """Cartesian distance *squared* to other point """
@@ -128,27 +154,13 @@ class KineticVertex(object):
 
     def visualize_at(self, time):
         if not self.inf_fast:
-            v = tuple(self.velocity[:])
-#            logging.debug("{} {}".format(self.info, v))
-#            d = (v[0]**2 + v[1]**2)**0.5
-#            if v[0] > 100 or v[1] > 100:
-#                print(v)
-#            v0 = min(1, abs(v[0]))
-#            v1 = min(1, abs(v[1]))
-#            if v[0] < 0:
-#                v0 *= -1
-#            if v[1] < 0:
-#                v1 *= -1
-#            if v[0] > 100 or v[1] > 100:
-#                print((v0,v1))
-
-
-            if (abs(self.velocity[0]) > 50 or abs(self.velocity[1]) > 50):
-            ####    ## FIXME: position_at is used in logic as well -> should have one only for display!
-                return self.start_node.pos
-            else:
-                return (self.origin[0] + time * self.velocity[0],
-                        self.origin[1] + time * self.velocity[1])
+            ## -- if it is a high velocity vertex, render it at its start node
+            # magn = norm(self.velocity)  
+            # if magn > 10:
+            #     return self.start_node.pos
+            # else:
+            return (self.origin[0] + time * self.velocity[0],
+                    self.origin[1] + time * self.velocity[1])
         else:
             return self.start_node.pos
 
@@ -187,7 +199,7 @@ class KineticVertex(object):
     def left_at(self, time):
         """ """
         for item in self._left:
-            if (item[0] <= time and item[1] > time) or \
+            if (item[0] <= time and item[1] is not None and item[1] > time) or \
                     (item[0] <= time and item[1] is None):
                 return item[2]
         return None
@@ -195,7 +207,7 @@ class KineticVertex(object):
     def right_at(self, time):
         """ """
         for item in self._right:
-            if (item[0] <= time and item[1] > time) or \
+            if (item[0] <= time and item[1] is not None and item[1] > time) or \
                     (item[0] <= time and item[1] is None):
                 return item[2]
         return None
@@ -248,9 +260,10 @@ class KineticTriangle(object):
         self.vertices = [v0, v1, v2]
         self.neighbours = [n0, n1, n2]
         self.wavefront_directions = [None, None, None]
+        self.wavefront_support_lines = [None, None, None]
         self.event = None  # point back to event,
-        # note this might prevent
-        # garbage collection (strong cycle)
+                           # note this might prevent
+                           # garbage collection (strong cycle)
         self.info = None
         self.stops_at = None
         self.internal = False
@@ -377,7 +390,7 @@ def test_perp():
     kvc.velocity = (0., 1.)
     kt.vertices = [kva, kvb, kvc]
 
-    print kt.str_at(10)
+    print(( kt.str_at(10)))
 
 # test_perp()
 #     vec = tuple(map(sub, t.vertices[e], t.vertices[s]))

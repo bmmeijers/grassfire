@@ -253,7 +253,7 @@ def _test1():
     """Create some points on a line that is rotated in n steps around (0, 0)
     Independent from this rotation, the residuals found should be near zero
     """
-#     import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
     from math import pi, cos, sin
     n = 800
     PI2 = 2.0*pi
@@ -268,13 +268,13 @@ def _test1():
         are_zero = are_residuals_near_zero(pts)
         # print beta, are_zero
         assert are_zero
-#         plt.scatter([pt[0] for pt in pts], [pt[1] for pt in pts], c='red',
-#                     marker='s', label = 'input')
-#         nxs, nys = residuals(pts)
-#         #plt.scatter(xsadj, ysadj, c='green', marker='o', label = 'adjusted')
-#         plt.scatter(nxs, nys, label = 'new')
-#     #plt.legend()
-#     plt.show()
+        plt.scatter([pt[0] for pt in pts], [pt[1] for pt in pts], c='red',
+                    marker='s', label = 'input')
+        # nxs, nys = residuals(pts)
+        #plt.scatter(xsadj, ysadj, c='green', marker='o', label = 'adjusted')
+        # plt.scatter(nxs, nys, label = 'new')
+    #plt.legend()
+    plt.show()
 
 
 def _test2():
@@ -334,7 +334,7 @@ def _test5():
         x = r*cos(beta)
         y = r*sin(beta)
         pts.append((x, y))
-    print regress(pts)
+    print (regress(pts))
     are_zero = are_residuals_near_zero(pts)
 
 

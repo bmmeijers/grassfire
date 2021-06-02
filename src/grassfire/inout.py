@@ -3,7 +3,8 @@ from tri.delaunay.tds import Edge
 from tri.delaunay.iter import TriangleIterator, FiniteEdgeIterator
 import logging
 
-from grassfire.vectorops import mul, dist, add
+from grassfire.vectorops import mul, dist, add, unit, norm
+
 # ------------------------------------------------------------------------------
 # output
 
@@ -23,7 +24,15 @@ def output_triangles_at_T(tri, T, fh):
         if t is None:
             continue
         if t.stops_at is None:
-            fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5};{7}\n".format(id(t), t.visualize_at(T), [(id(n), n.info if n is not None and n is not True else "") for n in t.neighbours], [(id(v), v.info if v is not None else "") for v in t.vertices], t.is_finite, t.info, T, t.wavefront_directions))
+            fh.write("{0};{6};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5};{7}\n".format(
+                id(t),
+                t.visualize_at(T),
+                [(id(n), n.info if n is not None and n is not True else "") for n in t.neighbours],
+                [(id(v), v.info if v is not None else "") for v in t.vertices],
+                t.is_finite,
+                t.info,
+                t.event.time if t.event is not None else "-1",
+                t.wavefront_directions))
         else:
             # we skip the triangle if it has a timestamp associated
             pass
@@ -78,7 +87,7 @@ def output_dt(dt):
         output_edges([e for e in FiniteEdgeIterator(dt, True)], fh)
 
 
-def output_offsets(skel, now=1000, ct=1000):
+def output_offsets(skel, now=1000, ct=5):
     """ """
     logging.debug("offsets for t={}, ct={}".format(now, ct))
     # now = 10
@@ -146,9 +155,67 @@ def output_skel(skel, when):
             fh.write("POINT({0[0]} {0[1]})\n".format(n.pos))
 
 
+
+
+# ------------------------------------------------------------------------------
+# debugging
+_is_hook_qgis_shown = False
+def notify_qgis():
+    global _is_hook_qgis_shown
+    import random
+    import time
+    import os
+    file_nm = "/tmp/signal"
+    with open(file_nm, "w") as fh:
+        fh.write("{}".format(random.randint(0, 1000)))
+    os.system("touch {}".format(file_nm))
+    print('Notified QGIS via file: {}'.format(file_nm))
+    
+    time.sleep(0.01)
+    if not _is_hook_qgis_shown:
+        enter_in_qgis = """
+from PyQt5.QtCore import QFileSystemWatcher
+watcher = QFileSystemWatcher()
+watcher.addPath('{}')
+
+def onFileChanged():
+    print("clearing cache and redrawing" )
+    qgis.utils.iface.mapCanvas().setCachingEnabled(False)
+    qgis.utils.iface.mapCanvas().resetCachedContent()
+    qgis.utils.iface.mapCanvas().refresh()
+
+watcher.fileChanged.connect(onFileChanged)
+""".format(file_nm)
+        print("To watch in QGIS, enter in the Python console:")
+        print(enter_in_qgis)
+        _is_hook_qgis_shown = True
+
+
+def interactive_visualize(queue, skel, step, now):
+    visualize(queue, skel, now)
+    notify_qgis()
+    user_input = raw_input(str(step) + ' {' + str(now) + '} > before event (now time); "r" to rewind, any other key to continue$ ')
+    if user_input == 'r':
+        visualize(queue, skel, 0)
+        notify_qgis()
+        user_input = raw_input(str(step) + '  - at start time; "n" to now-0.1, any other key to continue$ ')
+        if user_input == 'n':
+            visualize(queue, skel, now-0.01)
+            notify_qgis()
+            user_input = raw_input(str(step) + '  - now time; paused - press a key to continue$ ')
+
+
 def visualize(queue, skel, NOW):
     """ Visualize progress by writing geometry to WKT files to be viewed with
     QGIS """
+    import os
+    if not os.path.exists('/tmpfast/support_lines.wkt'):
+        with open('/tmpfast/support_lines.wkt', 'w') as fh:
+            # from grassfire.line2d import as_wkt
+            fh.write("wkt\tlr\toriginal")
+            fh.write("\n")
+            fh.write("LINESTRING(0 0, 10 0)\tl\tTrue")
+
     with open('/tmpfast/queue.wkt', 'w') as fh:
         fh.write("pos;wkt;evttype;evttime;tritype;id;n0;n1;n2;finite;info;wavefront_directions\n")
         for i, evt in enumerate(queue):
@@ -172,46 +239,52 @@ def visualize(queue, skel, NOW):
         output_triangles_at_T(skel.triangles, NOW, fh)
 
     with open("/tmpfast/sknodes_progress.wkt", 'w') as fh:
-        fh.write("wkt\n")
+        fh.write("wkt;step;info\n")
         for node in skel.sk_nodes:
-            fh.write("POINT({0[0]} {0[1]})\n".format(node.pos))
+            fh.write("POINT({0[0]} {0[1]});{1};{2}\n".format(node.pos, node.step, node.info))
 
     with open("/tmpfast/bisectors_progress.wkt", "w") as bisector_fh:
-        bisector_fh.write("wkt;info;velocity;unitvec_left;unitvec_right\n")
+        bisector_fh.write("wkt;info;velocity;unitvec_left;unitvec_right;velocity_magnitude;turn\n")
         for kvertex in skel.vertices:
             if kvertex.stops_at is None:
                 p1 = kvertex.visualize_at(NOW)
                 bi = kvertex.velocity
+                if norm(bi) != 0.:
+                    end = add(p1, mul(unit(bi), 0.01))
+                else:
+                    end = p1
                 bisector_fh.write(
-                    "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{4};{5}\n".format(
-                        p1, add(p1,
-                                mul(bi, 1/2140.1) # 0.0005)
-                                ),kvertex.info,kvertex.velocity, kvertex.ul, kvertex.ur))
+                    "LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{4};{5};{6};{7}\n".format(
+                        p1, end, kvertex.info,kvertex.velocity, kvertex.ul, kvertex.ur, norm(kvertex.velocity), kvertex.turn))
     with open("/tmpfast/segments_progress.wkt", "w") as fh:
-        fh.write("id;wkt;finished;length\n")
+        fh.write("id;wkt;finished;length;info\n")
         for kvertex in skel.vertices:
             if kvertex.start_node is not None and kvertex.stop_node is not None:
                 start, end = kvertex.start_node.pos, kvertex.stop_node.pos
                 fh.write(
-                    "{4};LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3}\n".format(
+                    "{4};LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{5}\n".format(
                         start,
                         end,
                         True,
                         dist(
                             start,
                             end),
-                        id(kvertex)))
+                        id(kvertex),
+                        kvertex.info
+                        ))
             elif kvertex.start_node is not None and kvertex.stop_node is None:
                 start, end = kvertex.start_node.pos, kvertex.visualize_at(NOW)
                 fh.write(
-                    "{4};LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3}\n".format(
+                    "{4};LINESTRING({0[0]} {0[1]}, {1[0]} {1[1]});{2};{3};{5}\n".format(
                         start,
                         end,
                         False,
                         dist(
                             start,
                             end),
-                        id(kvertex)))
+                        id(kvertex),
+                        kvertex.info
+                        ))
 
     with open("/tmpfast/vertices1_progress.wkt", 'w') as fh1:
         fh1.write("id;wkt;leftid;rightid;info\n")

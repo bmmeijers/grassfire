@@ -1,19 +1,31 @@
+# -*- coding: utf-8 -*-
 import logging
 
 from grassfire.primitives import SkeletonNode, KineticVertex
 
 from grassfire.collapse import compute_collapse_time, \
     compute_new_edge_collapse_event
-from grassfire.calc import near_zero
-from grassfire.vectorops import mul, add, bisector
-
+from grassfire.calc import near_zero, is_close
+from grassfire.vectorops import mul, add, bisector, dist
+from grassfire.inout import notify_qgis, interactive_visualize
 
 # ------------------------------------------------------------------------------
 # Functions common for event handling
 
 
-def stop_kvertices(V, now):
-    """ Stop a list of kinetic vertices at time t, creating a new node.
+def is_infinitely_fast(fan, now):
+    """Determine whether all triangles in the fan collapse
+    at the same time, if so, the vertex needs to be infinitely fast"""
+    times = [tri.event.time if tri.event is not None else -1 for tri in fan]
+    is_inf_fast = all(map(near_zero, [time - now for time in times]))
+    if fan and is_inf_fast:
+        return True
+    else:
+        return False
+
+
+def stop_kvertices(V, step, now, pos=None):
+    """ Stop a list of kinetic vertices *V* at time *now*, creating a new node.
 
     If one of the vertices was already stopped before, at a node, use that
     skeleton node
@@ -42,6 +54,7 @@ def stop_kvertices(V, now):
             logging.debug("Stop_node of vertex")
             sk_node = v.stop_node
         elif time_close:
+            logging.debug("Time close")
             # FIXME: for the parallel case this code is problematic
             # as start and end point will be at same time
             assert not stopped
@@ -59,19 +72,22 @@ def stop_kvertices(V, now):
             # assert at_same_location([v, sk_node], now)
         is_new_node = False
     else:
-        logging.debug("Make new skeleton node")
-        l = [v.position_at(now) for v in V]
-        ct = len(l)
-        sumx, sumy = 0., 0.
-        for x, y in l:
-            sumx += x
-            sumy += y
-        pos = sumx / ct, sumy / ct
+        if pos is None:
+            logging.debug("Make new skeleton node")
+            l = [v.position_at(now) for v in V]
+            ct = len(l)
+            sumx, sumy = 0., 0.
+            for x, y in l:
+                sumx += x
+                sumy += y
+            pos = sumx / ct, sumy / ct
 #        for x, y in l:
 #            dx, dy = near_zero(x - pos[0]), near_zero(y - pos[1])
 #            assert dx, x - pos[0]
 #            assert dy, y - pos[1]
-        sk_node = SkeletonNode(pos)
+        else:
+            logging.debug("Make new skeleton node - using external position: {}".format(pos))
+        sk_node = SkeletonNode(pos, step)
         for v in V:
             v.stop_node = sk_node
         is_new_node = True
@@ -79,7 +95,22 @@ def stop_kvertices(V, now):
     # all vertices do have a stop node and are stopped at a certain time
     for v in V:
         assert v.stop_node is not None
+        assert v.is_stopped == True
         assert v.stops_at == now
+
+    logging.debug("POINT({0[0]} {0[1]});sknode_new_pos".format(sk_node.pos))
+
+        # the geometric embedding of the vertex and its direction should correspond
+        # only check when speed is relatively small
+###        if abs(v.velocity[0]) < 100 and abs(v.velocity[1]) < 100:
+###            d = dist(
+###                v.stop_node.position_at(v.stops_at),
+###                v.position_at(v.stops_at),
+###            )
+###            assert is_close(d, 0.0, rel_tol=1e-2, abs_tol=1e-2, method="weak"), \
+###            "mis-match between position of skeleton and position of kinetic vertex at time:" \
+###            " {}; vertex {} [{}]; dist:={}, v.velocity={}".format(v.stops_at, id(v), v.info, d, v.velocity)
+
         # FIXME:
         # should all segments in the skeleton have length
         # or do we keep a topological tree of events (where nodes
@@ -88,7 +119,7 @@ def stop_kvertices(V, now):
     return sk_node, is_new_node
 
 
-def compute_new_kvertex(ul, ur, now, sk_node, info):
+def compute_new_kvertex(ul, ur, now, sk_node, info, internal, pause=False):
     """Based on the two wavefront directions and time t=now, compute the
     velocity and position at t=0 and return a new kinetic vertex
 
@@ -98,16 +129,81 @@ def compute_new_kvertex(ul, ur, now, sk_node, info):
     kv.info = info
     kv.starts_at = now
     kv.start_node = sk_node
+    kv.internal = internal
 
     logging.debug('/=-= New vertex: {} [{}] =-=\\'.format(id(kv), kv.info))
     logging.debug('bisector calc')
     logging.debug(' ul: {}'.format(ul))
     logging.debug(' ur: {}'.format(ur))
     logging.debug(' sk_node.pos: {}'.format(sk_node.pos))
-    kv.velocity = bisector(ul, ur)
+
+    # FIXME: only in pause mode!
+    from grassfire.vectorops import angle_unit, add
+    import math
+    logging.debug(' >>> {}'.format(angle_unit(ul.w, ur.w)))
+    u1, u2 = ul.w, ur.w
+    direction = add(u1, u2)
+    logging.debug(" direction: {}".format(direction))
+    d, acos_d = angle_unit(u1, u2)
+
+# FIXME: replace with new api: line.at_time(0).visualize()  //  line.at_time(t).visualize()
+    if pause:
+        with open('/tmpfast/support_lines.wkt', 'w') as fh:
+            from grassfire.inout import interactive_visualize
+            fh.write("wkt\tlr\toriginal")
+            fh.write("\n")
+
+            # -- bisector line --
+            # b = ul.bisector(ur)
+            b = ul.translated(mul(ul.w,now)).bisector( ur.translated(mul(ur.w,now)) )
+            bperp = b.perpendicular(sk_node.pos)
+
+            for l, lr, original in zip([ul, ur, ul.translated(mul(ul.w,now)), ur.translated(mul(ur.w,now)), b, bperp], ["l", "r", "l", "r", "b", "b"], [True, True, False, False, None, None]):
+                fh.write(l.at_time(0).visualize())
+                fh.write("\t")
+                fh.write(lr)
+                fh.write("\t")
+                fh.write(str(original))
+                fh.write("\n")
+
+
+    # check for parallel wavefronts
+    if all(map(near_zero, direction)) or near_zero(acos_d - math.pi) or d < math.cos(math.radians(179.999999)):
+        logging.debug(" OVERRULED - vectors cancel each other out / angle ~180° -> parallel wavefront!")
+        bi = (0, 0)
+    else:
+        from grassfire.line2d import LineLineIntersector, make_vector, LineLineIntersectionResult
+        intersect = LineLineIntersector(ul, ur)
+        tp = intersect.intersection_type()
+        if tp == LineLineIntersectionResult.NO_INTERSECTION:
+            bi = (0, 0)
+        elif tp == LineLineIntersectionResult.POINT:
+            pos_at_t0 = intersect.result
+            ul_t = ul.translated(ul.w)
+            ur_t = ur.translated(ur.w)
+            intersect_t = LineLineIntersector(ul_t, ur_t)
+            assert intersect_t.intersection_type() == 1
+            bi = make_vector(end=intersect_t.result, start=pos_at_t0)
+        elif tp == LineLineIntersectionResult.LINE:
+            # this would mean original overlapping wavefronts... 
+            # -> parallel at left / right of a kvertex
+            # FIXME: would it be possible here to get to original position that defined the line?
+            bi = tuple(ul.w[:])
+            neg_velo = mul(mul(bi, -1.0), now)
+            pos_at_t0 = add(sk_node.pos, neg_velo)
+
+    kv.velocity = bi #was: bisector(ul, ur)
     logging.debug(' kv.velocity: {}'.format(kv.velocity))
+    from grassfire.vectorops import norm
+    magn_v = norm(kv.velocity)
+    logging.debug(' magnitude of velocity: {}'.format(magn_v))
     logging.debug('\=-= New vertex =-=/')
 
+    # if magn_v > 1000000:
+    #     logging.debug(" OVERRULED - super fast vertex angle ~180° -> parallel wavefront!")
+    #     kv.velocity = (0,0)
+
+    
     # compute where this vertex would have been at time t=0
     # we set this vertex as infinitely fast, if velocity in one of the
     # directions is really high, or when the bisectors of adjacent
@@ -116,8 +212,8 @@ def compute_new_kvertex(ul, ur, now, sk_node, info):
         kv.inf_fast = True
         kv.origin = sk_node.pos
     else:
-        neg_velo = mul(mul(kv.velocity, -1.0), now)
-        pos_at_t0 = add(sk_node.pos, neg_velo)
+#        neg_velo = mul(mul(kv.velocity, -1.0), now)
+#        pos_at_t0 = add(sk_node.pos, neg_velo)
         kv.origin = pos_at_t0
     kv.ul = ul
     kv.ur = ur
@@ -148,10 +244,29 @@ def replace_kvertex(t, v, newv, now, direction, queue, immediate):
     """
     logging.debug("replace_kvertex, start at: {0} [{1}] dir: {2}".format(id(t), t.info, direction))
     fan = []
+    first = True
     while t is not None:
         # assert t.stops_at is None, "{}: {}".format(
         #     id(t), [id(n) for n in t.neighbours])
         logging.debug(" @ {} [{}]".format(id(t), t.info))
+        # FIXME:
+        # if we have an event with the same time as now,
+        # we should actually handle it
+        logging.debug(t.event)
+        if t.event is not None and near_zero(now - t.event.time):
+            logging.debug(near_zero(now - t.event.time))
+            logging.debug(""" 
+            
+            SAME SAME TIME... ARE WE PARALLEL?
+            
+            """)
+            if t.event.tp == 'flip':
+                logging.debug(t.neighbours[t.event.side[0]]) # -- can have become None
+                # raw_input
+                # if t.neighbours.count(None) < 2:
+                logging.error('Error with current event -- as we do not handle flip now, we run the risk of inconsistency -- in fan: {0} $'.format(t.event))
+                    # raw_input('paused $$')
+
         side = t.vertices.index(v)
         fan.append(t)
         t.vertices[side] = newv
@@ -188,9 +303,13 @@ def replace_in_queue(t, now, queue, immediate):
             "triangle #{0} without event not removed from queue".format(
                 id(t)))
 
-    logging.debug(" collapse time computation for: {}".format(str(repr(t)).replace(",",",\n\t")))
+###    logging.debug(" collapse time computation for: {}".format(str(repr(t)).replace(",",",\n\t")))
     e = compute_collapse_time(t, now)
     if e is not None:
+        # if t.info in (548,550):
+        #     logging.debug("""
+        #     >>>
+        #     """)
         logging.debug("new event in queue {}".format(e))
         queue.add(e)
     else:
@@ -235,6 +354,7 @@ def schedule_immediately(tri, now, queue, immediate):
     event is added to the immediate queue.
 
     """
+    logging.debug("Scheduling triangle [{}] for direct collapse".format(tri.info))
 
     # FIXME: should we not look at just the other side of the triangle?
     # so, make explicit which side of this triangle now collapses?

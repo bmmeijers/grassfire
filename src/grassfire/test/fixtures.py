@@ -259,7 +259,7 @@ def dented3():
     ]
     conv = ToPointsAndSegments()
     conv.add_linestring(ln)
-    return conv, 54, 35, 10
+    return conv, 52, 35, 10
 
 
 def tiny_v():
@@ -1017,7 +1017,7 @@ def test_tudelft_logo():
                 dedup.append(cur)
         dedup += [dedup[0]]
         conv.add_polygon([dedup])
-    return conv, 1399, 1043, 14
+    return conv, 1398, 1043, 14
 
 
 def test_tudelft_logo_E():
@@ -1331,7 +1331,7 @@ def test_letter_h_bottom_halfleft():
 
 
 def sfcgal_bug_111():
-    """Super large poly
+    """Rather large poly
 
     from: https://github.com/Oslandia/SFCGAL/issues/111
     """
@@ -3095,7 +3095,7 @@ def sfcgal_bug_138():
         ],
     ]
     conv.add_polygon(poly)
-    return conv, 136, 99, 6
+    return conv, 136, 100, 6
 
 
 def sfcgal_bug_133():
@@ -3271,7 +3271,7 @@ def koch_rec2():
     ]
     conv = ToPointsAndSegments()
     conv.add_polygon([ring])
-    return conv, 118, 67, 24
+    return conv, 114, 67, 24
 
 
 def test_capital_T():
@@ -3298,8 +3298,16 @@ def test_capital_T():
 
 def test_koch_rec3():
     """Koch snowflake curve with recursion depth of 3
+
     """
-    # contains MULTIPLE TRIANGLES IN PARALLEL FAN
+
+    ## Note, this test sometimes fails. The resulting skeleton structure does
+    ## *not* seem to be stable with respect to the number of nodes produced.
+    ## The number of nodes can be 497, 498, 499 or 500.
+
+    ## FIXME: investigate why this test is unstable
+    ## (does the input always have same number of triangles?)
+
     ring = [
         (0.0, 0.0),
         (0.05555555555555554, 0.09622504486493763),
@@ -3497,7 +3505,7 @@ def test_koch_rec3():
     ]
     conv = ToPointsAndSegments()
     conv.add_polygon([ring])
-    return conv, 499, 295, 48
+    return conv, 486, 295, 48
 
 
 def corner_same_inwards():
@@ -3662,7 +3670,7 @@ def bottom_circle_top_square():
     ring.append(ring[0])
     conv = ToPointsAndSegments()
     conv.add_polygon([ring])
-    return conv, 24, 13, 10
+    return conv, 22, 13, 10
 
 
 def rect_extra_pt():
@@ -3807,7 +3815,7 @@ def rocket():
         ]
     ]
     conv.add_polygon(polygon)
-    return conv, 14, 8, 6
+    return conv, 13, 8, 6
 
 
 def multiple_parallel2():
@@ -4182,6 +4190,25 @@ def cbs_vlissingen_parallel():
     ## FIXME: not completely correct (parallel part in south contains 'snapped' segments)
     return conv, 720, 539, 5
 
+
+def test_parallel_split_event_leaves_unconstrained_edge_collapse():
+    """Polygon with many parallel edges; if split is handled before edge -> problem, as unconstrained edge collapse is not dealt with as split operation """
+    poly = [
+        [(0,0), (1,0), (1,30), (20,30), (20,31), (1,31), (1,61), (0.5, 61), (0.5,60), (0,60), (0,0)]
+    ]
+    conv = ToPointsAndSegments()
+    conv.add_polygon(poly)
+    # FIXME: the segments here can be super-short (and there are 2 nodes created in the center where there should be 1 node)
+    return conv, 25, 16, 10
+
+
+def test_failing_parallel_same_legs_3tri():
+    """Polygon from Top10NL with many parallel edges"""
+    poly = [[
+    (197205.31, 322686.259), (197201.373, 322689.668), (197197.947, 322692.635), (197194.69, 322688.47), (197149.202, 322630.307), (197127.488, 322599.891), (197115.629, 322583.279), (197119.319, 322580.84), (197122.452, 322578.766), (197145.481, 322609.39), (197191.51, 322668.125), (197205.31, 322686.259)]]
+    conv = ToPointsAndSegments()
+    conv.add_polygon(poly)
+    return conv, 31, 21, 10
 
 # def missing_event():
 #     ring = [(82.9195, 34.8762), (82.9195, 36.123),
