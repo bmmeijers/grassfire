@@ -68,8 +68,8 @@ class SkeletonNode(object):
         self.pos = pos
 
         x, y = pos
-        assert -2.0 <= x <= 2.0, (x, "construct")
-        assert -2.0 <= y <= 2.0, (y, "construct")
+        #assert -2.0 <= x <= 2.0, (x, "construct")
+        #assert -2.0 <= y <= 2.0, (y, "construct")
 
         self.step = step
         self.info = info  # the info of the vertex in the triangulation
